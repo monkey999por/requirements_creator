@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* === Overscroll === */
+html,
+body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 /* === Scrollbar === */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
@@ -34,4 +41,10 @@
 
 .dark-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #475569;
+}
+
+/* === Overscroll containment for scroll areas === */
+.custom-scrollbar,
+.dark-scrollbar {
+  overscroll-behavior: contain;
 }
