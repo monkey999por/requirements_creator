@@ -4,13 +4,15 @@ import {
   type Feature,
   fetchFeatureDetail,
   fetchFeatures,
+  fetchMode,
   fetchOverview,
   fetchSourceInfo,
 } from "../api";
 import { MarkdownPane } from "./MarkdownPane";
+import { MemoTab } from "./MemoTab";
 
-type LeftTab = "overview" | "source-info";
-type MobileTab = "overview" | "source-info" | "features";
+type LeftTab = "overview" | "source-info" | "memo";
+type MobileTab = "overview" | "source-info" | "features" | "memo";
 
 const cardContainerVariants = {
   hidden: {},
@@ -31,6 +33,11 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
   const [leftTab, setLeftTab] = useState<LeftTab>("overview");
   const [mobileTab, setMobileTab] = useState<MobileTab>("overview");
   const [loading, setLoading] = useState(true);
+  const [isDev, setIsDev] = useState(false);
+
+  useEffect(() => {
+    fetchMode().then((r) => setIsDev(r.isDev));
+  }, []);
 
   useEffect(() => {
     setSelectedFeature(null);
@@ -147,67 +154,78 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
             onClick={() => setMobileTab("features")}
             label="Features"
           />
+          <TabButton
+            active={mobileTab === "memo"}
+            onClick={() => setMobileTab("memo")}
+            label="Memo"
+          />
         </div>
         {/* Content */}
-        <div className="flex-1 overflow-y-auto dark-scrollbar p-4 bg-gray-900">
-          <AnimatePresence mode="wait">
-            {mobileTab === "features" ? (
-              <motion.div
-                key="features"
-                className="space-y-2"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                {features.map((f) => (
-                  <button
-                    type="button"
-                    key={f.id}
-                    className="w-full flex items-start gap-3 p-4 rounded-xl border border-gray-700/50 bg-gray-800/60 text-left active:bg-gray-800 transition-colors"
-                    onClick={() => setSelectedFeature(f.id)}
-                  >
-                    <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold bg-gradient-to-br from-indigo-900/40 to-purple-900/40 text-indigo-400">
-                      {f.id.split("_")[0]}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-semibold text-gray-200">{f.title}</h3>
-                      {f.summary && (
-                        <p className="mt-1 text-xs text-gray-400 leading-relaxed line-clamp-2">
-                          {f.summary}
-                        </p>
-                      )}
-                    </div>
-                    <svg
-                      className="size-4 shrink-0 mt-0.5 text-gray-600"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      aria-hidden="true"
+        {mobileTab === "memo" ? (
+          <div className="flex-1 overflow-hidden bg-gray-900">
+            <MemoTab appName={appName} isMobile={isMobile} isDev={isDev} />
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto dark-scrollbar p-4 bg-gray-900">
+            <AnimatePresence mode="wait">
+              {mobileTab === "features" ? (
+                <motion.div
+                  key="features"
+                  className="space-y-2"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {features.map((f) => (
+                    <button
+                      type="button"
+                      key={f.id}
+                      className="w-full flex items-start gap-3 p-4 rounded-xl border border-gray-700/50 bg-gray-800/60 text-left active:bg-gray-800 transition-colors"
+                      onClick={() => setSelectedFeature(f.id)}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </button>
-                ))}
-              </motion.div>
-            ) : (
-              <motion.div
-                key={mobileTab}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <MarkdownPane content={mobileTab === "overview" ? overview : sourceInfo} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+                      <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold bg-gradient-to-br from-indigo-900/40 to-purple-900/40 text-indigo-400">
+                        {f.id.split("_")[0]}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-semibold text-gray-200">{f.title}</h3>
+                        {f.summary && (
+                          <p className="mt-1 text-xs text-gray-400 leading-relaxed line-clamp-2">
+                            {f.summary}
+                          </p>
+                        )}
+                      </div>
+                      <svg
+                        className="size-4 shrink-0 mt-0.5 text-gray-600"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </button>
+                  ))}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key={mobileTab}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <MarkdownPane content={mobileTab === "overview" ? overview : sourceInfo} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
       </motion.div>
     );
   }
@@ -254,21 +272,36 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
               }}
               label="Source Info"
             />
+            <TabButton
+              active={leftTab === "memo"}
+              onClick={() => {
+                setLeftTab("memo");
+                setSelectedFeature(null);
+                setFeatureContent("");
+              }}
+              label="Memo"
+            />
           </div>
           {/* Content */}
-          <div className="flex-1 overflow-y-auto dark-scrollbar p-6 bg-gray-900">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={leftTab}
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                transition={{ duration: 0.25 }}
-              >
-                <MarkdownPane content={leftTab === "overview" ? overview : sourceInfo} />
-              </motion.div>
-            </AnimatePresence>
-          </div>
+          {leftTab === "memo" ? (
+            <div className="flex-1 overflow-hidden bg-gray-900">
+              <MemoTab appName={appName} isMobile={isMobile} isDev={isDev} />
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto dark-scrollbar p-6 bg-gray-900">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={leftTab}
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <MarkdownPane content={leftTab === "overview" ? overview : sourceInfo} />
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          )}
         </div>
 
         {/* Features一覧ペイン */}
