@@ -6,6 +6,7 @@ import { Sidebar } from "./components/Sidebar";
 export function App() {
   const [apps, setApps] = useState<string[]>([]);
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     fetchApps().then(setApps);
@@ -19,7 +20,13 @@ export function App() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
-      <Sidebar apps={apps} selected={selectedApp} onSelect={setSelectedApp} />
+      <Sidebar
+        apps={apps}
+        selected={selectedApp}
+        onSelect={setSelectedApp}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+      />
       <main className="flex-1 overflow-hidden">
         {selectedApp ? (
           <AppView key={selectedApp} appName={selectedApp} />
