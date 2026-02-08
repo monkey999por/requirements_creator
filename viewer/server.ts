@@ -7,7 +7,7 @@ import { cors } from "hono/cors";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const REQUIREMENTS_DIR = resolve(__dirname, "..", "requirements");
-const MEMO_FILE = resolve(__dirname, "..", "memo.md");
+const MEMO_FILE = join(REQUIREMENTS_DIR, "memo.md");
 const isDev = process.env.NODE_ENV !== "production";
 const port = Number(process.env.PORT) || 3001;
 
