@@ -6,8 +6,9 @@
   "description": "各種データから連想方式でアプリケーション設計を行うためのツール",
   "scripts": {
     "collect": "tsx scripts/collect.ts",
-    "extract": "tsx scripts/extract.ts",
-    "generate": "tsx scripts/generate.ts",
+    "extract": "bash scripts/extract.sh",
+    "generate": "bash scripts/generate.sh",
+    "generate:validate": "tsx scripts/validate-requirements.ts",
     "pipeline": "tsx scripts/pipeline.ts",
     "format": "biome format --write .",
     "lint": "biome lint .",
@@ -19,5 +20,9 @@
     "@types/node": "^25.2.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.4",
+    "yaml": "^2.8.2"
   }
 }

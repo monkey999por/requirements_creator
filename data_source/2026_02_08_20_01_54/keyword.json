@@ -1,0 +1,189 @@
+{
+  "generated_at": "2026-02-08T20:01:54.000Z",
+  "source_dir": "2026_02_08_20_01_54",
+  "keywords": [
+    {
+      "word": "AIエージェント自律化",
+      "category": "テクノロジー",
+      "relevance_score": 0.95,
+      "source_articles": [
+        "Sixteen Claude AI agents working together created a new C compiler - Ars Technica",
+        "OpenClaw AI chatbots are running amok — these scientists are listening in - Nature",
+        "A New Gilded Age: Big Tech goes on a $600 billion AI spending splurge - Business Insider",
+        "Nvidia Stock Jumps 8% after Jensen Huang Defends AI Capex Surge - TipRanks"
+      ],
+      "app_design_hints": [
+        "AIエージェントの行動ログを可視化・監視するダッシュボード",
+        "複数AIエージェントの協調作業を管理するオーケストレーションツール",
+        "AIエージェントの暴走を検知・停止するセーフティモニター"
+      ]
+    },
+    {
+      "word": "エシカル消費・テックボイコット",
+      "category": "ライフスタイル",
+      "relevance_score": 0.9,
+      "source_articles": [
+        "DVDs and public transit: Boycott drives people to ditch Big Tech to protest ICE - NPR",
+        "Hundreds of Google workers demand firm cuts ties with ICE - BBC"
+      ],
+      "app_design_hints": [
+        "企業の社会的責任スコアに基づいて代替サービスを提案するアプリ",
+        "エシカルな消費選択を支援する製品・サービスレコメンドエンジン",
+        "ボイコット運動の影響をリアルタイム追跡するトラッカー"
+      ]
+    },
+    {
+      "word": "情報信頼性評価",
+      "category": "テクノロジー",
+      "relevance_score": 0.88,
+      "source_articles": [
+        "A company that rates news sites says the Trump administration is strangling it - The Washington Post",
+        "There isn't even a cynical explanation for Jeff Bezos destroying The Washington Post - theverge.com"
+      ],
+      "app_design_hints": [
+        "ニュース記事の信頼性を自動スコアリングするブラウザ拡張",
+        "メディアバイアスを可視化し複数ソースを横断比較するリーダー",
+        "ファクトチェック結果を集約するプラットフォーム"
+      ]
+    },
+    {
+      "word": "暗号資産ボラティリティ",
+      "category": "ビジネス",
+      "relevance_score": 0.82,
+      "source_articles": [
+        "Bitcoin bloodbath erases Trump gains - qz.com",
+        "CFTC Staff Reissues Letter 25-40 Updating Payment Stablecoin Definition - Commodity Futures Trading Commission | CFTC (.gov)",
+        "Gold and silver volatility rattles nerves, but not convictions - KITCO"
+      ],
+      "app_design_hints": [
+        "暗号資産・貴金属の急変動をリアルタイムで感知しリスク警告するアラートアプリ",
+        "規制動向と価格変動の相関を分析するインサイトツール",
+        "ステーブルコインの安定性を監視するモニタリングダッシュボード"
+      ]
+    },
+    {
+      "word": "メディア再編・コンテンツ統合",
+      "category": "ビジネス",
+      "relevance_score": 0.78,
+      "source_articles": [
+        "US launches antitrust review of $83bn Netflix deal for Warner Bros - Financial Times",
+        "Can Disney's Josh and Dana Honeymoon Last? - Puck"
+      ],
+      "app_design_hints": [
+        "サブスクリプション疲れを解消する統合コンテンツアグリゲーター",
+        "メディア再編の影響をユーザー目線で整理する料金比較アプリ",
+        "コンテンツの独占・分散状況を可視化するマップツール"
+      ]
+    },
+    {
+      "word": "ライドシェア安全",
+      "category": "ライフスタイル",
+      "relevance_score": 0.76,
+      "source_articles": [
+        "Uber liable for damages after driver allegedly raped passenger - Mashable"
+      ],
+      "app_design_hints": [
+        "移動中のリアルタイム安全確認・緊急通報アプリ",
+        "ドライバー評価・安全スコアを横断比較するプラットフォーム",
+        "移動経路を信頼できる連絡先とリアルタイム共有するアプリ"
+      ]
+    },
+    {
+      "word": "ヘルステック規制",
+      "category": "健康",
+      "relevance_score": 0.75,
+      "source_articles": [
+        "Health Agency Refers Knockoff GLP-1 Provider Hims & Hers to Justice Department - The Wall Street Journal"
+      ],
+      "app_design_hints": [
+        "オンライン処方サービスの正規性・安全性を確認できるチェッカー",
+        "ダイエット薬・サプリの成分と規制状況を照合するデータベースアプリ",
+        "遠隔医療サービスの信頼性を評価するレビュープラットフォーム"
+      ]
+    },
+    {
+      "word": "AI広告クリエイティブ",
+      "category": "ビジネス",
+      "relevance_score": 0.72,
+      "source_articles": [
+        "From Svedka to Anthropic, brands make bold plays with AI in Super Bowl ads - TechCrunch"
+      ],
+      "app_design_hints": [
+        "AI生成広告とヒューマンメイド広告を判別するリテラシーツール",
+        "AIを活用したブランドキャンペーン効果測定ダッシュボード",
+        "中小企業向けAI広告クリエイティブ生成プラットフォーム"
+      ]
+    },
+    {
+      "word": "企業税制と雇用格差",
+      "category": "ビジネス",
+      "relevance_score": 0.7,
+      "source_articles": [
+        "Trump-GOP Law Slashes Amazon's Tax Bill by 87% as Company Fires 30,000 Workers, Profits Soar - Common Dreams"
+      ],
+      "app_design_hints": [
+        "大企業の税負担率と雇用状況を可視化する透明性ダッシュボード",
+        "企業のESG・社会的影響をスコア化して投資判断を支援するアプリ",
+        "解雇トレンドと求人市場の連動を分析するキャリア支援ツール"
+      ]
+    },
+    {
+      "word": "オーガニック子供食品D2C",
+      "category": "ライフスタイル",
+      "relevance_score": 0.65,
+      "source_articles": [
+        "Jennifer Garner's Once Upon a Farm Rises 17% After $198 Million IPO - bloomberg.com"
+      ],
+      "app_design_hints": [
+        "子供の食事・栄養管理とオーガニック食品マッチングアプリ",
+        "D2Cブランドの成長性を分析する投資家向けスクリーニングツール",
+        "子供向け食品の成分・安全性を比較するペアレントアプリ"
+      ]
+    }
+  ],
+  "trends": [
+    {
+      "theme": "AI自律化時代の信頼と監視",
+      "related_keywords": [
+        "AIエージェント自律化",
+        "情報信頼性評価",
+        "AI広告クリエイティブ"
+      ],
+      "potential_directions": [
+        "AIが生成したコンテンツ・判断の信頼性を多層的に評価するプラットフォーム",
+        "AIエージェントの行動を人間が理解可能な形で可視化する透明性ツール",
+        "AI生成物のトレーサビリティを提供する来歴追跡システム",
+        "AIの判断根拠を説明可能にし、人間との協働を最適化するインターフェース"
+      ]
+    },
+    {
+      "theme": "テック不信と倫理的代替手段の台頭",
+      "related_keywords": [
+        "エシカル消費・テックボイコット",
+        "ライドシェア安全",
+        "企業税制と雇用格差",
+        "情報信頼性評価"
+      ],
+      "potential_directions": [
+        "巨大テック企業への依存度を診断し、プライバシー重視の代替サービスを提案するアドバイザー",
+        "企業のエシカルスコアに基づいて購買・利用を支援する意思決定アプリ",
+        "分散型・オープンソース技術を活用したBig Tech代替エコシステム構築支援ツール",
+        "個人のデジタルフットプリントと企業倫理の整合性を診断するアプリ"
+      ]
+    },
+    {
+      "theme": "金融市場の不確実性と個人投資家の武装化",
+      "related_keywords": [
+        "暗号資産ボラティリティ",
+        "メディア再編・コンテンツ統合",
+        "オーガニック子供食品D2C"
+      ],
+      "potential_directions": [
+        "規制変更・政治動向と資産価格の相関をリアルタイムで分析するインテリジェンスツール",
+        "個人投資家向けに業界再編の影響をわかりやすく解説するガイドアプリ",
+        "市場のセンチメントとニュースの関連性をAIで分析するアラートシステム",
+        "IPO・M&A情報を個人投資家目線で整理するポートフォリオアドバイザー"
+      ]
+    }
+  ]
+}
