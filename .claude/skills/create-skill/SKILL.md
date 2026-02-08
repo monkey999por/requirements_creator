@@ -1,5 +1,5 @@
 ---
-name: create-skills
+name: create-skill
 description: 現在の会話でやりとりした知識・手順・ノウハウをClaude Codeスキル（SKILL.md）として永続化する。「これスキルにして」「今の手順をスキル化して」等の指示で使用。
 disable-model-invocation: true
 argument-hint: "[skill-name]"
