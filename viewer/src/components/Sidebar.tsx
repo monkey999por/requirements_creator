@@ -14,12 +14,12 @@ interface SidebarProps {
 
 const containerVariants = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.06 } },
+  visible: { transition: { staggerChildren: 0.02 } },
 };
 
 const itemVariants = {
   hidden: { opacity: 0, x: -8 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: "easeOut" } },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.15, ease: "easeOut" } },
 };
 
 const SIDEBAR_WIDTH = 256;
@@ -232,6 +232,7 @@ export function Sidebar({
             Apps
           </motion.p>
           <motion.div
+            key={apps.length}
             className="space-y-0.5"
             variants={containerVariants}
             initial="hidden"
