@@ -225,7 +225,7 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
         className="flex min-w-0 border-r border-gray-700/50"
         animate={{ flex: selectedFeature ? "0 0 50%" : "1 1 100%" }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        onClickCapture={() => {
+        onClick={() => {
           if (selectedFeature) {
             setSelectedFeature(null);
             setFeatureContent("");
@@ -307,7 +307,11 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
                     group w-full flex items-start gap-4 p-4 rounded-xl border bg-gray-800/60 text-left
                     ${selectedFeature === f.id ? "border-indigo-500/50 bg-indigo-950/30 shadow-md shadow-indigo-500/10" : "border-gray-700/50"}
                   `}
-                  onClick={() => setSelectedFeature(f.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (selectedFeature === f.id) return;
+                    setSelectedFeature(f.id);
+                  }}
                 >
                   {/* Number Badge */}
                   <motion.span
