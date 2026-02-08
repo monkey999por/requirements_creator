@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -64,6 +64,26 @@ app.get("/api/apps/:name/source-info", (c) => {
   const filePath = join(REQUIREMENTS_DIR, name, "_source_info.md");
   if (!existsSync(filePath)) return c.json({ error: "Not found" }, 404);
   return c.json({ content: readFileSync(filePath, "utf-8") });
+});
+
+app.get("/api/mode", (c) => {
+  return c.json({ isDev });
+});
+
+app.get("/api/apps/:name/memo", (c) => {
+  const name = c.req.param("name");
+  const filePath = join(REQUIREMENTS_DIR, name, "memo.md");
+  if (!existsSync(filePath)) return c.json({ content: "" });
+  return c.json({ content: readFileSync(filePath, "utf-8") });
+});
+
+app.post("/api/apps/:name/memo", async (c) => {
+  if (!isDev) return c.json({ error: "Editing is only available in dev mode" }, 403);
+  const name = c.req.param("name");
+  const filePath = join(REQUIREMENTS_DIR, name, "memo.md");
+  const body = await c.req.json<{ content: string }>();
+  writeFileSync(filePath, body.content, "utf-8");
+  return c.json({ success: true });
 });
 
 // --- Server ---
