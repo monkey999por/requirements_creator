@@ -19,7 +19,7 @@ export function App() {
   }, [apps, selectedApp]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200">
+    <div className="flex h-screen overflow-hidden bg-gray-950">
       <Sidebar
         apps={apps}
         selected={selectedApp}
@@ -27,11 +27,11 @@ export function App() {
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
       />
-      <main className="flex-1 overflow-hidden m-3 ml-0 rounded-2xl bg-white shadow-xl shadow-gray-300/50 ring-1 ring-gray-200/60">
+      <main className="flex-1 overflow-hidden mb-3 mr-3 rounded-2xl bg-gray-900 shadow-2xl shadow-black/50 ring-1 ring-gray-800">
         {selectedApp ? (
           <AppView key={selectedApp} appName={selectedApp} />
         ) : (
-          <div className="flex h-full items-center justify-center text-gray-400 text-sm">
+          <div className="flex h-full items-center justify-center text-gray-500 text-sm">
             アプリを選択してください
           </div>
         )}

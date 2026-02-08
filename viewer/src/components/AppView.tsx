@@ -61,11 +61,11 @@ export function AppView({ appName }: { appName: string }) {
           transition={{ duration: 0.3 }}
         >
           <motion.div
-            className="size-8 rounded-full border-2 border-indigo-200 border-t-indigo-500"
+            className="size-8 rounded-full border-2 border-indigo-800 border-t-indigo-400"
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
           />
-          <p className="text-xs text-gray-400">読み込み中...</p>
+          <p className="text-xs text-gray-500">読み込み中...</p>
         </motion.div>
       </div>
     );
@@ -80,7 +80,7 @@ export function AppView({ appName }: { appName: string }) {
     >
       {/* 左側: Overview/SourceInfo + Features一覧 */}
       <motion.div
-        className="flex min-w-0 border-r border-gray-200/70"
+        className="flex min-w-0 border-r border-gray-700/50"
         animate={{ flex: selectedFeature ? "0 0 50%" : "1 1 100%" }}
         transition={{ duration: 0.3, ease: "easeOut" }}
         onClickCapture={() => {
@@ -91,9 +91,9 @@ export function AppView({ appName }: { appName: string }) {
         }}
       >
         {/* Overview / Source Info ペイン */}
-        <div className="flex-1 flex flex-col min-w-0 border-r border-gray-200/70">
+        <div className="flex-1 flex flex-col min-w-0 border-r border-gray-700/50">
           {/* Tabs */}
-          <div className="flex items-center gap-1 px-4 bg-gradient-to-b from-gray-50/80 to-white border-b border-gray-200 shrink-0">
+          <div className="flex items-center gap-1 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0">
             <TabButton
               active={leftTab === "overview"}
               onClick={() => {
@@ -114,7 +114,7 @@ export function AppView({ appName }: { appName: string }) {
             />
           </div>
           {/* Content */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-white">
+          <div className="flex-1 overflow-y-auto dark-scrollbar p-6 bg-gray-900">
             <AnimatePresence mode="wait">
               <motion.div
                 key={leftTab}
@@ -132,7 +132,7 @@ export function AppView({ appName }: { appName: string }) {
         {/* Features一覧ペイン */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Tabs */}
-          <div className="flex items-center gap-1 px-4 bg-gradient-to-b from-gray-50/80 to-white border-b border-gray-200 shrink-0">
+          <div className="flex items-center gap-1 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0">
             <TabButton
               active
               onClick={() => {
@@ -143,7 +143,7 @@ export function AppView({ appName }: { appName: string }) {
             />
           </div>
           {/* Content */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-white">
+          <div className="flex-1 overflow-y-auto dark-scrollbar p-6 bg-gray-900">
             <motion.div
               className="space-y-2"
               variants={cardContainerVariants}
@@ -157,13 +157,13 @@ export function AppView({ appName }: { appName: string }) {
                   variants={cardVariants}
                   whileHover={{
                     y: -2,
-                    boxShadow: "0 10px 25px -5px rgba(99, 102, 241, 0.08)",
-                    borderColor: "#c7d2fe",
+                    boxShadow: "0 10px 25px -5px rgba(99, 102, 241, 0.15)",
+                    borderColor: "#4338ca",
                   }}
                   whileTap={{ scale: 0.995 }}
                   className={`
-                    group w-full flex items-start gap-4 p-4 rounded-xl border bg-white text-left
-                    ${selectedFeature === f.id ? "border-indigo-300 bg-indigo-50/50 shadow-md shadow-indigo-500/10" : "border-gray-100"}
+                    group w-full flex items-start gap-4 p-4 rounded-xl border bg-gray-800/60 text-left
+                    ${selectedFeature === f.id ? "border-indigo-500/50 bg-indigo-950/30 shadow-md shadow-indigo-500/10" : "border-gray-700/50"}
                   `}
                   onClick={() => setSelectedFeature(f.id)}
                 >
@@ -171,11 +171,11 @@ export function AppView({ appName }: { appName: string }) {
                   <motion.span
                     className={`
                       inline-flex size-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold
-                      ${selectedFeature === f.id ? "bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-700" : "bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-600"}
+                      ${selectedFeature === f.id ? "bg-gradient-to-br from-indigo-600/30 to-purple-600/30 text-indigo-300" : "bg-gradient-to-br from-indigo-900/40 to-purple-900/40 text-indigo-400"}
                     `}
                     whileHover={{
-                      background: "linear-gradient(to bottom right, #e0e7ff, #ede9fe)",
-                      boxShadow: "0 4px 12px rgba(99, 102, 241, 0.15)",
+                      background: "linear-gradient(to bottom right, #312e81, #4c1d95)",
+                      boxShadow: "0 4px 12px rgba(99, 102, 241, 0.2)",
                     }}
                     transition={{ duration: 0.2 }}
                   >
@@ -184,12 +184,12 @@ export function AppView({ appName }: { appName: string }) {
                   {/* Content */}
                   <div className="min-w-0 flex-1">
                     <h3
-                      className={`text-sm font-semibold group-hover:text-indigo-700 ${selectedFeature === f.id ? "text-indigo-700" : "text-gray-800"}`}
+                      className={`text-sm font-semibold group-hover:text-indigo-300 ${selectedFeature === f.id ? "text-indigo-300" : "text-gray-200"}`}
                     >
                       {f.title}
                     </h3>
                     {f.summary && (
-                      <p className="mt-1 text-xs text-gray-500 leading-relaxed line-clamp-2">
+                      <p className="mt-1 text-xs text-gray-400 leading-relaxed line-clamp-2">
                         {f.summary}
                       </p>
                     )}
@@ -197,7 +197,7 @@ export function AppView({ appName }: { appName: string }) {
                   {/* Arrow */}
                   <motion.svg
                     aria-hidden="true"
-                    className={`size-4 shrink-0 mt-0.5 ${selectedFeature === f.id ? "text-indigo-400" : "text-gray-300"}`}
+                    className={`size-4 shrink-0 mt-0.5 ${selectedFeature === f.id ? "text-indigo-400" : "text-gray-600"}`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -223,16 +223,16 @@ export function AppView({ appName }: { appName: string }) {
         {selectedFeature && (
           <motion.div
             key="feature-detail"
-            className="flex-1 flex flex-col min-w-0 border-l border-gray-200/70"
+            className="flex-1 flex flex-col min-w-0 border-l border-gray-700/50"
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: "50%", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
           >
             {/* Tabs */}
-            <div className="flex items-center gap-1 px-4 bg-gradient-to-b from-gray-50/80 to-white border-b border-gray-200 shrink-0">
+            <div className="flex items-center gap-1 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0">
               <motion.span
-                className="flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium text-indigo-600 border-b-2 border-indigo-500"
+                className="flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium text-indigo-400 border-b-2 border-indigo-500"
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.25 }}
@@ -255,7 +255,7 @@ export function AppView({ appName }: { appName: string }) {
               </motion.span>
               <motion.button
                 type="button"
-                className="ml-auto p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                className="ml-auto p-1.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-700/50 transition-colors"
                 onClick={() => {
                   setSelectedFeature(null);
                   setFeatureContent("");
@@ -281,7 +281,7 @@ export function AppView({ appName }: { appName: string }) {
               </motion.button>
             </div>
             {/* Content */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-white">
+            <div className="flex-1 overflow-y-auto dark-scrollbar p-6 bg-gray-900">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={selectedFeature}
@@ -315,7 +315,7 @@ function TabButton({
       type="button"
       className={`
         relative px-3 py-2.5 text-xs font-medium
-        ${active ? "text-indigo-600" : "text-gray-400 hover:text-gray-600"}
+        ${active ? "text-indigo-400" : "text-gray-500 hover:text-gray-300"}
       `}
       onClick={onClick}
     >
