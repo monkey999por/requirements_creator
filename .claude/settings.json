@@ -1,0 +1,50 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm:*)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(cat:*)",
+      "Bash(find:*)",
+      "Bash(test:*)",
+      "Bash(grep:*)",
+      "Bash(mkdir:*)",
+      "Bash(date:*)",
+      "Bash(tmux:*)",
+      "Grep(*)",
+      "LS(*)",
+      "Read(node_modules/**)",
+      "Read(src/apis/**)",
+      "Read(*)",
+      "Write(development_worker/**)",
+      "Edit(development_worker/**)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:delice.love)",
+      "Bash(gh issue create:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh issue edit:*)",
+      "Bash(gh issue comment:*)",
+      "Bash(gh issue comment edit:*)",
+      "mcp__notionApi__API-post-search",
+      "mcp__notionApi__API-post-database-query",
+      "mcp__notionApi__API-retrieve-a-page",
+      "mcp__notionApi__API-get-block-children"
+    ],
+    "deny": ["Bash(git push origin main:*)"],
+    "enabledMcpjsonServers": ["notionApi"],
+    "enableAllProjectMcpServers": true
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pnpm format"
+          }
+        ]
+      }
+    ]
+  }
+}
