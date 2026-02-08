@@ -86,7 +86,7 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
           transition={{ duration: 0.25, ease: "easeOut" }}
         >
           {/* Header with back button */}
-          <div className="flex items-center gap-2 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0">
+          <div className="flex items-center gap-2 px-4 bg-gray-900 border-b border-gray-800 shrink-0">
             <button
               type="button"
               className="p-1.5 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-700/50 transition-colors"
@@ -131,7 +131,7 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
         transition={{ duration: 0.4 }}
       >
         {/* Tabs */}
-        <div className="flex items-center gap-1 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0 overflow-x-auto">
+        <div className="flex items-center gap-1 px-4 bg-gray-900 border-b border-gray-800 shrink-0 overflow-x-auto">
           <TabButton
             active={mobileTab === "overview"}
             onClick={() => setMobileTab("overview")}

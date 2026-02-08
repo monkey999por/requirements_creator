@@ -17,9 +17,19 @@ export function App() {
 
   useEffect(() => {
     if (apps.length > 0 && !selectedApp) {
-      setSelectedApp(apps[0]);
+      const params = new URLSearchParams(window.location.search);
+      const appParam = params.get("app");
+      setSelectedApp(appParam && apps.includes(appParam) ? appParam : apps[0]);
     }
   }, [apps, selectedApp]);
+
+  useEffect(() => {
+    if (selectedApp) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("app", selectedApp);
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [selectedApp]);
 
   const handleSelectApp = (app: string) => {
     setSelectedApp(app);
