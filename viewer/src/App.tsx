@@ -7,6 +7,7 @@ import { useIsMobile } from "./hooks/useIsMobile";
 export function App() {
   const [apps, setApps] = useState<string[]>([]);
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -26,7 +27,7 @@ export function App() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-950">
       {/* Mobile header */}
       {isMobile && (
         <div className="fixed top-0 left-0 right-0 z-30 h-12 flex items-center gap-3 px-4 bg-gray-950/95 backdrop-blur-sm border-b border-gray-800">
@@ -60,16 +61,24 @@ export function App() {
         apps={apps}
         selected={selectedApp}
         onSelect={handleSelectApp}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
         isMobile={isMobile}
         mobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
       />
 
-      <main className={`flex-1 overflow-hidden ${isMobile ? "pt-12" : ""}`}>
+      <main
+        className={`flex-1 overflow-hidden ${
+          isMobile
+            ? "pt-12 bg-gray-900"
+            : "mb-3 mr-3 rounded-2xl bg-gray-900 shadow-2xl shadow-black/50 ring-1 ring-gray-800"
+        }`}
+      >
         {selectedApp ? (
           <AppView key={selectedApp} appName={selectedApp} isMobile={isMobile} />
         ) : (
-          <div className="flex h-full items-center justify-center text-gray-400 text-sm">
+          <div className="flex h-full items-center justify-center text-gray-500 text-sm">
             アプリを選択してください
           </div>
         )}

@@ -64,11 +64,11 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
           transition={{ duration: 0.3 }}
         >
           <motion.div
-            className="size-8 rounded-full border-2 border-indigo-200 border-t-indigo-500"
+            className="size-8 rounded-full border-2 border-indigo-800 border-t-indigo-400"
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
           />
-          <p className="text-xs text-gray-400">読み込み中...</p>
+          <p className="text-xs text-gray-500">読み込み中...</p>
         </motion.div>
       </div>
     );
@@ -86,10 +86,10 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
           transition={{ duration: 0.25, ease: "easeOut" }}
         >
           {/* Header with back button */}
-          <div className="flex items-center gap-2 px-4 bg-white border-b border-gray-100 shrink-0">
+          <div className="flex items-center gap-2 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0">
             <button
               type="button"
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-700/50 transition-colors"
               onClick={() => {
                 setSelectedFeature(null);
                 setFeatureContent("");
@@ -110,12 +110,12 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
                 />
               </svg>
             </button>
-            <span className="text-xs font-medium text-indigo-600 py-2.5 truncate">
+            <span className="text-xs font-medium text-indigo-400 py-2.5 truncate">
               {features.find((f) => f.id === selectedFeature)?.title ?? selectedFeature}
             </span>
           </div>
           {/* Content */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 bg-white">
+          <div className="flex-1 overflow-y-auto dark-scrollbar p-4 bg-gray-900">
             <MarkdownPane content={featureContent} />
           </div>
         </motion.div>
@@ -131,7 +131,7 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
         transition={{ duration: 0.4 }}
       >
         {/* Tabs */}
-        <div className="flex items-center gap-1 px-4 bg-white border-b border-gray-100 shrink-0 overflow-x-auto">
+        <div className="flex items-center gap-1 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0 overflow-x-auto">
           <TabButton
             active={mobileTab === "overview"}
             onClick={() => setMobileTab("overview")}
@@ -149,7 +149,7 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
           />
         </div>
         {/* Content */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 bg-white">
+        <div className="flex-1 overflow-y-auto dark-scrollbar p-4 bg-gray-900">
           <AnimatePresence mode="wait">
             {mobileTab === "features" ? (
               <motion.div
@@ -164,22 +164,22 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
                   <button
                     type="button"
                     key={f.id}
-                    className="w-full flex items-start gap-3 p-4 rounded-xl border border-gray-100 bg-white text-left active:bg-gray-50 transition-colors"
+                    className="w-full flex items-start gap-3 p-4 rounded-xl border border-gray-700/50 bg-gray-800/60 text-left active:bg-gray-800 transition-colors"
                     onClick={() => setSelectedFeature(f.id)}
                   >
-                    <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-600">
+                    <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold bg-gradient-to-br from-indigo-900/40 to-purple-900/40 text-indigo-400">
                       {f.id.split("_")[0]}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-semibold text-gray-800">{f.title}</h3>
+                      <h3 className="text-sm font-semibold text-gray-200">{f.title}</h3>
                       {f.summary && (
-                        <p className="mt-1 text-xs text-gray-500 leading-relaxed line-clamp-2">
+                        <p className="mt-1 text-xs text-gray-400 leading-relaxed line-clamp-2">
                           {f.summary}
                         </p>
                       )}
                     </div>
                     <svg
-                      className="size-4 shrink-0 mt-0.5 text-gray-300"
+                      className="size-4 shrink-0 mt-0.5 text-gray-600"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -212,7 +212,7 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
     );
   }
 
-  /* ── Desktop layout (unchanged) ── */
+  /* ── Desktop layout ── */
   return (
     <motion.div
       className="flex h-full"
@@ -220,183 +220,225 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
     >
-      {/* 左ペイン: Overview / Source Info */}
-      <div className="flex-1 flex flex-col min-w-0 border-r border-gray-200">
-        {/* Tabs */}
-        <div className="flex items-center gap-1 px-4 bg-white border-b border-gray-100 shrink-0">
-          <TabButton
-            active={leftTab === "overview"}
-            onClick={() => setLeftTab("overview")}
-            label="Overview"
-          />
-          <TabButton
-            active={leftTab === "source-info"}
-            onClick={() => setLeftTab("source-info")}
-            label="Source Info"
-          />
-        </div>
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-white">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={leftTab}
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.25 }}
-            >
-              <MarkdownPane content={leftTab === "overview" ? overview : sourceInfo} />
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
-
-      {/* 右ペイン: Features */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Tabs */}
-        <div className="flex items-center gap-1 px-4 bg-white border-b border-gray-100 shrink-0">
-          <TabButton
-            active={!selectedFeature}
-            onClick={() => {
-              setSelectedFeature(null);
-              setFeatureContent("");
-            }}
-            label="Features"
-          />
-          {selectedFeature && (
-            <motion.span
-              className="flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium text-indigo-600 border-b-2 border-indigo-500"
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.25 }}
-            >
-              <svg
-                aria-hidden="true"
-                className="size-3"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-              {features.find((f) => f.id === selectedFeature)?.title ?? selectedFeature}
-            </motion.span>
-          )}
-        </div>
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-white">
-          <AnimatePresence mode="wait">
-            {selectedFeature ? (
+      {/* 左側: Overview/SourceInfo + Features一覧 */}
+      <motion.div
+        className="flex min-w-0 border-r border-gray-700/50"
+        animate={{ flex: selectedFeature ? "0 0 50%" : "1 1 100%" }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        onClickCapture={() => {
+          if (selectedFeature) {
+            setSelectedFeature(null);
+            setFeatureContent("");
+          }
+        }}
+      >
+        {/* Overview / Source Info ペイン */}
+        <div className="flex-1 flex flex-col min-w-0 border-r border-gray-700/50">
+          {/* Tabs */}
+          <div className="flex items-center gap-1 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0">
+            <TabButton
+              active={leftTab === "overview"}
+              onClick={() => {
+                setLeftTab("overview");
+                setSelectedFeature(null);
+                setFeatureContent("");
+              }}
+              label="Overview"
+            />
+            <TabButton
+              active={leftTab === "source-info"}
+              onClick={() => {
+                setLeftTab("source-info");
+                setSelectedFeature(null);
+                setFeatureContent("");
+              }}
+              label="Source Info"
+            />
+          </div>
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto dark-scrollbar p-6 bg-gray-900">
+            <AnimatePresence mode="wait">
               <motion.div
-                key={selectedFeature}
+                key={leftTab}
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
                 transition={{ duration: 0.25 }}
               >
+                <MarkdownPane content={leftTab === "overview" ? overview : sourceInfo} />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Features一覧ペイン */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Tabs */}
+          <div className="flex items-center gap-1 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0">
+            <TabButton
+              active
+              onClick={() => {
+                setSelectedFeature(null);
+                setFeatureContent("");
+              }}
+              label="Features"
+            />
+          </div>
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto dark-scrollbar p-6 bg-gray-900">
+            <motion.div
+              className="space-y-2"
+              variants={cardContainerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {features.map((f) => (
                 <motion.button
                   type="button"
-                  onClick={() => {
-                    setSelectedFeature(null);
-                    setFeatureContent("");
+                  key={f.id}
+                  variants={cardVariants}
+                  whileHover={{
+                    y: -2,
+                    boxShadow: "0 10px 25px -5px rgba(99, 102, 241, 0.15)",
+                    borderColor: "#4338ca",
                   }}
-                  className="group inline-flex items-center gap-1.5 mb-4 px-3 py-1.5 text-xs font-medium text-gray-500 bg-gray-100 rounded-full"
-                  whileHover={{ backgroundColor: "#eef2ff", color: "#4f46e5" }}
-                  transition={{ duration: 0.2 }}
+                  whileTap={{ scale: 0.995 }}
+                  className={`
+                    group w-full flex items-start gap-4 p-4 rounded-xl border bg-gray-800/60 text-left
+                    ${selectedFeature === f.id ? "border-indigo-500/50 bg-indigo-950/30 shadow-md shadow-indigo-500/10" : "border-gray-700/50"}
+                  `}
+                  onClick={() => setSelectedFeature(f.id)}
                 >
+                  {/* Number Badge */}
+                  <motion.span
+                    className={`
+                      inline-flex size-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold
+                      ${selectedFeature === f.id ? "bg-gradient-to-br from-indigo-600/30 to-purple-600/30 text-indigo-300" : "bg-gradient-to-br from-indigo-900/40 to-purple-900/40 text-indigo-400"}
+                    `}
+                    whileHover={{
+                      background: "linear-gradient(to bottom right, #312e81, #4c1d95)",
+                      boxShadow: "0 4px 12px rgba(99, 102, 241, 0.2)",
+                    }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {f.id.split("_")[0]}
+                  </motion.span>
+                  {/* Content */}
+                  <div className="min-w-0 flex-1">
+                    <h3
+                      className={`text-sm font-semibold group-hover:text-indigo-300 ${selectedFeature === f.id ? "text-indigo-300" : "text-gray-200"}`}
+                    >
+                      {f.title}
+                    </h3>
+                    {f.summary && (
+                      <p className="mt-1 text-xs text-gray-400 leading-relaxed line-clamp-2">
+                        {f.summary}
+                      </p>
+                    )}
+                  </div>
+                  {/* Arrow */}
                   <motion.svg
                     aria-hidden="true"
-                    className="size-3"
+                    className={`size-4 shrink-0 mt-0.5 ${selectedFeature === f.id ? "text-indigo-400" : "text-gray-600"}`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
-                    whileHover={{ x: -2 }}
+                    whileHover={{ x: 2, color: "#818cf8" }}
                     transition={{ duration: 0.2 }}
                   >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M15 19l-7-7 7-7"
+                      d="M9 5l7 7-7 7"
                     />
                   </motion.svg>
-                  一覧に戻る
                 </motion.button>
-                <MarkdownPane content={featureContent} />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="feature-list"
-                className="space-y-2"
-                variants={cardContainerVariants}
-                initial="hidden"
-                animate="visible"
-              >
-                {features.map((f) => (
-                  <motion.button
-                    type="button"
-                    key={f.id}
-                    variants={cardVariants}
-                    whileHover={{
-                      y: -2,
-                      boxShadow: "0 10px 25px -5px rgba(99, 102, 241, 0.08)",
-                      borderColor: "#c7d2fe",
-                    }}
-                    whileTap={{ scale: 0.995 }}
-                    className="group w-full flex items-start gap-4 p-4 rounded-xl border border-gray-100 bg-white text-left"
-                    onClick={() => setSelectedFeature(f.id)}
-                  >
-                    {/* Number Badge */}
-                    <motion.span
-                      className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-600 text-xs font-bold"
-                      whileHover={{
-                        background: "linear-gradient(to bottom right, #e0e7ff, #ede9fe)",
-                        boxShadow: "0 4px 12px rgba(99, 102, 241, 0.15)",
-                      }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      {f.id.split("_")[0]}
-                    </motion.span>
-                    {/* Content */}
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-semibold text-gray-800 group-hover:text-indigo-700">
-                        {f.title}
-                      </h3>
-                      {f.summary && (
-                        <p className="mt-1 text-xs text-gray-500 leading-relaxed line-clamp-2">
-                          {f.summary}
-                        </p>
-                      )}
-                    </div>
-                    {/* Arrow */}
-                    <motion.svg
-                      aria-hidden="true"
-                      className="size-4 shrink-0 mt-0.5 text-gray-300"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      whileHover={{ x: 2, color: "#818cf8" }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </motion.svg>
-                  </motion.button>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
+              ))}
+            </motion.div>
+          </div>
         </div>
-      </div>
+      </motion.div>
+
+      {/* 右側: Feature詳細（選択時にスライドイン） */}
+      <AnimatePresence>
+        {selectedFeature && (
+          <motion.div
+            key="feature-detail"
+            className="flex-1 flex flex-col min-w-0 border-l border-gray-700/50"
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: "50%", opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+          >
+            {/* Tabs */}
+            <div className="flex items-center gap-1 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0">
+              <motion.span
+                className="flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium text-indigo-400 border-b-2 border-indigo-500"
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.25 }}
+              >
+                <svg
+                  aria-hidden="true"
+                  className="size-3"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+                {features.find((f) => f.id === selectedFeature)?.title ?? selectedFeature}
+              </motion.span>
+              <motion.button
+                type="button"
+                className="ml-auto p-1.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-700/50 transition-colors"
+                onClick={() => {
+                  setSelectedFeature(null);
+                  setFeatureContent("");
+                }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                title="閉じる"
+              >
+                <svg
+                  aria-hidden="true"
+                  className="size-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </motion.button>
+            </div>
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto dark-scrollbar p-6 bg-gray-900">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={selectedFeature}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                >
+                  <MarkdownPane content={featureContent} />
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -415,7 +457,7 @@ function TabButton({
       type="button"
       className={`
         relative px-3 py-2.5 text-xs font-medium whitespace-nowrap
-        ${active ? "text-indigo-600" : "text-gray-400 hover:text-gray-600"}
+        ${active ? "text-indigo-400" : "text-gray-500 hover:text-gray-300"}
       `}
       onClick={onClick}
     >
