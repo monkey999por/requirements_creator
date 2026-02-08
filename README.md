@@ -25,6 +25,12 @@
 
 1. 起動コマンドで、NewsAPIやYoutubeのランキングAPI(暫定)を使用し、data_source/yyyy_mm_dd_hh_mm_ss/*に保存します。
 
+### データ収集コマンドの確認用サンプル
+
+```
+https://newsapi.org/v2/top-headlines?country=us& category=business&apiKey=dfd363afc5ae408a85469ed74d482f2c
+```
+
 ### ディレクトリ構造（イメージ）
 
 - datasource
@@ -42,4 +48,5 @@
 
 ### サーバ側
 
-マークダウンのpreviewができるサーバ(ブラウザから見たい)
+- マークダウンのpreviewができるサーバ(ブラウザから見たい)
+- Typescript + Node.js + React で、サーバにある Markdown ファイルを読み込み(remark / unified) → ブラウザ内で複数ペインに分割して表示
