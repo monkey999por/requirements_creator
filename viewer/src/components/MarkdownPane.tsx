@@ -1,3 +1,4 @@
+import { motion } from "motion/react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -5,18 +6,34 @@ interface MarkdownPaneProps {
   content: string;
 }
 
+const skeletonVariants = {
+  pulse: {
+    opacity: [0.4, 1, 0.4],
+    transition: { duration: 1.5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" },
+  },
+};
+
 export function MarkdownPane({ content }: MarkdownPaneProps) {
   if (!content) {
     return (
-      <div className="space-y-4 animate-pulse">
-        <div className="h-6 w-48 bg-gray-100 rounded-md" />
-        <div className="h-4 w-full bg-gray-100 rounded-md" />
-        <div className="h-4 w-5/6 bg-gray-100 rounded-md" />
-        <div className="h-4 w-4/6 bg-gray-100 rounded-md" />
-        <div className="h-20 w-full bg-gray-50 rounded-md mt-6" />
-        <div className="h-4 w-full bg-gray-100 rounded-md" />
-        <div className="h-4 w-3/4 bg-gray-100 rounded-md" />
-      </div>
+      <motion.div
+        className="space-y-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        {[
+          "h-6 w-48 bg-gray-100 rounded-md",
+          "h-4 w-full bg-gray-100 rounded-md",
+          "h-4 w-5/6 bg-gray-100 rounded-md",
+          "h-4 w-4/6 bg-gray-100 rounded-md",
+          "h-20 w-full bg-gray-50 rounded-md mt-6",
+          "h-4 w-full bg-gray-100 rounded-md",
+          "h-4 w-3/4 bg-gray-100 rounded-md",
+        ].map((cls) => (
+          <motion.div key={cls} className={cls} variants={skeletonVariants} animate="pulse" />
+        ))}
+      </motion.div>
     );
   }
 
