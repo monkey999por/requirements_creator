@@ -1,0 +1,2 @@
+# requirements_creator
+各種データから連想方式でアプリケーション設計を行う
