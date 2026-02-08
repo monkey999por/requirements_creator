@@ -163,7 +163,7 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
         {/* Content */}
         {mobileTab === "memo" ? (
           <div className="flex-1 overflow-hidden bg-gray-900">
-            <MemoTab isMobile={isMobile} isDev={isDev} />
+            <MemoTab appName={appName} isMobile={isMobile} isDev={isDev} />
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto dark-scrollbar p-4 bg-gray-900">
@@ -285,7 +285,7 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
           {/* Content */}
           {leftTab === "memo" ? (
             <div className="flex-1 overflow-hidden bg-gray-900">
-              <MemoTab isMobile={isMobile} isDev={isDev} />
+              <MemoTab appName={appName} isMobile={isMobile} isDev={isDev} />
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto dark-scrollbar p-6 bg-gray-900">

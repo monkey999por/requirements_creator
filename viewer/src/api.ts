@@ -44,13 +44,13 @@ export async function fetchMode(): Promise<{ isDev: boolean }> {
   return res.json();
 }
 
-export async function fetchMemo(): Promise<MarkdownContent> {
-  const res = await fetch(`${BASE}/memo`);
+export async function fetchMemo(appName: string): Promise<MarkdownContent> {
+  const res = await fetch(`${BASE}/apps/${appName}/memo`);
   return res.json();
 }
 
-export async function saveMemo(content: string): Promise<{ success: boolean }> {
-  const res = await fetch(`${BASE}/memo`, {
+export async function saveMemo(appName: string, content: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE}/apps/${appName}/memo`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ content }),

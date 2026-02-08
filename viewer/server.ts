@@ -7,7 +7,6 @@ import { cors } from "hono/cors";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const REQUIREMENTS_DIR = resolve(__dirname, "..", "requirements");
-const MEMO_FILE = join(REQUIREMENTS_DIR, "memo.md");
 const isDev = process.env.NODE_ENV !== "production";
 const port = Number(process.env.PORT) || 3001;
 
@@ -71,15 +70,19 @@ app.get("/api/mode", (c) => {
   return c.json({ isDev });
 });
 
-app.get("/api/memo", (c) => {
-  if (!existsSync(MEMO_FILE)) return c.json({ content: "" });
-  return c.json({ content: readFileSync(MEMO_FILE, "utf-8") });
+app.get("/api/apps/:name/memo", (c) => {
+  const name = c.req.param("name");
+  const filePath = join(REQUIREMENTS_DIR, name, "memo.md");
+  if (!existsSync(filePath)) return c.json({ content: "" });
+  return c.json({ content: readFileSync(filePath, "utf-8") });
 });
 
-app.post("/api/memo", async (c) => {
+app.post("/api/apps/:name/memo", async (c) => {
   if (!isDev) return c.json({ error: "Editing is only available in dev mode" }, 403);
+  const name = c.req.param("name");
+  const filePath = join(REQUIREMENTS_DIR, name, "memo.md");
   const body = await c.req.json<{ content: string }>();
-  writeFileSync(MEMO_FILE, body.content, "utf-8");
+  writeFileSync(filePath, body.content, "utf-8");
   return c.json({ success: true });
 });
 

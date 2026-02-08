@@ -5,7 +5,15 @@ import { MarkdownPane } from "./MarkdownPane";
 
 type MemoView = "edit" | "preview";
 
-export function MemoTab({ isMobile, isDev }: { isMobile: boolean; isDev: boolean }) {
+export function MemoTab({
+  appName,
+  isMobile,
+  isDev,
+}: {
+  appName: string;
+  isMobile: boolean;
+  isDev: boolean;
+}) {
   const [content, setContent] = useState("");
   const [savedContent, setSavedContent] = useState("");
   const [view, setView] = useState<MemoView>("edit");
@@ -14,23 +22,24 @@ export function MemoTab({ isMobile, isDev }: { isMobile: boolean; isDev: boolean
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    fetchMemo()
+    setLoading(true);
+    fetchMemo(appName)
       .then((r) => {
         setContent(r.content);
         setSavedContent(r.content);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [appName]);
 
   const hasChanges = content !== savedContent;
 
   const handleSave = useCallback(async () => {
     if (!hasChanges || saving) return;
     setSaving(true);
-    await saveMemo(content);
+    await saveMemo(appName, content);
     setSavedContent(content);
     setSaving(false);
-  }, [content, hasChanges, saving]);
+  }, [appName, content, hasChanges, saving]);
 
   if (loading) {
     return (
