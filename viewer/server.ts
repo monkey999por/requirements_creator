@@ -8,7 +8,8 @@ import { cors } from "hono/cors";
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const REQUIREMENTS_DIR = resolve(__dirname, "..", "requirements");
 const isDev = process.env.NODE_ENV !== "production";
-const port = Number(process.env.PORT) || 3001;
+const basePort = Number(process.env.PORT) || 3001;
+const MAX_PORT_RETRIES = 10;
 
 // --- API ---
 const app = new Hono();
@@ -87,13 +88,30 @@ app.post("/api/apps/:name/memo", async (c) => {
 });
 
 // --- Server ---
-function handleServerError(err: NodeJS.ErrnoException) {
-  if (err.code === "EADDRINUSE") {
-    console.error(`Port ${port} is already in use.`);
-    console.error(`Run: lsof -ti :${port} | xargs kill -9`);
-    process.exit(1);
-  }
-  throw err;
+function tryListen(server: ReturnType<typeof createServer>, port: number): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const onError = (err: NodeJS.ErrnoException) => {
+      server.removeListener("listening", onListening);
+      if (err.code === "EADDRINUSE") {
+        if (port - basePort < MAX_PORT_RETRIES) {
+          const next = port + 1;
+          console.warn(`Port ${port} is in use, trying ${next}...`);
+          resolve(tryListen(server, next));
+        } else {
+          reject(new Error(`Ports ${basePort}-${port} are all in use.`));
+        }
+      } else {
+        reject(err);
+      }
+    };
+    const onListening = () => {
+      server.removeListener("error", onError);
+      resolve(port);
+    };
+    server.once("error", onError);
+    server.once("listening", onListening);
+    server.listen(port);
+  });
 }
 
 async function start() {
@@ -119,20 +137,17 @@ async function start() {
       }
     });
 
-    httpServer.on("error", handleServerError);
-    httpServer.listen(port, () => {
-      console.log(`Dev server: http://localhost:${port}`);
-    });
+    const actualPort = await tryListen(httpServer, basePort);
+    console.log(`Dev server: http://localhost:${actualPort}`);
   } else {
     // Production: Hono serves API + static files
     const { serveStatic } = await import("@hono/node-server/serve-static");
     app.use("/*", serveStatic({ root: "./dist" }));
     app.get("*", (c) => c.html(readFileSync(join(__dirname, "dist", "index.html"), "utf-8")));
 
-    const { serve } = await import("@hono/node-server");
-    const server = serve({ fetch: app.fetch, port });
-    server.on("listening", () => console.log(`Server: http://localhost:${port}`));
-    server.on("error", handleServerError);
+    const httpServer = createServer(getRequestListener(app.fetch));
+    const actualPort = await tryListen(httpServer, basePort);
+    console.log(`Server: http://localhost:${actualPort}`);
   }
 }
 
