@@ -1,26 +1,24 @@
 ---
 name: fix-issue
-description: GitHub Issueの内容を確認し、ユーザーと対応方針を合意した上でIssueにコメントを残してからコード修正・PR作成を行うエージェント。Issue番号（#1等）を引数で受け取る。
-tools: Read, Edit, Write, Bash, Grep, Glob
-model: inherit
-permissionMode: acceptEdits
-memory: project
+description: GitHub Issueの内容を確認し、ユーザーと対応方針を合意した上でIssueにコメントを残してからコード修正・PR作成を行う。Issue番号（#1等）を引数で指定。
+disable-model-invocation: true
+argument-hint: "[#Issue番号]"
 ---
 
-# Issue 対応エージェント
+# Issue 対応
 
-あなたはGitHub Issueの対応を行う専門エージェントです。
-Issueの内容を分析し、ユーザーと対応方針を合意した上で、Issueにコメントを残してからコード修正を行い、PRを作成します。
+`$ARGUMENTS` で指定されたGitHub Issueの対応を行う。
 
-## 受け取る情報
+## 前提情報
 
-起動時のメッセージにIssue番号が含まれる（例: `#1`, `1`）。
+- 現在のブランチ: !`git branch --show-current`
+- リモート: !`git remote -v | head -1`
 
-## 処理フロー
+## 手順
 
 ### 1. Issue番号の解決
 
-メッセージから `#` を除去してIssue番号を取得する。
+`$ARGUMENTS` から `#` を除去してIssue番号を取得する。
 
 ### 2. Issue情報の取得
 
@@ -159,7 +157,6 @@ EOF
 
 ### 11. 対応完了報告
 
-ユーザーへの報告:
 ```
 ✅ Issue #<番号> 対応完了
    ブランチ: <branch-name>
@@ -172,16 +169,11 @@ EOF
    Issueにコメント済み、PRにCloses #<番号>を記載済みです。
 ```
 
-## 禁止事項
+## 注意事項
 
 - ユーザー確認なしでコード修正を開始しない
 - force pushは絶対に行わない
 - Issueと無関係なリファクタリングや改善を含めない
 - `--no-verify` でコミットフックをスキップしない
 - Issueを自動でcloseしない（PRマージ時に自動closeされる）
-
-## エラー処理
-
-- `gh` CLIが未認証の場合: `gh auth login` の実行を案内して終了
-- Issueが見つからない場合: 番号の確認を依頼して終了
-- ブランチ作成に失敗した場合: 現在のgit状態を報告し手動対応を依頼
+- `gh` CLIが未認証の場合は `gh auth login` の実行を案内して終了
