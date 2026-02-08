@@ -18,9 +18,9 @@ export function App() {
   }, [apps, selectedApp]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200">
       <Sidebar apps={apps} selected={selectedApp} onSelect={setSelectedApp} />
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1 overflow-hidden m-3 ml-0 rounded-2xl bg-white shadow-xl shadow-gray-300/50 ring-1 ring-gray-200/60">
         {selectedApp ? (
           <AppView key={selectedApp} appName={selectedApp} />
         ) : (

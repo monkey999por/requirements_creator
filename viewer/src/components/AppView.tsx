@@ -79,9 +79,9 @@ export function AppView({ appName }: { appName: string }) {
       transition={{ duration: 0.4 }}
     >
       {/* 左ペイン: Overview / Source Info */}
-      <div className="flex-1 flex flex-col min-w-0 border-r border-gray-200">
+      <div className="flex-1 flex flex-col min-w-0 border-r border-gray-200/70">
         {/* Tabs */}
-        <div className="flex items-center gap-1 px-4 bg-white border-b border-gray-100 shrink-0">
+        <div className="flex items-center gap-1 px-4 bg-gradient-to-b from-gray-50/80 to-white border-b border-gray-200 shrink-0">
           <TabButton
             active={leftTab === "overview"}
             onClick={() => setLeftTab("overview")}
@@ -112,7 +112,7 @@ export function AppView({ appName }: { appName: string }) {
       {/* 右ペイン: Features */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Tabs */}
-        <div className="flex items-center gap-1 px-4 bg-white border-b border-gray-100 shrink-0">
+        <div className="flex items-center gap-1 px-4 bg-gradient-to-b from-gray-50/80 to-white border-b border-gray-200 shrink-0">
           <TabButton
             active={!selectedFeature}
             onClick={() => {
