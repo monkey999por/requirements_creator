@@ -38,3 +38,22 @@ export async function fetchSourceInfo(appName: string): Promise<MarkdownContent>
   const res = await fetch(`${BASE}/apps/${appName}/source-info`);
   return res.json();
 }
+
+export async function fetchMode(): Promise<{ isDev: boolean }> {
+  const res = await fetch(`${BASE}/mode`);
+  return res.json();
+}
+
+export async function fetchMemo(): Promise<MarkdownContent> {
+  const res = await fetch(`${BASE}/memo`);
+  return res.json();
+}
+
+export async function saveMemo(content: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE}/memo`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+  return res.json();
+}

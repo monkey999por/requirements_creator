@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,6 +7,7 @@ import { cors } from "hono/cors";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const REQUIREMENTS_DIR = resolve(__dirname, "..", "requirements");
+const MEMO_FILE = resolve(__dirname, "..", "memo.md");
 const isDev = process.env.NODE_ENV !== "production";
 const port = Number(process.env.PORT) || 3001;
 
@@ -64,6 +65,22 @@ app.get("/api/apps/:name/source-info", (c) => {
   const filePath = join(REQUIREMENTS_DIR, name, "_source_info.md");
   if (!existsSync(filePath)) return c.json({ error: "Not found" }, 404);
   return c.json({ content: readFileSync(filePath, "utf-8") });
+});
+
+app.get("/api/mode", (c) => {
+  return c.json({ isDev });
+});
+
+app.get("/api/memo", (c) => {
+  if (!existsSync(MEMO_FILE)) return c.json({ content: "" });
+  return c.json({ content: readFileSync(MEMO_FILE, "utf-8") });
+});
+
+app.post("/api/memo", async (c) => {
+  if (!isDev) return c.json({ error: "Editing is only available in dev mode" }, 403);
+  const body = await c.req.json<{ content: string }>();
+  writeFileSync(MEMO_FILE, body.content, "utf-8");
+  return c.json({ success: true });
 });
 
 // --- Server ---
