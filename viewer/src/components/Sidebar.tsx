@@ -2,17 +2,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useState } from "react";
 import type { AppInfo } from "../api";
 
-const ALL_TAGS = [
-  "AI",
-  "Web3",
-  "ヘルスケア",
-  "教育",
-  "金融",
-  "モビリティ",
-  "サステナビリティ",
-  "エンタメ",
-];
-
 interface SidebarProps {
   apps: AppInfo[];
   selected: string | null;
@@ -27,6 +16,7 @@ interface SidebarProps {
   onSearch: (query: string, tags: string[]) => void;
   onClearSearch: () => void;
   isSearchActive: boolean;
+  allTags: string[];
 }
 
 const containerVariants = {
@@ -46,10 +36,12 @@ function SearchInput({
   onSearch,
   onClear,
   isActive,
+  allTags,
 }: {
   onSearch: (query: string, tags: string[]) => void;
   onClear: () => void;
   isActive: boolean;
+  allTags: string[];
 }) {
   const [query, setQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -189,7 +181,7 @@ function SearchInput({
             >
               <p className="text-[10px] text-gray-500 font-medium">タグを選択（AND検索）</p>
               <div className="flex flex-wrap gap-1">
-                {ALL_TAGS.map((tag) => {
+                {allTags.map((tag) => {
                   const isSelected = selectedTags.includes(tag);
                   return (
                     <button
@@ -237,6 +229,7 @@ export function Sidebar({
   onSearch,
   onClearSearch,
   isSearchActive,
+  allTags,
 }: SidebarProps) {
   const [hovered, setHovered] = useState(false);
   const expanded = !collapsed || hovered;
@@ -301,7 +294,12 @@ export function Sidebar({
               </div>
 
               {/* Search */}
-              <SearchInput onSearch={onSearch} onClear={onClearSearch} isActive={isSearchActive} />
+              <SearchInput
+                onSearch={onSearch}
+                onClear={onClearSearch}
+                isActive={isSearchActive}
+                allTags={allTags}
+              />
 
               {/* Navigation */}
               <nav className="flex-1 overflow-y-auto dark-scrollbar px-3 pb-4">
@@ -478,7 +476,12 @@ export function Sidebar({
         {/* Search */}
         <motion.div animate={{ opacity: expanded ? 1 : 0 }} transition={{ duration: 0.2 }}>
           {expanded && (
-            <SearchInput onSearch={onSearch} onClear={onClearSearch} isActive={isSearchActive} />
+            <SearchInput
+              onSearch={onSearch}
+              onClear={onClearSearch}
+              isActive={isSearchActive}
+              allTags={allTags}
+            />
           )}
         </motion.div>
 

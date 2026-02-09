@@ -7,10 +7,10 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { REQUIREMENTS_DIR } from "./lib/paths.js";
-import { TAG_VALUES, type Tag } from "./lib/tags.js";
+import { TAG_VALUES } from "./lib/tags.js";
 
 // タグ推定用のキーワードマッピング
-const TAG_HINTS: Record<Tag, string[]> = {
+const TAG_HINTS: Record<string, string[]> = {
   AI: ["AI", "エージェント", "機械学習", "自律", "LLM", "生成AI"],
   Web3: ["Web3", "ブロックチェーン", "暗号資産", "NFT", "分散"],
   ヘルスケア: ["ヘルス", "医療", "健康", "ヘルステック"],
@@ -21,9 +21,9 @@ const TAG_HINTS: Record<Tag, string[]> = {
   エンタメ: ["エンタメ", "ゲーム", "動画", "音楽", "コンテンツ"],
 };
 
-function inferTags(content: string): Tag[] {
-  const scores = new Map<Tag, number>();
-  for (const [tag, hints] of Object.entries(TAG_HINTS) as [Tag, string[]][]) {
+function inferTags(content: string): string[] {
+  const scores = new Map<string, number>();
+  for (const [tag, hints] of Object.entries(TAG_HINTS)) {
     let score = 0;
     for (const hint of hints) {
       const regex = new RegExp(hint, "gi");

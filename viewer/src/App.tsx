@@ -5,6 +5,7 @@ import {
   fetchGeneratedAppsFromDataset,
   fetchMode,
   fetchOverview,
+  fetchTags,
   type GrepSearchResult,
   generateFromDataset,
   search,
@@ -50,6 +51,7 @@ export function App() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("apps");
   const [isDev, setIsDev] = useState(false);
+  const [allTags, setAllTags] = useState<string[]>([]);
   const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
@@ -87,6 +89,7 @@ export function App() {
   useEffect(() => {
     fetchApps().then(setApps);
     fetchMode().then((r) => setIsDev(r.isDev));
+    fetchTags().then(setAllTags);
   }, []);
 
   // 初回ロード: URLからstate復元
@@ -379,6 +382,7 @@ export function App() {
           onSearch={handleSearch}
           onClearSearch={handleClearSearch}
           isSearchActive={searchActive}
+          allTags={allTags}
         />
 
         <main

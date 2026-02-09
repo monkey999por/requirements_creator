@@ -1,18 +1,26 @@
-export const TAG_VALUES = [
-  "AI",
-  "Web3",
-  "ヘルスケア",
-  "教育",
-  "金融",
-  "モビリティ",
-  "サステナビリティ",
-  "エンタメ",
-] as const;
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
-export type Tag = (typeof TAG_VALUES)[number];
+const TAGS_JSON_PATH = resolve("gen", "tags.json");
 
-export function isValidTag(value: string): value is Tag {
-  return (TAG_VALUES as readonly string[]).includes(value);
+function loadTags(): string[] {
+  if (!existsSync(TAGS_JSON_PATH)) {
+    console.warn(`警告: ${TAGS_JSON_PATH} が見つかりません。空のタグ一覧を使用します。`);
+    return [];
+  }
+  try {
+    return JSON.parse(readFileSync(TAGS_JSON_PATH, "utf-8")) as string[];
+  } catch (e) {
+    console.warn(`警告: ${TAGS_JSON_PATH} の読み込みに失敗しました: ${e}`);
+    return [];
+  }
+}
+
+/** gen/tags.json から読み込んだタグ一覧 */
+export const TAG_VALUES: readonly string[] = loadTags();
+
+export function isValidTag(value: string): boolean {
+  return TAG_VALUES.includes(value);
 }
 
 export function validateTags(tags: unknown): string[] {

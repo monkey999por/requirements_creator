@@ -162,6 +162,16 @@ app.get("/api/apps/:name/source-info", (c) => {
   return c.json(info);
 });
 
+app.get("/api/tags", (c) => {
+  const tagsPath = resolve(projectRoot, "gen", "tags.json");
+  if (!existsSync(tagsPath)) return c.json([]);
+  try {
+    return c.json(JSON.parse(readFileSync(tagsPath, "utf-8")));
+  } catch {
+    return c.json([]);
+  }
+});
+
 app.get("/api/mode", (c) => {
   return c.json({ isDev });
 });

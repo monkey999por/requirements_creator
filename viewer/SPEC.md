@@ -89,7 +89,7 @@ gen/
 | `keywords` | array | 必須 | キーワード一覧（1つ以上） |
 | `keywords[].word` | string | 要素内必須 | キーワード文字列 |
 | `keywords[].relevance` | number | 任意 | 関連度スコア (0-1) |
-| `tags` | string[] | 必須 | カテゴリタグ（1つ以上、定義済みタグ値のみ） |
+| `tags` | string[] | 必須 | カテゴリタグ（1つ以上、`gen/tags.json` に定義されたタグ値のみ） |
 | `description` | string | 必須 | 生成の経緯・背景説明 |
 
 ### 2.2 `overview.md`
@@ -227,7 +227,13 @@ ID列は2桁の連番（`| 01 |`, `| 02 |` ...）。テーブル内のID数とfe
 | `/api/datasets/:name` | GET | データセット詳細 |
 | `/api/datasets/:name/generate` | POST | パイプライン実行（開発モードのみ） |
 
-### 3.4 その他
+### 3.4 タグ
+
+| エンドポイント | メソッド | 説明 |
+|--------------|---------|------|
+| `/api/tags` | GET | `gen/tags.json` から定義済みタグ一覧を返す |
+
+### 3.5 その他
 
 | エンドポイント | メソッド | 説明 |
 |--------------|---------|------|
@@ -236,22 +242,21 @@ ID列は2桁の連番（`| 01 |`, `| 02 |` ...）。テーブル内のID数とfe
 
 ## 4. タグシステム
 
-`_source_info.json` の `tags` フィールドで指定する。定義済みタグ（`scripts/lib/tags.ts`）:
+`_source_info.json` の `tags` フィールドで指定する。定義済みタグは `gen/tags.json`（JSON配列）で管理され、generateのたびに自由に追加可能。
 
-| タグ |
-|------|
-| AI |
-| Web3 |
-| ヘルスケア |
-| 教育 |
-| 金融 |
-| モビリティ |
-| サステナビリティ |
-| エンタメ |
+**タグ定義ファイル:** `gen/tags.json`
+
+```json
+["AI", "Web3", "ヘルスケア", "教育", "金融", "モビリティ", "サステナビリティ", "エンタメ"]
+```
+
+**API:** `GET /api/tags` でタグ一覧を取得。Viewerはこのエンドポイントからタグ一覧を動的に読み込む。
+
+**バリデーション:** `scripts/lib/tags.ts` が `gen/tags.json` を読み込み、`_source_info.json` の `tags` 値が定義済みタグに含まれることを検証する。
 
 **表示:** Sidebarでアプリ名の下に最大2つ表示。
 
-**検索:** `/api/search?type=tag&q=:tag` で部分一致検索（例: `"金"` → `"金融"` にマッチ）。
+**検索:** `/api/search?tags=:tag1,:tag2` でタグのAND検索。
 
 ## 5. 開発/本番モード
 
@@ -299,7 +304,7 @@ ID列は2桁の連番（`| 01 |`, `| 02 |` ...）。テーブル内のID数とfe
 | `source.directory` | 設定されていること |
 | `source.collected_at` | 設定されていること |
 | `keywords` | 非空配列であること |
-| `tags` | 非空配列かつ定義済みタグ値のみ |
+| `tags` | 非空配列かつ `gen/tags.json` に定義されたタグ値のみ |
 | `description` | 設定されていること |
 | `dataset`（存在時） | `name` が設定されていること |
 | `dataset.sourceApps`（存在時） | 非空配列、各要素に `appName` と `type`（`"overview"` / `"feature"`）が必要 |
