@@ -68,7 +68,9 @@ if [[ -n "$DATASET_SOURCE" ]]; then
 
 重要：
 - 既存の要件をそのままコピーするのではなく、選択された機能やコンセプトを融合・再解釈して新しいアプリを考案してください
-- _source_info.md には、参照元のアプリ名と機能名を記載してください
+- _source_info.json の source.directory は「dataset://${DATASET_NAME}」形式にしてください
+- _source_info.json に dataset フィールドを追加し、dataset.name にデータセット名、dataset.sourceApps にデータセットに含まれる全アイテム（appName, type, featureId, title）を列挙してください
+- 詳細はテンプレートの「データセットモード用」セクションに従ってください
 - 生成完了後、以下のバリデーションスクリプトを実行して構造を検証してください:
 tsx scripts/validate-requirements.ts <生成したapp_name>"
 

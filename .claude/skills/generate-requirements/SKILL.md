@@ -79,6 +79,8 @@ Bashで `mkdir -p gen/requirements/{app_name}/features` を実行する。
 - `tags`: 以下のenum値から **最低2つ** 選択: `AI`, `Web3`, `ヘルスケア`, `教育`, `金融`, `モビリティ`, `サステナビリティ`, `エンタメ`
 - `description`: このアプリ案に至った思考の経緯
 
+**データセットモードの場合**: `dataset` フィールドを追加し、`source.directory` を `dataset://{データセット名}` 形式にする。`dataset.sourceApps` にはデータセットに含まれる全アイテム（appName, type, featureId, title）を列挙する。詳細は[テンプレート参照](templates.md)の「データセットモード用」セクションを参照。
+
 **出力先**: `gen/requirements/{app_name}/_source_info.json`
 
 ### ステップ5: overview.md の書き出し

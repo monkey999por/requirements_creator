@@ -24,6 +24,7 @@ export function App() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("apps");
   const [isDev, setIsDev] = useState(false);
+  const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   // Search state
@@ -74,6 +75,16 @@ export function App() {
     setViewMode("datasets");
     setSearchActive(false);
     if (isMobile) setMobileSidebarOpen(false);
+  };
+
+  const handleNavigateToDataset = (datasetName: string) => {
+    setSelectedDataset(datasetName);
+    setViewMode("datasets");
+    setSearchActive(false);
+  };
+
+  const handleNavigateToApp = (appName: string) => {
+    handleSelectApp(appName);
   };
 
   const handleSearch = useCallback(
@@ -164,7 +175,12 @@ export function App() {
           }`}
         >
           {viewMode === "datasets" ? (
-            <DatasetManager isMobile={isMobile} isDev={isDev} />
+            <DatasetManager
+              isMobile={isMobile}
+              isDev={isDev}
+              onSelectApp={handleNavigateToApp}
+              initialSelected={selectedDataset}
+            />
           ) : searchActive ? (
             searching ? (
               <div className="flex h-full items-center justify-center text-gray-500 text-sm">
@@ -181,7 +197,13 @@ export function App() {
               />
             )
           ) : selectedApp ? (
-            <AppView key={selectedApp} appName={selectedApp} isMobile={isMobile} />
+            <AppView
+              key={selectedApp}
+              appName={selectedApp}
+              isMobile={isMobile}
+              onNavigateToDataset={handleNavigateToDataset}
+              onNavigateToApp={handleNavigateToApp}
+            />
           ) : (
             <div className="flex h-full items-center justify-center text-gray-500 text-sm">
               アプリを選択してください

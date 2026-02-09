@@ -221,7 +221,7 @@ export function Sidebar({
                       type="button"
                       key={app.name}
                       className={`
-                        w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-[13px]
+                        w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-[13px] text-left
                         ${
                           selected === app.name
                             ? "bg-indigo-500/15 text-indigo-400 font-semibold shadow-lg shadow-indigo-500/5"
@@ -412,7 +412,7 @@ export function Sidebar({
                 variants={itemVariants}
                 whileHover={{ x: 2 }}
                 className={`
-                  group w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-[13px]
+                  group w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-[13px] text-left
                   ${
                     selected === app.name
                       ? "bg-indigo-500/15 text-indigo-400 font-semibold shadow-lg shadow-indigo-500/5"

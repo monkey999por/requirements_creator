@@ -88,3 +88,32 @@
 ```
 
 **タグ値（以下から最低2つ選択）**: AI, Web3, ヘルスケア, 教育, 金融, モビリティ, サステナビリティ, エンタメ
+
+## _source_info.json（データセットモード用）
+
+データセットから要件を生成した場合は、以下のスキーマで `_source_info.json` を出力する:
+
+```json
+{
+  "source": {
+    "directory": "dataset://{データセット名}",
+    "collected_at": "{yyyy-MM-dd HH:mm:ss形式の生成日時}"
+  },
+  "dataset": {
+    "name": "{データセット名}",
+    "sourceApps": [
+      { "appName": "{参照元アプリ名}", "type": "overview" },
+      { "appName": "{参照元アプリ名}", "type": "feature", "featureId": "{機能ID}", "title": "{機能タイトル}" }
+    ]
+  },
+  "keywords": [
+    { "word": "{採用キーワード1}", "relevance": 0.90 }
+  ],
+  "tags": ["{タグ1}", "{タグ2}"],
+  "description": "{なぜこのアプリ案が生まれたか}"
+}
+```
+
+- `source.directory` は `dataset://{データセット名}` 形式にする
+- `dataset.sourceApps` にはデータセットに含まれる全アイテムを列挙する
+- 各 `sourceApps` 項目の `type` は `"overview"` または `"feature"`。`type: "feature"` の場合は `featureId` と `title` も含める

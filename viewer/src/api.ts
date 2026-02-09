@@ -14,8 +14,16 @@ export interface AppInfo {
   tags: string[];
 }
 
+export interface DatasetSourceApp {
+  appName: string;
+  type: "overview" | "feature";
+  featureId?: string;
+  title?: string;
+}
+
 export interface SourceInfo {
   source?: { directory?: string; collected_at?: string };
+  dataset?: { name?: string; sourceApps?: DatasetSourceApp[] };
   keywords?: { word?: string; relevance?: number }[];
   tags?: string[];
   description?: string;
@@ -130,6 +138,11 @@ export async function removeDatasetItem(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(item),
   });
+  return res.json();
+}
+
+export async function fetchGeneratedAppsFromDataset(datasetName: string): Promise<string[]> {
+  const res = await fetch(`${BASE}/datasets/${datasetName}/generated-apps`);
   return res.json();
 }
 

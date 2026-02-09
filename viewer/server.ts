@@ -70,8 +70,16 @@ const MAX_PORT_RETRIES = 10;
 const app = new Hono();
 app.use("/api/*", cors());
 
+interface DatasetSourceApp {
+  appName: string;
+  type: "overview" | "feature";
+  featureId?: string;
+  title?: string;
+}
+
 interface SourceInfoJson {
   source?: { directory?: string; collected_at?: string };
+  dataset?: { name?: string; sourceApps?: DatasetSourceApp[] };
   keywords?: { word?: string; relevance?: number }[];
   tags?: string[];
   description?: string;
@@ -265,6 +273,23 @@ app.post("/api/datasets/:name/generate", (c) => {
     success: true,
     message: "パイプラインを開始しました。完了後アプリ一覧を更新してください。",
   });
+});
+
+// --- Dataset generated apps lookup ---
+app.get("/api/datasets/:name/generated-apps", (c) => {
+  const name = c.req.param("name");
+  if (!existsSync(REQUIREMENTS_DIR)) return c.json([]);
+  const dirs = readdirSync(REQUIREMENTS_DIR, { withFileTypes: true }).filter((d) =>
+    d.isDirectory(),
+  );
+  const generatedApps: string[] = [];
+  for (const d of dirs) {
+    const info = readSourceInfo(join(REQUIREMENTS_DIR, d.name));
+    if (info?.dataset?.name === name) {
+      generatedApps.push(d.name);
+    }
+  }
+  return c.json(generatedApps);
 });
 
 // --- Search API ---

@@ -6,13 +6,24 @@ import {
   type DatasetItem,
   deleteDataset,
   fetchDatasets,
+  fetchGeneratedAppsFromDataset,
   generateFromDataset,
   removeDatasetItem,
 } from "../api";
 
-export function DatasetManager({ isMobile, isDev }: { isMobile: boolean; isDev: boolean }) {
+export function DatasetManager({
+  isMobile,
+  isDev,
+  onSelectApp,
+  initialSelected,
+}: {
+  isMobile: boolean;
+  isDev: boolean;
+  onSelectApp?: (appName: string) => void;
+  initialSelected?: string | null;
+}) {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(initialSelected ?? null);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
@@ -28,6 +39,10 @@ export function DatasetManager({ isMobile, isDev }: { isMobile: boolean; isDev: 
   useEffect(() => {
     reload();
   }, [reload]);
+
+  useEffect(() => {
+    if (initialSelected) setSelected(initialSelected);
+  }, [initialSelected]);
 
   const selectedDataset = datasets.find((d) => d.name === selected);
 
@@ -197,7 +212,12 @@ export function DatasetManager({ isMobile, isDev }: { isMobile: boolean; isDev: 
               generating={generating}
               isDev={isDev}
             />
-            <DatasetItemList dataset={selectedDataset} onRemove={handleRemoveItem} isDev={isDev} />
+            <DatasetItemList
+              dataset={selectedDataset}
+              onRemove={handleRemoveItem}
+              isDev={isDev}
+              onSelectApp={onSelectApp}
+            />
           </>
         ) : (
           <div className="flex h-full items-center justify-center text-gray-500 text-sm">
@@ -482,11 +502,19 @@ function DatasetItemList({
   dataset,
   onRemove,
   isDev,
+  onSelectApp,
 }: {
   dataset: Dataset;
   onRemove: (item: DatasetItem) => void;
   isDev: boolean;
+  onSelectApp?: (appName: string) => void;
 }) {
+  const [generatedApps, setGeneratedApps] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetchGeneratedAppsFromDataset(dataset.name).then(setGeneratedApps);
+  }, [dataset.name]);
+
   if (dataset.items.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center p-6">
@@ -517,9 +545,19 @@ function DatasetItemList({
       >
         {Array.from(grouped.entries()).map(([appName, items]) => (
           <div key={appName}>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-600 mb-2 px-1">
-              {appName}
-            </p>
+            {onSelectApp ? (
+              <button
+                type="button"
+                className="text-[10px] font-semibold uppercase tracking-wider text-gray-600 hover:text-indigo-400 mb-2 px-1 transition-colors"
+                onClick={() => onSelectApp(appName)}
+              >
+                {appName}
+              </button>
+            ) : (
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-600 mb-2 px-1">
+                {appName}
+              </p>
+            )}
             <div className="space-y-1">
               {items.map((item) => {
                 const key = `${item.appName}-${item.type}-${item.featureId ?? ""}`;
@@ -574,6 +612,43 @@ function DatasetItemList({
             </div>
           </div>
         ))}
+
+        {/* 生成されたアプリ */}
+        {generatedApps.length > 0 && (
+          <div className="pt-2 border-t border-gray-700/50">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-2 px-1">
+              生成されたアプリ
+            </p>
+            <div className="space-y-1">
+              {generatedApps.map((appName) => (
+                <motion.div
+                  key={appName}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-700/50 bg-gray-800/60"
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <span className="inline-flex shrink-0 items-center justify-center rounded-lg text-[10px] font-bold px-2 py-1 bg-emerald-900/40 text-emerald-400">
+                    APP
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    {onSelectApp ? (
+                      <button
+                        type="button"
+                        className="text-xs font-medium text-gray-200 hover:text-indigo-300 hover:underline transition-colors truncate"
+                        onClick={() => onSelectApp(appName)}
+                      >
+                        {appName}
+                      </button>
+                    ) : (
+                      <p className="text-xs font-medium text-gray-200 truncate">{appName}</p>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
       </motion.div>
     </div>
   );
