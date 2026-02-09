@@ -15,8 +15,8 @@ import { MarkdownPane } from "./MarkdownPane";
 import { MemoTab } from "./MemoTab";
 import { useToast } from "./Toast";
 
+export type AppTab = "overview" | "source-info" | "features" | "memo";
 type LeftTab = "overview" | "source-info" | "memo";
-type MobileTab = "overview" | "source-info" | "features" | "memo";
 
 const cardContainerVariants = {
   hidden: {},
@@ -35,6 +35,8 @@ export function AppView({
   onNavigateToApp,
   selectedFeature,
   onSelectFeature,
+  selectedTab,
+  onSelectTab,
 }: {
   appName: string;
   isMobile: boolean;
@@ -42,13 +44,15 @@ export function AppView({
   onNavigateToApp?: (appName: string) => void;
   selectedFeature: string | null;
   onSelectFeature: (feature: string | null) => void;
+  selectedTab: AppTab;
+  onSelectTab: (tab: AppTab) => void;
 }) {
   const [overview, setOverview] = useState("");
   const [sourceInfo, setSourceInfo] = useState<SourceInfo | null>(null);
   const [features, setFeatures] = useState<Feature[]>([]);
   const [featureContent, setFeatureContent] = useState("");
-  const [leftTab, setLeftTab] = useState<LeftTab>("overview");
-  const [mobileTab, setMobileTab] = useState<MobileTab>("overview");
+  const leftTab: LeftTab = selectedTab === "features" ? "overview" : selectedTab;
+  const mobileTab: AppTab = selectedTab;
   const [loading, setLoading] = useState(true);
   const [isDev, setIsDev] = useState(false);
   const [pushing, setPushing] = useState(false);
@@ -60,8 +64,6 @@ export function AppView({
 
   useEffect(() => {
     setFeatureContent("");
-    setLeftTab("overview");
-    setMobileTab("overview");
     setLoading(true);
     Promise.all([
       fetchOverview(appName).then((r) => setOverview(r.content)),
@@ -181,22 +183,22 @@ export function AppView({
         <div className="flex items-center gap-1 px-4 bg-gray-900 border-b border-gray-800 shrink-0 overflow-x-auto">
           <TabButton
             active={mobileTab === "overview"}
-            onClick={() => setMobileTab("overview")}
+            onClick={() => onSelectTab("overview")}
             label="Overview"
           />
           <TabButton
             active={mobileTab === "source-info"}
-            onClick={() => setMobileTab("source-info")}
+            onClick={() => onSelectTab("source-info")}
             label="Source Info"
           />
           <TabButton
             active={mobileTab === "features"}
-            onClick={() => setMobileTab("features")}
+            onClick={() => onSelectTab("features")}
             label="Features"
           />
           <TabButton
             active={mobileTab === "memo"}
-            onClick={() => setMobileTab("memo")}
+            onClick={() => onSelectTab("memo")}
             label="Memo"
           />
           {isDev && (
@@ -334,7 +336,7 @@ export function AppView({
             <TabButton
               active={leftTab === "overview"}
               onClick={() => {
-                setLeftTab("overview");
+                onSelectTab("overview");
                 onSelectFeature(null);
                 setFeatureContent("");
               }}
@@ -343,7 +345,7 @@ export function AppView({
             <TabButton
               active={leftTab === "source-info"}
               onClick={() => {
-                setLeftTab("source-info");
+                onSelectTab("source-info");
                 onSelectFeature(null);
                 setFeatureContent("");
               }}
@@ -352,7 +354,7 @@ export function AppView({
             <TabButton
               active={leftTab === "memo"}
               onClick={() => {
-                setLeftTab("memo");
+                onSelectTab("memo");
                 onSelectFeature(null);
                 setFeatureContent("");
               }}
