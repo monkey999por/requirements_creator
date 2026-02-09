@@ -11,6 +11,8 @@ interface SidebarProps {
   isMobile: boolean;
   mobileOpen: boolean;
   onMobileClose: () => void;
+  viewMode: "apps" | "datasets";
+  onSelectDatasets: () => void;
   onSearch: (query: string, type: "grep" | "tag") => void;
   onClearSearch: () => void;
   isSearchActive: boolean;
@@ -137,6 +139,8 @@ export function Sidebar({
   isMobile,
   mobileOpen,
   onMobileClose,
+  viewMode,
+  onSelectDatasets,
   onSearch,
   onClearSearch,
   isSearchActive,
@@ -217,7 +221,7 @@ export function Sidebar({
                       type="button"
                       key={app.name}
                       className={`
-                        w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-[13px]
+                        w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-[13px] text-left
                         ${
                           selected === app.name
                             ? "bg-indigo-500/15 text-indigo-400 font-semibold shadow-lg shadow-indigo-500/5"
@@ -275,6 +279,39 @@ export function Sidebar({
                     </div>
                   )}
                 </div>
+
+                {/* Datasets */}
+                <p className="px-3 mt-6 mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-600 whitespace-nowrap">
+                  Datasets
+                </p>
+                <button
+                  type="button"
+                  className={`
+                    w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] whitespace-nowrap
+                    ${
+                      viewMode === "datasets"
+                        ? "bg-amber-500/15 text-amber-400 font-semibold shadow-lg shadow-amber-500/5"
+                        : "text-gray-400 hover:bg-white/[0.04] hover:text-gray-200"
+                    }
+                  `}
+                  onClick={onSelectDatasets}
+                >
+                  <svg
+                    aria-hidden="true"
+                    className={`size-4 shrink-0 ${viewMode === "datasets" ? "text-amber-400" : "text-gray-600"}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                    />
+                  </svg>
+                  データセット管理
+                </button>
               </nav>
 
               {/* Footer */}
@@ -375,7 +412,7 @@ export function Sidebar({
                 variants={itemVariants}
                 whileHover={{ x: 2 }}
                 className={`
-                  group w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-[13px]
+                  group w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-[13px] text-left
                   ${
                     selected === app.name
                       ? "bg-indigo-500/15 text-indigo-400 font-semibold shadow-lg shadow-indigo-500/5"
@@ -435,6 +472,44 @@ export function Sidebar({
               </div>
             )}
           </motion.div>
+
+          {/* Datasets */}
+          <motion.p
+            className="px-3 mt-6 mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-600 whitespace-nowrap"
+            animate={{ opacity: expanded ? 1 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            Datasets
+          </motion.p>
+          <motion.button
+            type="button"
+            whileHover={{ x: 2 }}
+            className={`
+              group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] whitespace-nowrap
+              ${
+                viewMode === "datasets"
+                  ? "bg-amber-500/15 text-amber-400 font-semibold shadow-lg shadow-amber-500/5"
+                  : "text-gray-400 hover:bg-white/[0.04] hover:text-gray-200"
+              }
+            `}
+            onClick={onSelectDatasets}
+          >
+            <svg
+              aria-hidden="true"
+              className={`size-4 shrink-0 ${viewMode === "datasets" ? "text-amber-400" : "text-gray-600 group-hover:text-gray-500"}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+              />
+            </svg>
+            データセット管理
+          </motion.button>
         </nav>
 
         {/* Footer */}

@@ -1,5 +1,13 @@
-import { exec } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { exec, spawn } from "node:child_process";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { createServer } from "node:http";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,6 +34,34 @@ function loadRequirementsDir(): string {
 }
 
 const REQUIREMENTS_DIR = loadRequirementsDir();
+
+function loadDatasetsDir(): string {
+  try {
+    const configPath = resolve(projectRoot, "app.config.yaml");
+    const raw = readFileSync(configPath, "utf-8");
+    const config = parse(raw) as { output_base_dir?: string };
+    const base = config.output_base_dir ?? "gen";
+    return resolve(projectRoot, base, "datasets");
+  } catch {
+    return resolve(projectRoot, "gen", "datasets");
+  }
+}
+
+const DATASETS_DIR = loadDatasetsDir();
+
+interface DatasetItem {
+  appName: string;
+  type: "overview" | "feature";
+  featureId?: string;
+  title?: string;
+}
+
+interface Dataset {
+  name: string;
+  createdAt: string;
+  items: DatasetItem[];
+}
+
 const isDev = process.env.NODE_ENV !== "production";
 const basePort = Number(process.env.PORT) || 3001;
 const MAX_PORT_RETRIES = 10;
@@ -34,8 +70,16 @@ const MAX_PORT_RETRIES = 10;
 const app = new Hono();
 app.use("/api/*", cors());
 
+interface DatasetSourceApp {
+  appName: string;
+  type: "overview" | "feature";
+  featureId?: string;
+  title?: string;
+}
+
 interface SourceInfoJson {
   source?: { directory?: string; collected_at?: string };
+  dataset?: { name?: string; sourceApps?: DatasetSourceApp[] };
   keywords?: { word?: string; relevance?: number }[];
   tags?: string[];
   description?: string;
@@ -138,6 +182,117 @@ app.post("/api/apps/:name/memo", async (c) => {
   return c.json({ success: true });
 });
 
+// --- Dataset API ---
+app.get("/api/datasets", (c) => {
+  if (!existsSync(DATASETS_DIR)) return c.json([]);
+  const files = readdirSync(DATASETS_DIR)
+    .filter((f) => f.endsWith(".json"))
+    .sort();
+  const datasets = files.map((f) => {
+    return JSON.parse(readFileSync(join(DATASETS_DIR, f), "utf-8")) as Dataset;
+  });
+  return c.json(datasets);
+});
+
+app.get("/api/datasets/:name", (c) => {
+  const name = c.req.param("name");
+  const filePath = join(DATASETS_DIR, `${name}.json`);
+  if (!existsSync(filePath)) return c.json({ error: "Not found" }, 404);
+  return c.json(JSON.parse(readFileSync(filePath, "utf-8")) as Dataset);
+});
+
+app.post("/api/datasets", async (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  const body = await c.req.json<{ name: string }>();
+  if (!body.name || !/^[a-zA-Z0-9_-]+$/.test(body.name)) {
+    return c.json({ error: "名前は英数字・ハイフン・アンダースコアのみ使用可能です" }, 400);
+  }
+  if (!existsSync(DATASETS_DIR)) mkdirSync(DATASETS_DIR, { recursive: true });
+  const filePath = join(DATASETS_DIR, `${body.name}.json`);
+  if (existsSync(filePath)) return c.json({ error: "同名のデータセットが既に存在します" }, 409);
+  const dataset: Dataset = { name: body.name, createdAt: new Date().toISOString(), items: [] };
+  writeFileSync(filePath, JSON.stringify(dataset, null, 2), "utf-8");
+  return c.json({ success: true });
+});
+
+app.delete("/api/datasets/:name", (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  const name = c.req.param("name");
+  const filePath = join(DATASETS_DIR, `${name}.json`);
+  if (!existsSync(filePath)) return c.json({ error: "Not found" }, 404);
+  unlinkSync(filePath);
+  return c.json({ success: true });
+});
+
+app.post("/api/datasets/:name/items", async (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  const name = c.req.param("name");
+  const filePath = join(DATASETS_DIR, `${name}.json`);
+  if (!existsSync(filePath)) return c.json({ error: "Not found" }, 404);
+  const dataset = JSON.parse(readFileSync(filePath, "utf-8")) as Dataset;
+  const item = await c.req.json<DatasetItem>();
+  const exists = dataset.items.some(
+    (i) => i.appName === item.appName && i.type === item.type && i.featureId === item.featureId,
+  );
+  if (exists) return c.json({ error: "このアイテムは既にデータセットに含まれています" }, 409);
+  dataset.items.push(item);
+  writeFileSync(filePath, JSON.stringify(dataset, null, 2), "utf-8");
+  return c.json({ success: true });
+});
+
+app.delete("/api/datasets/:name/items", async (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  const name = c.req.param("name");
+  const filePath = join(DATASETS_DIR, `${name}.json`);
+  if (!existsSync(filePath)) return c.json({ error: "Not found" }, 404);
+  const dataset = JSON.parse(readFileSync(filePath, "utf-8")) as Dataset;
+  const item = await c.req.json<DatasetItem>();
+  dataset.items = dataset.items.filter(
+    (i) => !(i.appName === item.appName && i.type === item.type && i.featureId === item.featureId),
+  );
+  writeFileSync(filePath, JSON.stringify(dataset, null, 2), "utf-8");
+  return c.json({ success: true });
+});
+
+app.post("/api/datasets/:name/generate", (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  const name = c.req.param("name");
+  const filePath = join(DATASETS_DIR, `${name}.json`);
+  if (!existsSync(filePath)) return c.json({ error: "Not found" }, 404);
+  const dataset = JSON.parse(readFileSync(filePath, "utf-8")) as Dataset;
+  if (dataset.items.length === 0) {
+    return c.json({ error: "データセットにアイテムがありません" }, 400);
+  }
+  const child = spawn("tsx", ["scripts/pipeline.ts", "--dataset", name], {
+    cwd: projectRoot,
+    stdio: "ignore",
+    detached: true,
+  });
+  child.unref();
+  return c.json({
+    success: true,
+    message: "パイプラインを開始しました。完了後アプリ一覧を更新してください。",
+  });
+});
+
+// --- Dataset generated apps lookup ---
+app.get("/api/datasets/:name/generated-apps", (c) => {
+  const name = c.req.param("name");
+  if (!existsSync(REQUIREMENTS_DIR)) return c.json([]);
+  const dirs = readdirSync(REQUIREMENTS_DIR, { withFileTypes: true }).filter((d) =>
+    d.isDirectory(),
+  );
+  const generatedApps: string[] = [];
+  for (const d of dirs) {
+    const info = readSourceInfo(join(REQUIREMENTS_DIR, d.name));
+    if (info?.dataset?.name === name) {
+      generatedApps.push(d.name);
+    }
+  }
+  return c.json(generatedApps);
+});
+
+// --- Search API ---
 app.get("/api/apps-with-tags", (c) => {
   if (!existsSync(REQUIREMENTS_DIR)) return c.json([]);
   const dirs = readdirSync(REQUIREMENTS_DIR, { withFileTypes: true })
@@ -202,6 +357,7 @@ app.get("/api/search", async (c) => {
   }
 });
 
+// --- Git API ---
 app.post("/api/git/commit-push", async (c) => {
   if (!isDev) return c.json({ error: "Only available in dev mode" }, 403);
 

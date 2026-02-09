@@ -1,24 +1,41 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type AppInfo,
   fetchApps,
+  fetchGeneratedAppsFromDataset,
+  fetchMode,
+  fetchOverview,
   type GrepSearchResult,
+  generateFromDataset,
   searchByTag,
   searchGrep,
   type TagSearchResult,
 } from "./api";
 import { AppView } from "./components/AppView";
+import { DatasetManager } from "./components/DatasetManager";
 import { SearchView } from "./components/SearchView";
 import { Sidebar } from "./components/Sidebar";
 import { ToastProvider } from "./components/Toast";
 import { useIsMobile } from "./hooks/useIsMobile";
+
+type ViewMode = "apps" | "datasets";
 
 export function App() {
   const [apps, setApps] = useState<AppInfo[]>([]);
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("apps");
+  const [isDev, setIsDev] = useState(false);
+  const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
   const isMobile = useIsMobile();
+
+  // Generation state (lifted from DatasetManager to survive view changes)
+  const [generating, setGenerating] = useState(false);
+  const [generatingDataset, setGeneratingDataset] = useState<string | null>(null);
+  const [generatingMessage, setGeneratingMessage] = useState<string | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Search state
   const [searchActive, setSearchActive] = useState(false);
@@ -30,11 +47,18 @@ export function App() {
 
   useEffect(() => {
     fetchApps().then(setApps);
+    fetchMode().then((r) => setIsDev(r.isDev));
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    // URL から datasets ビュー + 選択データセットを復元
+    if (params.get("view") === "datasets") {
+      setViewMode("datasets");
+      const dsParam = params.get("dataset");
+      if (dsParam) setSelectedDataset(dsParam);
+    }
     if (apps.length > 0 && !selectedApp) {
-      const params = new URLSearchParams(window.location.search);
       const appParam = params.get("app");
       const names = apps.map((a) => a.name);
       setSelectedApp(appParam && names.includes(appParam) ? appParam : apps[0].name);
@@ -42,24 +66,124 @@ export function App() {
   }, [apps, selectedApp]);
 
   useEffect(() => {
-    if (selectedApp) {
+    if (selectedApp && viewMode === "apps") {
       const url = new URL(window.location.href);
       url.searchParams.set("app", selectedApp);
+      url.searchParams.delete("view");
+      url.searchParams.delete("dataset");
       window.history.replaceState({}, "", url.toString());
     }
-  }, [selectedApp]);
+    if (viewMode === "datasets") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("view", "datasets");
+      url.searchParams.delete("app");
+      if (selectedDataset) {
+        url.searchParams.set("dataset", selectedDataset);
+      } else {
+        url.searchParams.delete("dataset");
+      }
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [selectedApp, viewMode, selectedDataset]);
 
   const handleSelectApp = (app: string) => {
     setSelectedApp(app);
+    setViewMode("apps");
     setSearchActive(false);
     if (isMobile) setMobileSidebarOpen(false);
   };
+
+  const handleSelectDatasets = () => {
+    setViewMode("datasets");
+    setSearchActive(false);
+    if (isMobile) setMobileSidebarOpen(false);
+  };
+
+  const handleNavigateToDataset = (datasetName: string) => {
+    setSelectedDataset(datasetName);
+    setViewMode("datasets");
+    setSearchActive(false);
+  };
+
+  const handleNavigateToApp = (appName: string) => {
+    handleSelectApp(appName);
+  };
+
+  // --- Dataset generation with polling ---
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => stopPolling();
+  }, [stopPolling]);
+
+  const handleDatasetGenerate = useCallback(
+    async (datasetName: string) => {
+      setGenerating(true);
+      setGeneratingDataset(datasetName);
+
+      const currentApps = await fetchGeneratedAppsFromDataset(datasetName);
+      const result = await generateFromDataset(datasetName);
+
+      if (!result.success) {
+        setGeneratingMessage(result.message ?? "エラー");
+        setGenerating(false);
+        setGeneratingDataset(null);
+        setTimeout(() => setGeneratingMessage(null), 5000);
+        return;
+      }
+
+      setGeneratingMessage("生成中... overview.md の作成を待機しています");
+
+      pollingRef.current = setInterval(async () => {
+        try {
+          const latestApps = await fetchGeneratedAppsFromDataset(datasetName);
+          const newApps = latestApps.filter((a) => !currentApps.includes(a));
+          if (newApps.length > 0) {
+            const overview = await fetchOverview(newApps[0]);
+            if (overview.content) {
+              stopPolling();
+              setGenerating(false);
+              setGeneratingDataset(null);
+              setGeneratingMessage(`生成完了: ${newApps[0]}`);
+              fetchApps().then(setApps);
+              setTimeout(() => setGeneratingMessage(null), 5000);
+            }
+          }
+        } catch {
+          // overview未作成 or ポーリングエラー、継続
+        }
+      }, 3000);
+
+      timeoutRef.current = setTimeout(
+        () => {
+          stopPolling();
+          setGenerating(false);
+          setGeneratingDataset(null);
+          setGeneratingMessage("タイムアウトしました。アプリ一覧を確認してください。");
+          fetchApps().then(setApps);
+          setTimeout(() => setGeneratingMessage(null), 5000);
+        },
+        5 * 60 * 1000,
+      );
+    },
+    [stopPolling],
+  );
 
   const handleSearch = useCallback(
     async (query: string, type: "grep" | "tag") => {
       setSearchQuery(query);
       setSearchType(type);
       setSearchActive(true);
+      setViewMode("apps");
       setSearching(true);
       if (isMobile) setMobileSidebarOpen(false);
       try {
@@ -113,20 +237,22 @@ export function App() {
               </svg>
             </button>
             <span className="text-sm font-semibold text-gray-200 truncate">
-              {selectedApp ?? "Requirements Viewer"}
+              {viewMode === "datasets" ? "データセット" : (selectedApp ?? "Requirements Viewer")}
             </span>
           </div>
         )}
 
         <Sidebar
           apps={apps}
-          selected={selectedApp}
+          selected={viewMode === "apps" ? selectedApp : null}
           onSelect={handleSelectApp}
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
           isMobile={isMobile}
           mobileOpen={mobileSidebarOpen}
           onMobileClose={() => setMobileSidebarOpen(false)}
+          viewMode={viewMode}
+          onSelectDatasets={handleSelectDatasets}
           onSearch={handleSearch}
           onClearSearch={handleClearSearch}
           isSearchActive={searchActive}
@@ -139,7 +265,18 @@ export function App() {
               : "mb-3 mr-3 rounded-2xl bg-gray-900 shadow-2xl shadow-black/50 ring-1 ring-gray-800"
           }`}
         >
-          {searchActive ? (
+          {viewMode === "datasets" ? (
+            <DatasetManager
+              isMobile={isMobile}
+              isDev={isDev}
+              onSelectApp={handleNavigateToApp}
+              initialSelected={selectedDataset}
+              generating={generating}
+              generatingDataset={generatingDataset}
+              generatingMessage={generatingMessage}
+              onGenerate={handleDatasetGenerate}
+            />
+          ) : searchActive ? (
             searching ? (
               <div className="flex h-full items-center justify-center text-gray-500 text-sm">
                 検索中...
@@ -155,7 +292,13 @@ export function App() {
               />
             )
           ) : selectedApp ? (
-            <AppView key={selectedApp} appName={selectedApp} isMobile={isMobile} />
+            <AppView
+              key={selectedApp}
+              appName={selectedApp}
+              isMobile={isMobile}
+              onNavigateToDataset={handleNavigateToDataset}
+              onNavigateToApp={handleNavigateToApp}
+            />
           ) : (
             <div className="flex h-full items-center justify-center text-gray-500 text-sm">
               アプリを選択してください

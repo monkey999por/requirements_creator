@@ -10,6 +10,7 @@ import {
   fetchSourceInfo,
   type SourceInfo,
 } from "../api";
+import { DatasetAddButton } from "./DatasetAddButton";
 import { MarkdownPane } from "./MarkdownPane";
 import { MemoTab } from "./MemoTab";
 import { useToast } from "./Toast";
@@ -27,7 +28,17 @@ const cardVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
 };
 
-export function AppView({ appName, isMobile }: { appName: string; isMobile: boolean }) {
+export function AppView({
+  appName,
+  isMobile,
+  onNavigateToDataset,
+  onNavigateToApp,
+}: {
+  appName: string;
+  isMobile: boolean;
+  onNavigateToDataset?: (datasetName: string) => void;
+  onNavigateToApp?: (appName: string) => void;
+}) {
   const [overview, setOverview] = useState("");
   const [sourceInfo, setSourceInfo] = useState<SourceInfo | null>(null);
   const [features, setFeatures] = useState<Feature[]>([]);
@@ -188,6 +199,12 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
           />
           {isDev && (
             <>
+              {mobileTab === "overview" && (
+                <DatasetAddButton
+                  item={{ appName, type: "overview", title: appName }}
+                  isDev={isDev}
+                />
+              )}
               <div className="flex-1" />
               <CommitPushButton pushing={pushing} onClick={handleCommitPush} />
             </>
@@ -228,20 +245,31 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
                           </p>
                         )}
                       </div>
-                      <svg
-                        className="size-4 shrink-0 mt-0.5 text-gray-600"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        aria-hidden="true"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
+                      <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                        <DatasetAddButton
+                          item={{
+                            appName,
+                            type: "feature",
+                            featureId: f.id,
+                            title: f.title,
+                          }}
+                          isDev={isDev}
                         />
-                      </svg>
+                        <svg
+                          className="size-4 text-gray-600"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          aria-hidden="true"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </div>
                     </button>
                   ))}
                 </motion.div>
@@ -253,7 +281,11 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <SourceInfoView info={sourceInfo} />
+                  <SourceInfoView
+                    info={sourceInfo}
+                    onNavigateToDataset={onNavigateToDataset}
+                    onNavigateToApp={onNavigateToApp}
+                  />
                 </motion.div>
               ) : (
                 <motion.div
@@ -326,6 +358,12 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
             />
             {isDev && (
               <>
+                {leftTab === "overview" && (
+                  <DatasetAddButton
+                    item={{ appName, type: "overview", title: appName }}
+                    isDev={isDev}
+                  />
+                )}
                 <div className="flex-1" />
                 <CommitPushButton pushing={pushing} onClick={handleCommitPush} />
               </>
@@ -347,7 +385,11 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
                     exit={{ opacity: 0, scale: 0.98 }}
                     transition={{ duration: 0.25 }}
                   >
-                    <SourceInfoView info={sourceInfo} />
+                    <SourceInfoView
+                      info={sourceInfo}
+                      onNavigateToDataset={onNavigateToDataset}
+                      onNavigateToApp={onNavigateToApp}
+                    />
                   </motion.div>
                 ) : (
                   <motion.div
@@ -434,23 +476,34 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
                       </p>
                     )}
                   </div>
-                  {/* Arrow */}
-                  <motion.svg
-                    aria-hidden="true"
-                    className={`size-4 shrink-0 mt-0.5 ${selectedFeature === f.id ? "text-indigo-400" : "text-gray-600"}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    whileHover={{ x: 2, color: "#818cf8" }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
+                  {/* Dataset add + Arrow */}
+                  <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                    <DatasetAddButton
+                      item={{
+                        appName,
+                        type: "feature",
+                        featureId: f.id,
+                        title: f.title,
+                      }}
+                      isDev={isDev}
                     />
-                  </motion.svg>
+                    <motion.svg
+                      aria-hidden="true"
+                      className={`size-4 ${selectedFeature === f.id ? "text-indigo-400" : "text-gray-600"}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      whileHover={{ x: 2, color: "#818cf8" }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </motion.svg>
+                  </div>
                 </motion.button>
               ))}
             </motion.div>
@@ -541,13 +594,93 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
   );
 }
 
-function SourceInfoView({ info }: { info: SourceInfo | null }) {
+function SourceInfoView({
+  info,
+  onNavigateToDataset,
+  onNavigateToApp,
+}: {
+  info: SourceInfo | null;
+  onNavigateToDataset?: (datasetName: string) => void;
+  onNavigateToApp?: (appName: string) => void;
+}) {
   if (!info) {
     return <p className="text-sm text-gray-500">ソース情報がありません</p>;
   }
 
   return (
     <div className="space-y-6">
+      {/* Dataset */}
+      {info.dataset && (
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+            データセット
+          </h3>
+          <div className="p-3 rounded-lg bg-gray-800/50 border border-gray-700/30 space-y-3">
+            {info.dataset.name && (
+              <p className="text-xs text-gray-300">
+                <span className="text-gray-500">名前: </span>
+                {onNavigateToDataset ? (
+                  <button
+                    type="button"
+                    className="text-indigo-400 hover:text-indigo-300 hover:underline transition-colors"
+                    onClick={() => {
+                      if (info.dataset?.name) onNavigateToDataset(info.dataset.name);
+                    }}
+                  >
+                    {info.dataset.name}
+                  </button>
+                ) : (
+                  <span className="text-indigo-400">{info.dataset.name}</span>
+                )}
+              </p>
+            )}
+            {info.dataset.sourceApps && info.dataset.sourceApps.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1.5">
+                  参照元
+                </p>
+                <div className="space-y-1">
+                  {info.dataset.sourceApps.map((sa) => {
+                    const key = `${sa.appName}-${sa.type}-${sa.featureId ?? ""}`;
+                    return (
+                      <div
+                        key={key}
+                        className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-gray-900/50"
+                      >
+                        <span
+                          className={`inline-flex shrink-0 items-center justify-center rounded text-[9px] font-bold px-1.5 py-0.5 ${
+                            sa.type === "overview"
+                              ? "bg-blue-900/40 text-blue-400"
+                              : "bg-purple-900/40 text-purple-400"
+                          }`}
+                        >
+                          {sa.type === "overview" ? "OVR" : "FTR"}
+                        </span>
+                        {onNavigateToApp ? (
+                          <button
+                            type="button"
+                            className="text-xs text-gray-300 hover:text-indigo-300 hover:underline transition-colors truncate"
+                            onClick={() => onNavigateToApp(sa.appName)}
+                          >
+                            {sa.appName}
+                            {sa.title ? ` / ${sa.title}` : ""}
+                          </button>
+                        ) : (
+                          <span className="text-xs text-gray-300 truncate">
+                            {sa.appName}
+                            {sa.title ? ` / ${sa.title}` : ""}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Source */}
       {info.source && (
         <section>

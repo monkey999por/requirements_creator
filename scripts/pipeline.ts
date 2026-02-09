@@ -1,14 +1,15 @@
 import { spawn } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { getLatestDataSource, loadAllTexts, loadJson } from "./lib/data-source.js";
-import { DATA_SOURCE_DIR, REQUIREMENTS_DIR } from "./lib/paths.js";
+import { DATA_SOURCE_DIR, DATASETS_DIR, REQUIREMENTS_DIR } from "./lib/paths.js";
 
 // --- 型定義 ---
 interface PipelineOptions {
   skipCollect: boolean;
   skipExtract: boolean;
   source?: string;
+  dataset?: string;
 }
 
 type StepStatus = "success" | "skipped" | "failed";
@@ -16,6 +17,19 @@ type StepStatus = "success" | "skipped" | "failed";
 interface StepResult {
   name: string;
   status: StepStatus;
+}
+
+interface DatasetItem {
+  appName: string;
+  type: "overview" | "feature";
+  featureId?: string;
+  title?: string;
+}
+
+interface Dataset {
+  name: string;
+  createdAt: string;
+  items: DatasetItem[];
 }
 
 // --- 引数パース ---
@@ -36,6 +50,14 @@ function parseArgs(argv: string[]): PipelineOptions {
         opts.source = argv[i + 1];
         if (!opts.source) {
           console.error("エラー: --source にはディレクトリ名を指定してください。");
+          process.exit(1);
+        }
+        i += 2;
+        break;
+      case "--dataset":
+        opts.dataset = argv[i + 1];
+        if (!opts.dataset) {
+          console.error("エラー: --dataset にはデータセット名を指定してください。");
           process.exit(1);
         }
         i += 2;
@@ -62,6 +84,7 @@ Options:
   --skip-collect   既存データを使いキーワード抽出から開始
   --skip-extract   既存キーワードを使い要件生成のみ実行
   --source <dir>   使用する data_source サブディレクトリを指定
+  --dataset <name> データセットをソースとして要件生成（collect/extractスキップ）
   -h, --help       ヘルプ表示`);
 }
 
@@ -89,11 +112,111 @@ function listRequirementApps(): string[] {
     .sort();
 }
 
+// --- データセットからソースファイルを生成 ---
+function buildDatasetSource(datasetName: string): string {
+  const datasetPath = join(DATASETS_DIR, `${datasetName}.json`);
+  if (!existsSync(datasetPath)) {
+    console.error(`エラー: データセット ${datasetName} が見つかりません。`);
+    process.exit(1);
+  }
+
+  const dataset = JSON.parse(readFileSync(datasetPath, "utf-8")) as Dataset;
+  if (dataset.items.length === 0) {
+    console.error("エラー: データセットにアイテムがありません。");
+    process.exit(1);
+  }
+
+  const sections: string[] = [];
+  sections.push(`# データセットソース: ${dataset.name}\n`);
+  sections.push("以下は複数のアプリ要件から選択されたOverviewとFeatureの組み合わせです。");
+  sections.push("これらをインスピレーションとして、新しいアプリ要件を生成してください。\n");
+
+  for (const item of dataset.items) {
+    if (item.type === "overview") {
+      const filePath = join(REQUIREMENTS_DIR, item.appName, "overview.md");
+      if (existsSync(filePath)) {
+        const content = readFileSync(filePath, "utf-8");
+        sections.push(`---\n## ${item.appName} - Overview\n\n${content}\n`);
+      }
+    } else if (item.type === "feature" && item.featureId) {
+      const filePath = join(REQUIREMENTS_DIR, item.appName, "features", `${item.featureId}.md`);
+      if (existsSync(filePath)) {
+        const content = readFileSync(filePath, "utf-8");
+        sections.push(
+          `---\n## ${item.appName} - Feature: ${item.title ?? item.featureId}\n\n${content}\n`,
+        );
+      }
+    }
+  }
+
+  return sections.join("\n");
+}
+
 // --- メイン ---
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
   const results: StepResult[] = [];
 
+  // データセットモード
+  if (opts.dataset) {
+    console.log(`=== パイプライン（データセットモード）===\n`);
+    console.log(`データセット: ${opts.dataset}\n`);
+
+    results.push({ name: "collect", status: "skipped" });
+    results.push({ name: "extract", status: "skipped" });
+
+    // データセットソースファイルを生成
+    const sourceContent = buildDatasetSource(opts.dataset);
+    const sourcePath = resolve(DATASETS_DIR, `${opts.dataset}_source.md`);
+    writeFileSync(sourcePath, sourceContent, "utf-8");
+    console.log(`データセットソースファイル: ${sourcePath}\n`);
+
+    // generate
+    const appsBefore = new Set(listRequirementApps());
+    console.log("[generate] データセットから要件生成を開始...\n");
+    try {
+      await runStep("bash", [
+        "scripts/generate.sh",
+        "--dataset-source",
+        sourcePath,
+        "--dataset-name",
+        opts.dataset,
+      ]);
+      console.log("");
+      results.push({ name: "generate", status: "success" });
+    } catch (err) {
+      console.error(`\ngenerate 失敗: ${err instanceof Error ? err.message : err}`);
+      results.push({ name: "generate", status: "failed" });
+      printSummary(results);
+      process.exit(1);
+    }
+
+    // validate
+    const appsAfter = listRequirementApps();
+    const newApps = appsAfter.filter((app) => !appsBefore.has(app));
+
+    if (newApps.length > 0) {
+      console.log(`[validate] ${newApps.join(", ")} を検証...\n`);
+      try {
+        for (const app of newApps) {
+          await runStep("tsx", ["scripts/validate-requirements.ts", app]);
+        }
+        console.log("");
+        results.push({ name: "validate", status: "success" });
+      } catch (err) {
+        console.error(`\nvalidate 失敗: ${err instanceof Error ? err.message : err}`);
+        results.push({ name: "validate", status: "failed" });
+      }
+    } else {
+      console.log("[validate] 新規アプリが検出されませんでした（スキップ）\n");
+      results.push({ name: "validate", status: "skipped" });
+    }
+
+    printSummary(results, undefined, newApps);
+    return;
+  }
+
+  // 通常モード
   console.log("=== パイプライン一括実行 ===\n");
 
   // Step 1: collect
@@ -233,6 +356,11 @@ function printSummary(results: StepResult[], targetDir?: string, newApps?: strin
     } else {
       console.log(`${articleCount}件の記事, ${keywordCount}個のキーワード`);
     }
+  }
+
+  if (newApps && newApps.length > 0 && !targetDir) {
+    const appNames = newApps.map((a) => `「${a}」`).join(", ");
+    console.log(`\nアプリ案 ${appNames} を生成しました。`);
   }
 
   const hasFailed = results.some((r) => r.status === "failed");

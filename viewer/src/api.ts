@@ -14,8 +14,16 @@ export interface AppInfo {
   tags: string[];
 }
 
+export interface DatasetSourceApp {
+  appName: string;
+  type: "overview" | "feature";
+  featureId?: string;
+  title?: string;
+}
+
 export interface SourceInfo {
   source?: { directory?: string; collected_at?: string };
+  dataset?: { name?: string; sourceApps?: DatasetSourceApp[] };
   keywords?: { word?: string; relevance?: number }[];
   tags?: string[];
   description?: string;
@@ -70,6 +78,83 @@ export async function saveMemo(appName: string, content: string): Promise<{ succ
   return res.json();
 }
 
+// --- Dataset API ---
+
+export interface DatasetItem {
+  appName: string;
+  type: "overview" | "feature";
+  featureId?: string;
+  title?: string;
+}
+
+export interface Dataset {
+  name: string;
+  createdAt: string;
+  items: DatasetItem[];
+}
+
+export async function fetchDatasets(): Promise<Dataset[]> {
+  const res = await fetch(`${BASE}/datasets`);
+  return res.json();
+}
+
+export async function fetchDataset(name: string): Promise<Dataset> {
+  const res = await fetch(`${BASE}/datasets/${name}`);
+  return res.json();
+}
+
+export async function createDataset(name: string): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${BASE}/datasets`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  return res.json();
+}
+
+export async function deleteDataset(name: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE}/datasets/${name}`, { method: "DELETE" });
+  return res.json();
+}
+
+export async function addDatasetItem(
+  datasetName: string,
+  item: DatasetItem,
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${BASE}/datasets/${datasetName}/items`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(item),
+  });
+  return res.json();
+}
+
+export async function removeDatasetItem(
+  datasetName: string,
+  item: DatasetItem,
+): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE}/datasets/${datasetName}/items`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(item),
+  });
+  return res.json();
+}
+
+export async function fetchGeneratedAppsFromDataset(datasetName: string): Promise<string[]> {
+  const res = await fetch(`${BASE}/datasets/${datasetName}/generated-apps`);
+  return res.json();
+}
+
+export async function generateFromDataset(
+  name: string,
+): Promise<{ success: boolean; message?: string }> {
+  const res = await fetch(`${BASE}/datasets/${name}/generate`, { method: "POST" });
+  return res.json();
+}
+
+// --- Search API ---
+
 export interface AppWithTags {
   name: string;
   tags: string[];
@@ -112,6 +197,8 @@ export async function searchByTag(tag: string): Promise<TagSearchResult[]> {
   const data = await res.json();
   return data.results;
 }
+
+// --- Git API ---
 
 export interface GitResult {
   success: boolean;

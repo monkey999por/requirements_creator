@@ -22,8 +22,16 @@ const FEATURE_REQUIRED_SECTIONS = [
   "非機能要件",
 ];
 
+interface DatasetSourceApp {
+  appName?: string;
+  type?: string;
+  featureId?: string;
+  title?: string;
+}
+
 interface SourceInfoJson {
   source?: { directory?: string; collected_at?: string };
+  dataset?: { name?: string; sourceApps?: DatasetSourceApp[] };
   keywords?: { word?: string; relevance?: number }[];
   tags?: string[];
   description?: string;
@@ -116,6 +124,34 @@ function validate(appName: string): ValidationError[] {
       const tagErrors = validateTags(data.tags);
       for (const te of tagErrors) {
         errors.push({ file: "_source_info.json", message: te });
+      }
+
+      // dataset フィールドのオプショナル検証
+      if (data.dataset) {
+        if (!data.dataset.name) {
+          errors.push({ file: "_source_info.json", message: "dataset.nameが未設定です" });
+        }
+        if (!Array.isArray(data.dataset.sourceApps) || data.dataset.sourceApps.length === 0) {
+          errors.push({
+            file: "_source_info.json",
+            message: "dataset.sourceAppsが空または未設定です",
+          });
+        } else {
+          for (const [i, sa] of data.dataset.sourceApps.entries()) {
+            if (!sa.appName) {
+              errors.push({
+                file: "_source_info.json",
+                message: `dataset.sourceApps[${i}].appNameが未設定です`,
+              });
+            }
+            if (sa.type !== "overview" && sa.type !== "feature") {
+              errors.push({
+                file: "_source_info.json",
+                message: `dataset.sourceApps[${i}].typeが不正です（"overview"または"feature"のみ）`,
+              });
+            }
+          }
+        }
       }
     } catch (e) {
       errors.push({

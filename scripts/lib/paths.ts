@@ -24,3 +24,6 @@ export const DATA_SOURCE_DIR = resolve(OUTPUT_BASE_DIR, "data_source");
 
 /** requirements ディレクトリのフルパス */
 export const REQUIREMENTS_DIR = resolve(OUTPUT_BASE_DIR, "requirements");
+
+/** datasets ディレクトリのフルパス */
+export const DATASETS_DIR = resolve(OUTPUT_BASE_DIR, "datasets");
