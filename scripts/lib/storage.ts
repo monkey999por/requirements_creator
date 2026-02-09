@@ -1,7 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
-
-const DATA_SOURCE_DIR = resolve("data_source");
+import { join } from "node:path";
+import { DATA_SOURCE_DIR } from "./paths.js";
 
 function formatTimestamp(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");

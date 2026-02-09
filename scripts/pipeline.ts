@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { getLatestDataSource, loadAllTexts, loadJson } from "./lib/data-source.js";
+import { DATA_SOURCE_DIR, REQUIREMENTS_DIR } from "./lib/paths.js";
 
 // --- 型定義 ---
 interface PipelineOptions {
@@ -81,9 +82,8 @@ function runStep(cmd: string, args: string[]): Promise<void> {
 
 // --- requirements/ のアプリ一覧を取得 ---
 function listRequirementApps(): string[] {
-  const dir = resolve("requirements");
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir, { withFileTypes: true })
+  if (!existsSync(REQUIREMENTS_DIR)) return [];
+  return readdirSync(REQUIREMENTS_DIR, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name)
     .sort();
@@ -118,27 +118,27 @@ async function main() {
   let targetDir: string;
   if (opts.source) {
     targetDir = opts.source;
-    const fullPath = resolve("data_source", targetDir);
+    const fullPath = resolve(DATA_SOURCE_DIR, targetDir);
     if (!existsSync(fullPath)) {
-      console.error(`エラー: data_source/${targetDir} が存在しません。`);
+      console.error(`エラー: ${DATA_SOURCE_DIR}/${targetDir} が存在しません。`);
       process.exit(1);
     }
   } else {
     const latest = getLatestDataSource();
     if (!latest) {
       console.error(
-        "エラー: data_source/ にデータがありません。先に pnpm collect を実行してください。",
+        `エラー: ${DATA_SOURCE_DIR}/ にデータがありません。先に pnpm collect を実行してください。`,
       );
       process.exit(1);
     }
     targetDir = latest;
   }
-  console.log(`対象ディレクトリ: data_source/${targetDir}\n`);
+  console.log(`対象ディレクトリ: ${DATA_SOURCE_DIR}/${targetDir}\n`);
 
   // Step 2: extract
   if (opts.skipExtract) {
     console.log("[Step 2] extract: スキップ\n");
-    const keywordPath = resolve("data_source", targetDir, "keyword.json");
+    const keywordPath = resolve(DATA_SOURCE_DIR, targetDir, "keyword.json");
     if (!existsSync(keywordPath)) {
       console.error(
         `エラー: ${keywordPath} が存在しません。--skip-extract を外して実行してください。`,
@@ -151,7 +151,7 @@ async function main() {
     try {
       await runStep("bash", ["scripts/extract.sh", "--target", targetDir]);
       console.log("");
-      const keywordPath = resolve("data_source", targetDir, "keyword.json");
+      const keywordPath = resolve(DATA_SOURCE_DIR, targetDir, "keyword.json");
       if (!existsSync(keywordPath)) {
         throw new Error("keyword.json が生成されませんでした");
       }

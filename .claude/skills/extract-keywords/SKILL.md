@@ -1,6 +1,6 @@
 ---
 name: extract-keywords
-description: data_source配下の収集データからアプリ設計のヒントになるキーワードとトレンドを抽出し、keyword.jsonを生成する。データ収集後のキーワード抽出フェーズで使用。
+description: gen/data_source配下の収集データからアプリ設計のヒントになるキーワードとトレンドを抽出し、keyword.jsonを生成する。データ収集後のキーワード抽出フェーズで使用。
 disable-model-invocation: true
 argument-hint: "[data_sourceサブディレクトリ名（省略時は最新）]"
 allowed-tools: Read, Write, Glob, Bash
@@ -8,17 +8,17 @@ allowed-tools: Read, Write, Glob, Bash
 
 # キーワード抽出スキル
 
-`data_source/` 配下の収集データを読み込み、アプリケーション設計に活かせるキーワードとトレンドを抽出して `keyword.json` を生成する。
+`gen/data_source/` 配下の収集データを読み込み、アプリケーション設計に活かせるキーワードとトレンドを抽出して `keyword.json` を生成する。
 
 ## 対象ディレクトリの決定
 
-- `$ARGUMENTS` が指定されている場合: `data_source/$ARGUMENTS/` を対象とする
-- 指定がない場合: `data_source/` 配下で最新（名前の辞書順で最後）のサブディレクトリを対象とする
+- `$ARGUMENTS` が指定されている場合: `gen/data_source/$ARGUMENTS/` を対象とする
+- 指定がない場合: `gen/data_source/` 配下で最新（名前の辞書順で最後）のサブディレクトリを対象とする
 
 対象ディレクトリの確認:
 
 ```
-!`ls -1 data_source/ | tail -5`
+!`ls -1 gen/data_source/ | tail -5`
 ```
 
 ## 手順

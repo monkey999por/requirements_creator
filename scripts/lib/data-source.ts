@@ -1,7 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
-
-const DATA_SOURCE_DIR = resolve("data_source");
+import { join } from "node:path";
+import { DATA_SOURCE_DIR } from "./paths.js";
 
 /** data_source配下のサブディレクトリ一覧を新しい順で返す */
 export function listDataSources(): string[] {

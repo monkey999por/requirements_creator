@@ -1,6 +1,10 @@
 # データ収集コマンド設定ファイル
 # 各データソースの有効/無効とオプションを管理する
 
+# 生成データの出力先ベースディレクトリ
+# data_source/ と requirements/ がこのディレクトリ配下に作成される
+output_base_dir: gen
+
 # NewsAPI (https://newsapi.org/)
 newsapi:
   enabled: true

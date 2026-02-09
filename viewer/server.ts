@@ -4,9 +4,24 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { parse } from "yaml";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const REQUIREMENTS_DIR = resolve(__dirname, "..", "requirements");
+const projectRoot = resolve(__dirname, "..");
+
+function loadRequirementsDir(): string {
+  try {
+    const configPath = resolve(projectRoot, "collect.config.yaml");
+    const raw = readFileSync(configPath, "utf-8");
+    const config = parse(raw) as { output_base_dir?: string };
+    const base = config.output_base_dir ?? "gen";
+    return resolve(projectRoot, base, "requirements");
+  } catch {
+    return resolve(projectRoot, "gen", "requirements");
+  }
+}
+
+const REQUIREMENTS_DIR = loadRequirementsDir();
 const isDev = process.env.NODE_ENV !== "production";
 const basePort = Number(process.env.PORT) || 3001;
 const MAX_PORT_RETRIES = 10;

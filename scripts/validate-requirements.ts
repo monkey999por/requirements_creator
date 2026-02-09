@@ -1,7 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
-
-const REQUIREMENTS_DIR = resolve("requirements");
+import { join } from "node:path";
+import { REQUIREMENTS_DIR } from "./lib/paths.js";
 
 // --- 必須セクション定義 ---
 const OVERVIEW_REQUIRED_SECTIONS = [
@@ -183,7 +182,7 @@ function main() {
   if (!appName) {
     // 引数なし: requirements/ 配下の全アプリを検証
     if (!existsSync(REQUIREMENTS_DIR)) {
-      console.error("requirements/ ディレクトリが存在しません。");
+      console.error(`${REQUIREMENTS_DIR} ディレクトリが存在しません。`);
       process.exit(1);
     }
 
@@ -192,7 +191,7 @@ function main() {
       .map((d) => d.name);
 
     if (apps.length === 0) {
-      console.error("requirements/ にアプリがありません。");
+      console.error(`${REQUIREMENTS_DIR} にアプリがありません。`);
       process.exit(1);
     }
 
