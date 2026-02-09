@@ -198,16 +198,15 @@ export async function fetchAppsWithTags(): Promise<AppWithTags[]> {
   return res.json();
 }
 
-export async function searchGrep(query: string): Promise<GrepSearchResult[]> {
-  const res = await fetch(`${BASE}/search?type=grep&q=${encodeURIComponent(query)}`);
-  const data = await res.json();
-  return data.results;
-}
-
-export async function searchByTag(tag: string): Promise<TagSearchResult[]> {
-  const res = await fetch(`${BASE}/search?type=tag&q=${encodeURIComponent(tag)}`);
-  const data = await res.json();
-  return data.results;
+export async function search(
+  query: string,
+  tags: string[],
+): Promise<{ results: GrepSearchResult[] | TagSearchResult[]; resultType: "grep" | "tag" }> {
+  const params = new URLSearchParams();
+  if (query) params.set("q", query);
+  if (tags.length > 0) params.set("tags", tags.join(","));
+  const res = await fetch(`${BASE}/search?${params.toString()}`);
+  return res.json();
 }
 
 // --- Git API ---
