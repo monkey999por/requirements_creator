@@ -70,6 +70,207 @@
 {パフォーマンス目標、セキュリティ要件、アクセシビリティ等}
 ```
 
+## diagrams/{diagram_id}_{diagram_name}.md
+
+overview.mdと各機能の仕様内容に基づき、Mermaid記法でアプリケーションの設計図を1図解1ファイルで作成する。ファイル名は `{nn}_{snake_case}.md` 形式（featuresと同じ命名規則）。
+
+### 必須: 画面遷移図（例: `01_screen_transition.md`）
+
+````markdown
+# 画面遷移図
+
+アプリの主要画面間のナビゲーション遷移を示す。
+
+```mermaid
+graph LR
+  Home[ホーム画面] -->|ログイン| Login[ログイン画面]
+  Login -->|認証成功| Dashboard[ダッシュボード]
+  Dashboard -->|設定へ| Settings[設定画面]
+  Settings -->|戻る| Dashboard
+  Dashboard -->|プロフィール| Profile[プロフィール画面]
+```
+````
+
+### 任意: ユーザーフロー図（例: `02_user_flow_login.md`）
+
+````markdown
+# ユーザーフロー: ログイン
+
+ログイン処理のユーザーフローを示す。
+
+```mermaid
+sequenceDiagram
+  actor User as ユーザー
+  participant FE as フロントエンド
+  participant API as APIサーバー
+  participant DB as データベース
+
+  User->>FE: ログインボタンをクリック
+  FE->>API: POST /api/login
+  API->>DB: ユーザー検索
+  DB-->>API: ユーザー情報
+  alt 認証成功
+    API-->>FE: 200 OK + トークン
+    FE-->>User: ダッシュボードへ遷移
+  else 認証失敗
+    API-->>FE: 401 Unauthorized
+    FE-->>User: エラーメッセージ表示
+  end
+```
+````
+
+### 任意: システム構成図（例: `03_system_architecture.md`）
+
+````markdown
+# システム構成図
+
+フロントエンド・バックエンド・DB・外部サービスの構成を示す。
+
+```mermaid
+graph TB
+  subgraph Client[クライアント]
+    Browser[ブラウザ]
+  end
+
+  subgraph Server[サーバー]
+    API[APIサーバー]
+    Auth[認証サービス]
+  end
+
+  subgraph Data[データ層]
+    DB[(データベース)]
+    Cache[(キャッシュ)]
+  end
+
+  Browser -->|HTTPS| API
+  API --> Auth
+  API --> DB
+  API --> Cache
+```
+````
+
+### diagrams/ 作成時の注意事項
+
+- 1図解1ファイル。ファイル名は `{nn}_{snake_case}.md` 形式
+- 各ファイルの先頭に `# タイトル` を記述（Viewerで表示される）
+- Mermaidコードブロックは必ず ` ```mermaid ` で開始し ` ``` ` で閉じる
+- **画面遷移図は必須**。それ以外はアプリの特性に合わせて自由に追加する
+- 図解の種類に制限はない: フローチャート、シーケンス図、ER図、ステート図、ガントチャート等、要件の理解に役立つものを選ぶ
+- ラベルやコメントは日本語で記述する
+- overview.mdの機能一覧・技術スタックと整合性を保つこと
+- 上記テンプレートはあくまで構造の例。実際のアプリの内容に合わせて図の中身を具体的に記述すること
+
+## Mermaid記法リファレンス
+
+Mermaid.jsの主要な記法。公式ドキュメント: https://mermaid.js.org/
+
+### フローチャート（graph）
+
+```mermaid
+graph LR
+  A[四角ノード] --> B(角丸ノード)
+  B --> C{条件分岐}
+  C -->|Yes| D[結果1]
+  C -->|No| E[結果2]
+```
+
+**方向指定**: `graph TB`（上→下）, `graph BT`（下→上）, `graph LR`（左→右）, `graph RL`（右→左）
+
+**ノード形状**:
+- `A[テキスト]` — 四角
+- `A(テキスト)` — 角丸
+- `A([テキスト])` — スタジアム型
+- `A{テキスト}` — ひし形
+- `A[(テキスト)]` — 円柱（DB）
+- `A((テキスト))` — 円
+- `A>テキスト]` — 旗型
+
+**矢印の種類**:
+- `-->` — 実線矢印
+- `---` — 実線（矢印なし）
+- `-.->` — 点線矢印
+- `==>` — 太線矢印
+- `-->|ラベル|` — ラベル付き矢印
+
+### サブグラフ（グループ化）
+
+```mermaid
+graph TB
+  subgraph サーバー
+    API[APIサーバー]
+    Worker[ワーカー]
+  end
+
+  subgraph データ層
+    DB[(PostgreSQL)]
+    Redis[(Redis)]
+  end
+
+  API --> DB
+  API --> Redis
+  Worker --> DB
+```
+
+### シーケンス図
+
+```mermaid
+sequenceDiagram
+  actor U as ユーザー
+  participant FE as フロントエンド
+  participant API as APIサーバー
+  participant DB as データベース
+
+  U->>FE: ログインボタンをクリック
+  FE->>API: POST /api/login
+  API->>DB: ユーザー検索
+  DB-->>API: ユーザー情報
+  alt 認証成功
+    API-->>FE: 200 OK + トークン
+    FE-->>U: ダッシュボードへ遷移
+  else 認証失敗
+    API-->>FE: 401 Unauthorized
+    FE-->>U: エラーメッセージ表示
+  end
+```
+
+**メッセージの種類**:
+- `->>` — 実線（同期）
+- `-->>` — 点線（レスポンス）
+- `--)` — 非同期メッセージ
+
+**制御構文**:
+- `alt` / `else` / `end` — 条件分岐
+- `opt` / `end` — オプション
+- `loop` / `end` — ループ
+- `par` / `and` / `end` — 並列処理
+- `Note over A,B: テキスト` — ノート
+
+### ER図
+
+```mermaid
+erDiagram
+  USER ||--o{ POST : "投稿する"
+  USER ||--o{ COMMENT : "コメントする"
+  POST ||--o{ COMMENT : "含む"
+
+  USER {
+    int id PK
+    string name
+    string email
+  }
+  POST {
+    int id PK
+    int user_id FK
+    string title
+    text body
+  }
+```
+
+**カーディナリティ**:
+- `||--||` — 1対1
+- `||--o{` — 1対多
+- `o{--o{` — 多対多
+
 ## _source_info.json
 
 ```json

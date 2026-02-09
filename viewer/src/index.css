@@ -43,6 +43,22 @@ body {
   background: #475569;
 }
 
+/* === Mermaid Diagrams === */
+.mermaid-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.mermaid-zoom-wrapper {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.mermaid-zoom-content {
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
 /* === Overscroll containment for scroll areas === */
 .custom-scrollbar,
 .dark-scrollbar {

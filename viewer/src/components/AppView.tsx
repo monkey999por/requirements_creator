@@ -2,7 +2,9 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import {
   commitAndPush,
+  type DiagramFile,
   type Feature,
+  fetchDiagrams,
   fetchFeatureDetail,
   fetchFeatures,
   fetchMode,
@@ -15,8 +17,8 @@ import { MarkdownPane } from "./MarkdownPane";
 import { MemoTab } from "./MemoTab";
 import { useToast } from "./Toast";
 
-export type AppTab = "overview" | "source-info" | "features" | "memo";
-type LeftTab = "overview" | "source-info" | "memo";
+export type AppTab = "overview" | "source-info" | "diagrams" | "features" | "memo";
+type LeftTab = "overview" | "source-info" | "diagrams" | "memo";
 
 const cardContainerVariants = {
   hidden: {},
@@ -53,9 +55,10 @@ export function AppView({
 }) {
   const [overview, setOverview] = useState("");
   const [sourceInfo, setSourceInfo] = useState<SourceInfo | null>(null);
+  const [diagrams, setDiagrams] = useState<DiagramFile[]>([]);
   const [features, setFeatures] = useState<Feature[]>([]);
   const [featureContent, setFeatureContent] = useState("");
-  const leftTab: LeftTab = selectedTab === "features" ? "overview" : selectedTab;
+  const leftTab: LeftTab = selectedTab === "features" ? "overview" : (selectedTab as LeftTab);
   const mobileTab: AppTab = selectedTab;
   const [loading, setLoading] = useState(true);
   const [isDev, setIsDev] = useState(false);
@@ -75,6 +78,9 @@ export function AppView({
       fetchSourceInfo(appName)
         .then((r) => setSourceInfo(r))
         .catch(() => setSourceInfo(null)),
+      fetchDiagrams(appName)
+        .then(setDiagrams)
+        .catch(() => setDiagrams([])),
     ]).finally(() => setLoading(false));
   }, [appName]);
 
@@ -200,6 +206,13 @@ export function AppView({
             onPin={() => onPinTab("source-info")}
           />
           <TabButton
+            active={mobileTab === "diagrams"}
+            onClick={() => onSelectTab("diagrams")}
+            label="Diagrams"
+            pinned={pinnedTab === "diagrams"}
+            onPin={() => onPinTab("diagrams")}
+          />
+          <TabButton
             active={mobileTab === "features"}
             onClick={() => onSelectTab("features")}
             label="Features"
@@ -301,6 +314,26 @@ export function AppView({
                     onNavigateToApp={onNavigateToApp}
                   />
                 </motion.div>
+              ) : mobileTab === "diagrams" ? (
+                <motion.div
+                  key="diagrams"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {diagrams.length > 0 ? (
+                    <div className="space-y-8">
+                      {diagrams.map((d) => (
+                        <section key={d.id}>
+                          <MarkdownPane content={d.content} />
+                        </section>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">図解データがありません</p>
+                  )}
+                </motion.div>
               ) : (
                 <motion.div
                   key={mobileTab}
@@ -366,6 +399,17 @@ export function AppView({
               onPin={() => onPinTab("source-info")}
             />
             <TabButton
+              active={leftTab === "diagrams"}
+              onClick={() => {
+                onSelectTab("diagrams");
+                onSelectFeature(null);
+                setFeatureContent("");
+              }}
+              label="Diagrams"
+              pinned={pinnedTab === "diagrams"}
+              onPin={() => onPinTab("diagrams")}
+            />
+            <TabButton
               active={leftTab === "memo"}
               onClick={() => {
                 onSelectTab("memo");
@@ -410,6 +454,26 @@ export function AppView({
                       onNavigateToDataset={onNavigateToDataset}
                       onNavigateToApp={onNavigateToApp}
                     />
+                  </motion.div>
+                ) : leftTab === "diagrams" ? (
+                  <motion.div
+                    key="diagrams"
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    {diagrams.length > 0 ? (
+                      <div className="space-y-8">
+                        {diagrams.map((d) => (
+                          <section key={d.id}>
+                            <MarkdownPane content={d.content} />
+                          </section>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">図解データがありません</p>
+                    )}
                   </motion.div>
                 ) : (
                   <motion.div
