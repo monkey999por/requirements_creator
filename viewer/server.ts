@@ -168,9 +168,22 @@ app.get("/api/mode", (c) => {
 
 app.get("/api/apps/:name/diagrams", (c) => {
   const name = c.req.param("name");
-  const filePath = join(REQUIREMENTS_DIR, name, "diagrams.md");
-  if (!existsSync(filePath)) return c.json({ content: "" });
-  return c.json({ content: readFileSync(filePath, "utf-8") });
+  const diagramsDir = join(REQUIREMENTS_DIR, name, "diagrams");
+  if (!existsSync(diagramsDir)) return c.json([]);
+  const files = readdirSync(diagramsDir)
+    .filter((f) => f.endsWith(".md"))
+    .sort()
+    .map((f) => {
+      const content = readFileSync(join(diagramsDir, f), "utf-8");
+      const titleMatch = content.match(/^#\s+(.+)/m);
+      return {
+        id: f.replace(".md", ""),
+        filename: f,
+        title: titleMatch?.[1] ?? f,
+        content,
+      };
+    });
+  return c.json(files);
 });
 
 app.get("/api/apps/:name/memo", (c) => {

@@ -13,7 +13,7 @@ const OVERVIEW_REQUIRED_SECTIONS = [
   "運用方針",
 ];
 
-const DIAGRAMS_REQUIRED_SECTIONS = ["画面遷移図", "システム構成図"];
+const DIAGRAM_FILE_PATTERN = /^(\d{2})_([a-z][a-z0-9]*(?:_[a-z0-9]+)*)\.md$/;
 
 const FEATURE_REQUIRED_SECTIONS = [
   "概要",
@@ -89,7 +89,7 @@ function validate(appName: string): ValidationError[] {
   }
 
   // 3. 必須ファイル存在チェック
-  const requiredFiles = ["_source_info.json", "overview.md", "diagrams.md"];
+  const requiredFiles = ["_source_info.json", "overview.md"];
   for (const file of requiredFiles) {
     if (!existsSync(join(appDir, file))) {
       errors.push({ file, message: "必須ファイルが存在しません" });
@@ -101,6 +101,12 @@ function validate(appName: string): ValidationError[] {
   if (!existsSync(featuresDir)) {
     errors.push({ file: "features/", message: "featuresディレクトリが存在しません" });
     return errors;
+  }
+
+  // 4.5. diagramsディレクトリ存在チェック
+  const diagramsDir = join(appDir, "diagrams");
+  if (!existsSync(diagramsDir)) {
+    errors.push({ file: "diagrams/", message: "diagramsディレクトリが存在しません" });
   }
 
   // 5. _source_info.json スキーマバリデーション
@@ -163,31 +169,35 @@ function validate(appName: string): ValidationError[] {
     }
   }
 
-  // 5.5. diagrams.md チェック
-  const diagramsPath = join(appDir, "diagrams.md");
-  if (existsSync(diagramsPath)) {
-    const diagramsContent = readFileSync(diagramsPath, "utf-8");
-    const missingDiagrams = checkSections(diagramsContent, DIAGRAMS_REQUIRED_SECTIONS);
-    for (const section of missingDiagrams) {
-      errors.push({
-        file: "diagrams.md",
-        message: `必須セクション「${section}」がありません`,
-      });
+  // 5.5. diagrams/ チェック
+  if (existsSync(diagramsDir)) {
+    const diagramFiles = readdirSync(diagramsDir)
+      .filter((f) => f.endsWith(".md"))
+      .sort();
+
+    if (diagramFiles.length === 0) {
+      errors.push({ file: "diagrams/", message: "diagramファイルが1つもありません" });
     }
-    // Mermaidコードブロックの存在チェック
-    const mermaidBlockCount = (diagramsContent.match(/```mermaid\n/g) || []).length;
-    if (mermaidBlockCount === 0) {
-      errors.push({
-        file: "diagrams.md",
-        message: "Mermaidコードブロック（```mermaid）が1つもありません",
-      });
+
+    // ファイル命名規則チェック
+    for (const file of diagramFiles) {
+      if (!DIAGRAM_FILE_PATTERN.test(file)) {
+        errors.push({
+          file: `diagrams/${file}`,
+          message: "ファイル名が命名規則（{nn}_{snake_case}.md）に従っていません",
+        });
+      }
     }
-    // ユーザーフローのシーケンス図チェック
-    if (!diagramsContent.includes("sequenceDiagram")) {
-      errors.push({
-        file: "diagrams.md",
-        message: "ユーザーフローのシーケンス図（sequenceDiagram）が含まれていません",
-      });
+
+    // 各ファイルにMermaidコードブロックが含まれているかチェック
+    for (const file of diagramFiles) {
+      const content = readFileSync(join(diagramsDir, file), "utf-8");
+      if (!content.match(/```mermaid\n/)) {
+        errors.push({
+          file: `diagrams/${file}`,
+          message: "Mermaidコードブロック（```mermaid）が含まれていません",
+        });
+      }
     }
   }
 

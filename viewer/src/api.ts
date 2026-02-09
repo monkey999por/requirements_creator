@@ -64,7 +64,14 @@ export async function fetchMode(): Promise<{ isDev: boolean }> {
   return res.json();
 }
 
-export async function fetchDiagrams(appName: string): Promise<MarkdownContent> {
+export interface DiagramFile {
+  id: string;
+  filename: string;
+  title: string;
+  content: string;
+}
+
+export async function fetchDiagrams(appName: string): Promise<DiagramFile[]> {
   const res = await fetch(`${BASE}/apps/${appName}/diagrams`);
   return res.json();
 }

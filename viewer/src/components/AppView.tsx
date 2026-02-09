@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import {
   commitAndPush,
+  type DiagramFile,
   type Feature,
   fetchDiagrams,
   fetchFeatureDetail,
@@ -46,7 +47,7 @@ export function AppView({
 }) {
   const [overview, setOverview] = useState("");
   const [sourceInfo, setSourceInfo] = useState<SourceInfo | null>(null);
-  const [diagramsContent, setDiagramsContent] = useState("");
+  const [diagrams, setDiagrams] = useState<DiagramFile[]>([]);
   const [features, setFeatures] = useState<Feature[]>([]);
   const [featureContent, setFeatureContent] = useState("");
   const [leftTab, setLeftTab] = useState<LeftTab>("overview");
@@ -72,8 +73,8 @@ export function AppView({
         .then((r) => setSourceInfo(r))
         .catch(() => setSourceInfo(null)),
       fetchDiagrams(appName)
-        .then((r) => setDiagramsContent(r.content))
-        .catch(() => setDiagramsContent("")),
+        .then(setDiagrams)
+        .catch(() => setDiagrams([])),
     ]).finally(() => setLoading(false));
   }, [appName]);
 
@@ -307,8 +308,14 @@ export function AppView({
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
                 >
-                  {diagramsContent ? (
-                    <MarkdownPane content={diagramsContent} />
+                  {diagrams.length > 0 ? (
+                    <div className="space-y-8">
+                      {diagrams.map((d) => (
+                        <section key={d.id}>
+                          <MarkdownPane content={d.content} />
+                        </section>
+                      ))}
+                    </div>
                   ) : (
                     <p className="text-sm text-gray-500">図解データがありません</p>
                   )}
@@ -434,8 +441,14 @@ export function AppView({
                     exit={{ opacity: 0, scale: 0.98 }}
                     transition={{ duration: 0.25 }}
                   >
-                    {diagramsContent ? (
-                      <MarkdownPane content={diagramsContent} />
+                    {diagrams.length > 0 ? (
+                      <div className="space-y-8">
+                        {diagrams.map((d) => (
+                          <section key={d.id}>
+                            <MarkdownPane content={d.content} />
+                          </section>
+                        ))}
+                      </div>
                     ) : (
                       <p className="text-sm text-gray-500">図解データがありません</p>
                     )}
