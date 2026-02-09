@@ -4,7 +4,8 @@ import type { GrepSearchResult, TagSearchResult } from "../api";
 
 interface SearchViewProps {
   query: string;
-  searchType: "grep" | "tag";
+  selectedTags: string[];
+  searchResultType: "grep" | "tag";
   grepResults: GrepSearchResult[];
   tagResults: TagSearchResult[];
   onSelectApp: (app: string) => void;
@@ -13,7 +14,8 @@ interface SearchViewProps {
 
 export function SearchView({
   query,
-  searchType,
+  selectedTags,
+  searchResultType,
   grepResults,
   tagResults,
   onSelectApp,
@@ -25,10 +27,11 @@ export function SearchView({
     matches: { line: number; text: string }[];
   } | null>(null);
 
-  if (searchType === "tag") {
+  if (searchResultType === "tag") {
     return (
       <TagResultsView
         query={query}
+        selectedTags={selectedTags}
         results={tagResults}
         onSelectApp={onSelectApp}
         isMobile={isMobile}
@@ -39,6 +42,7 @@ export function SearchView({
   return (
     <GrepResultsView
       query={query}
+      selectedTags={selectedTags}
       results={grepResults}
       selectedItem={selectedItem}
       onSelectItem={setSelectedItem}
@@ -48,19 +52,43 @@ export function SearchView({
   );
 }
 
+function SearchHeader({
+  query,
+  selectedTags,
+  resultCount,
+  suffix,
+}: {
+  query: string;
+  selectedTags: string[];
+  resultCount: number;
+  suffix: string;
+}) {
+  const parts: string[] = [];
+  if (query) parts.push(`全文: "${query}"`);
+  if (selectedTags.length > 0) parts.push(`タグ: ${selectedTags.join(", ")}`);
+  return (
+    <p className="text-xs text-gray-500 mb-4">
+      {parts.join(" + ")} - {resultCount}
+      {suffix}
+    </p>
+  );
+}
+
 function TagResultsView({
   query,
+  selectedTags,
   results,
   onSelectApp,
   isMobile,
 }: {
   query: string;
+  selectedTags: string[];
   results: TagSearchResult[];
   onSelectApp: (app: string) => void;
   isMobile: boolean;
 }) {
   if (results.length === 0) {
-    return <EmptyState query={query} type="tag" />;
+    return <EmptyState query={selectedTags.join(", ") || query} type="tag" />;
   }
 
   return (
@@ -70,9 +98,12 @@ function TagResultsView({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
-      <p className="text-xs text-gray-500 mb-4">
-        タグ検索: &quot;{query}&quot; - {results.length}件のアプリ
-      </p>
+      <SearchHeader
+        query={query}
+        selectedTags={selectedTags}
+        resultCount={results.length}
+        suffix="件のアプリ"
+      />
       <div className="space-y-3">
         {results.map((r) => (
           <motion.button
@@ -106,6 +137,7 @@ function TagResultsView({
 
 function GrepResultsView({
   query,
+  selectedTags,
   results,
   selectedItem,
   onSelectItem,
@@ -113,6 +145,7 @@ function GrepResultsView({
   isMobile,
 }: {
   query: string;
+  selectedTags: string[];
   results: GrepSearchResult[];
   selectedItem: { app: string; file: string; matches: { line: number; text: string }[] } | null;
   onSelectItem: (
@@ -133,9 +166,12 @@ function GrepResultsView({
   if (isMobile) {
     return (
       <div className="h-full overflow-y-auto dark-scrollbar p-4 pb-8">
-        <p className="text-xs text-gray-500 mb-4">
-          全文検索: &quot;{query}&quot; - {totalMatches}件のマッチ
-        </p>
+        <SearchHeader
+          query={query}
+          selectedTags={selectedTags}
+          resultCount={totalMatches}
+          suffix="件のマッチ"
+        />
         {selectedItem ? (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
             <button
@@ -177,9 +213,12 @@ function GrepResultsView({
   return (
     <div className="flex h-full">
       <div className="flex-1 min-w-0 overflow-y-auto dark-scrollbar p-6 border-r border-gray-700/50">
-        <p className="text-xs text-gray-500 mb-4">
-          全文検索: &quot;{query}&quot; - {totalMatches}件のマッチ
-        </p>
+        <SearchHeader
+          query={query}
+          selectedTags={selectedTags}
+          resultCount={totalMatches}
+          suffix="件のマッチ"
+        />
         <ResultList
           results={results}
           query={query}

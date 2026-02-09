@@ -1,6 +1,17 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { AppInfo } from "../api";
+
+const ALL_TAGS = [
+  "AI",
+  "Web3",
+  "ヘルスケア",
+  "教育",
+  "金融",
+  "モビリティ",
+  "サステナビリティ",
+  "エンタメ",
+];
 
 interface SidebarProps {
   apps: AppInfo[];
@@ -13,7 +24,7 @@ interface SidebarProps {
   onMobileClose: () => void;
   viewMode: "apps" | "datasets";
   onSelectDatasets: () => void;
-  onSearch: (query: string, type: "grep" | "tag") => void;
+  onSearch: (query: string, tags: string[]) => void;
   onClearSearch: () => void;
   isSearchActive: boolean;
 }
@@ -36,21 +47,42 @@ function SearchInput({
   onClear,
   isActive,
 }: {
-  onSearch: (query: string, type: "grep" | "tag") => void;
+  onSearch: (query: string, tags: string[]) => void;
   onClear: () => void;
   isActive: boolean;
 }) {
   const [query, setQuery] = useState("");
-  const [searchType, setSearchType] = useState<"grep" | "tag">("grep");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagDialogOpen, setTagDialogOpen] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) onSearch(query.trim(), searchType);
-  };
+  const canSearch = query.trim() || selectedTags.length > 0;
+
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (canSearch) onSearch(query.trim(), selectedTags);
+    },
+    [query, selectedTags, canSearch, onSearch],
+  );
 
   const handleClear = () => {
     setQuery("");
+    setSelectedTags([]);
+    setTagDialogOpen(false);
     onClear();
+  };
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    );
+  };
+
+  const handleTagSearch = () => {
+    setTagDialogOpen(false);
+    if (query.trim() || selectedTags.length > 0) {
+      onSearch(query.trim(), selectedTags);
+    }
   };
 
   return (
@@ -75,10 +107,10 @@ function SearchInput({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="検索..."
+            placeholder="全文検索..."
             className="w-full pl-8 pr-8 py-1.5 text-xs bg-gray-800/80 border border-gray-700/50 rounded-lg text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20"
           />
-          {(query || isActive) && (
+          {(query || selectedTags.length > 0 || isActive) && (
             <button
               type="button"
               className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
@@ -101,30 +133,91 @@ function SearchInput({
             </button>
           )}
         </div>
-        <div className="flex gap-1">
-          <button
-            type="button"
-            className={`flex-1 px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
-              searchType === "grep"
-                ? "bg-indigo-500/20 text-indigo-300 ring-1 ring-indigo-500/30"
-                : "bg-gray-800/50 text-gray-500 hover:text-gray-300"
-            }`}
-            onClick={() => setSearchType("grep")}
-          >
-            全文検索
-          </button>
-          <button
-            type="button"
-            className={`flex-1 px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
-              searchType === "tag"
-                ? "bg-indigo-500/20 text-indigo-300 ring-1 ring-indigo-500/30"
-                : "bg-gray-800/50 text-gray-500 hover:text-gray-300"
-            }`}
-            onClick={() => setSearchType("tag")}
-          >
-            タグ検索
-          </button>
-        </div>
+
+        {/* タグ指定ボタン */}
+        <button
+          type="button"
+          className={`w-full px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
+            selectedTags.length > 0 || tagDialogOpen
+              ? "bg-indigo-500/20 text-indigo-300 ring-1 ring-indigo-500/30"
+              : "bg-gray-800/50 text-gray-500 hover:text-gray-300"
+          }`}
+          onClick={() => setTagDialogOpen((prev) => !prev)}
+        >
+          タグ指定{selectedTags.length > 0 ? ` (${selectedTags.length})` : ""}
+        </button>
+
+        {/* 選択中タグのバッジ */}
+        {selectedTags.length > 0 && !tagDialogOpen && (
+          <div className="flex flex-wrap gap-1">
+            {selectedTags.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition-colors"
+                onClick={() => toggleTag(tag)}
+              >
+                {tag}
+                <svg
+                  className="size-2.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* タグ選択ダイアログ */}
+        <AnimatePresence>
+          {tagDialogOpen && (
+            <motion.div
+              className="rounded-lg border border-gray-700/50 bg-gray-800/90 p-2 space-y-1.5"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              <p className="text-[10px] text-gray-500 font-medium">タグを選択（AND検索）</p>
+              <div className="flex flex-wrap gap-1">
+                {ALL_TAGS.map((tag) => {
+                  const isSelected = selectedTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors ${
+                        isSelected
+                          ? "bg-indigo-500/30 text-indigo-300 ring-1 ring-indigo-500/40"
+                          : "bg-gray-700/50 text-gray-400 hover:bg-gray-700/80 hover:text-gray-300"
+                      }`}
+                      onClick={() => toggleTag(tag)}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                type="button"
+                className="w-full px-2 py-1 text-[10px] font-medium rounded-md bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                disabled={!canSearch}
+                onClick={handleTagSearch}
+              >
+                検索
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </form>
     </div>
   );

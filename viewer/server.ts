@@ -306,26 +306,44 @@ app.get("/api/apps-with-tags", (c) => {
 });
 
 app.get("/api/search", async (c) => {
-  const query = c.req.query("q")?.trim();
-  const type = c.req.query("type") || "grep";
-  if (!query) return c.json({ results: [] });
+  const query = c.req.query("q")?.trim() || "";
+  const tagsParam = c.req.query("tags")?.trim() || "";
+  const selectedTags = tagsParam ? tagsParam.split(",").filter(Boolean) : [];
+
+  if (!query && selectedTags.length === 0) return c.json({ results: [] });
   if (!existsSync(REQUIREMENTS_DIR)) return c.json({ results: [] });
 
-  if (type === "tag") {
+  // タグのみ検索
+  if (!query && selectedTags.length > 0) {
     const dirs = readdirSync(REQUIREMENTS_DIR, { withFileTypes: true }).filter((d) =>
       d.isDirectory(),
     );
     const results = dirs
       .map((d) => {
         const tags = extractTags(join(REQUIREMENTS_DIR, d.name));
-        const matched = tags.filter((t) => t.includes(query));
-        return matched.length > 0 ? { app: d.name, tags, matchedTags: matched } : null;
+        const matched = selectedTags.filter((st) => tags.includes(st));
+        return matched.length === selectedTags.length
+          ? { app: d.name, tags, matchedTags: matched }
+          : null;
       })
       .filter(Boolean);
-    return c.json({ results });
+    return c.json({ results, resultType: "tag" });
   }
 
-  // grep search
+  // grep検索（タグフィルタ付きの可能性あり）
+  const tagFilterApps =
+    selectedTags.length > 0
+      ? new Set(
+          readdirSync(REQUIREMENTS_DIR, { withFileTypes: true })
+            .filter((d) => d.isDirectory())
+            .filter((d) => {
+              const tags = extractTags(join(REQUIREMENTS_DIR, d.name));
+              return selectedTags.every((st) => tags.includes(st));
+            })
+            .map((d) => d.name),
+        )
+      : null;
+
   try {
     const { stdout } = await execAsync(
       `grep -rn --include='*.md' --include='*.json' ${JSON.stringify(query)} ${JSON.stringify(REQUIREMENTS_DIR)}`,
@@ -341,6 +359,7 @@ app.get("/api/search", async (c) => {
       const relPath = fullPath.replace(`${REQUIREMENTS_DIR}/`, "");
       const parts = relPath.split("/");
       const app = parts[0];
+      if (tagFilterApps && !tagFilterApps.has(app)) continue;
       const file = parts.slice(1).join("/");
       if (!grouped[app]) grouped[app] = [];
       let entry = grouped[app].find((e) => e.file === file);
@@ -351,9 +370,9 @@ app.get("/api/search", async (c) => {
       entry.matches.push({ line: Number(lineNum), text: text.trim() });
     }
     const results = Object.entries(grouped).map(([app, files]) => ({ app, files }));
-    return c.json({ results });
+    return c.json({ results, resultType: "grep" });
   } catch {
-    return c.json({ results: [] });
+    return c.json({ results: [], resultType: "grep" });
   }
 });
 
