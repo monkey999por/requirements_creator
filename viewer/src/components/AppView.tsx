@@ -8,6 +8,7 @@ import {
   fetchOverview,
   fetchSourceInfo,
 } from "../api";
+import { DatasetAddButton } from "./DatasetAddButton";
 import { MarkdownPane } from "./MarkdownPane";
 import { MemoTab } from "./MemoTab";
 
@@ -159,6 +160,14 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
             onClick={() => setMobileTab("memo")}
             label="Memo"
           />
+          {mobileTab === "overview" && (
+            <div className="ml-auto">
+              <DatasetAddButton
+                item={{ appName, type: "overview", title: appName }}
+                isDev={isDev}
+              />
+            </div>
+          )}
         </div>
         {/* Content */}
         {mobileTab === "memo" ? (
@@ -195,20 +204,31 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
                           </p>
                         )}
                       </div>
-                      <svg
-                        className="size-4 shrink-0 mt-0.5 text-gray-600"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        aria-hidden="true"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
+                      <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                        <DatasetAddButton
+                          item={{
+                            appName,
+                            type: "feature",
+                            featureId: f.id,
+                            title: f.title,
+                          }}
+                          isDev={isDev}
                         />
-                      </svg>
+                        <svg
+                          className="size-4 text-gray-600"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          aria-hidden="true"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </div>
                     </button>
                   ))}
                 </motion.div>
@@ -281,6 +301,14 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
               }}
               label="Memo"
             />
+            {leftTab === "overview" && (
+              <div className="ml-auto">
+                <DatasetAddButton
+                  item={{ appName, type: "overview", title: appName }}
+                  isDev={isDev}
+                />
+              </div>
+            )}
           </div>
           {/* Content */}
           {leftTab === "memo" ? (
@@ -373,23 +401,34 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
                       </p>
                     )}
                   </div>
-                  {/* Arrow */}
-                  <motion.svg
-                    aria-hidden="true"
-                    className={`size-4 shrink-0 mt-0.5 ${selectedFeature === f.id ? "text-indigo-400" : "text-gray-600"}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    whileHover={{ x: 2, color: "#818cf8" }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
+                  {/* Dataset add + Arrow */}
+                  <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                    <DatasetAddButton
+                      item={{
+                        appName,
+                        type: "feature",
+                        featureId: f.id,
+                        title: f.title,
+                      }}
+                      isDev={isDev}
                     />
-                  </motion.svg>
+                    <motion.svg
+                      aria-hidden="true"
+                      className={`size-4 ${selectedFeature === f.id ? "text-indigo-400" : "text-gray-600"}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      whileHover={{ x: 2, color: "#818cf8" }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </motion.svg>
+                  </div>
                 </motion.button>
               ))}
             </motion.div>

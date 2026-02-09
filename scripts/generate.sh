@@ -15,16 +15,22 @@ DATA_SOURCE_DIR="${OUTPUT_BASE}/data_source"
 
 # --- 引数処理 ---
 TARGET_DIR=""
+DATASET_SOURCE=""
+DATASET_NAME=""
 while [[ $# -gt 0 ]]; do
   case $1 in
     --target) TARGET_DIR="$2"; shift 2 ;;
+    --dataset-source) DATASET_SOURCE="$2"; shift 2 ;;
+    --dataset-name) DATASET_NAME="$2"; shift 2 ;;
     -h|--help)
-      echo "Usage: $0 [--target <data_source_subdir>]"
+      echo "Usage: $0 [--target <data_source_subdir>] [--dataset-source <file> --dataset-name <name>]"
       echo ""
-      echo "keyword.jsonを元にアプリ要件を生成します。"
+      echo "keyword.jsonまたはデータセットソースを元にアプリ要件を生成します。"
       echo ""
       echo "Options:"
-      echo "  --target  data_source配下のサブディレクトリ名（省略時は最新）"
+      echo "  --target          data_source配下のサブディレクトリ名（省略時は最新）"
+      echo "  --dataset-source  データセットソースファイルパス"
+      echo "  --dataset-name    データセット名"
       exit 0
       ;;
     --) shift ;;
@@ -32,7 +38,48 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# --- 対象ディレクトリの決定 ---
+# --- スキル内容とテンプレートを結合してシステムプロンプトファイルを作成 ---
+PROMPT_FILE=$(mktemp)
+trap 'rm -f "$PROMPT_FILE"' EXIT
+
+# フロントマターを除去してスキル本文を抽出
+awk 'BEGIN{n=0} /^---/{n++; next} n>=2{print}' "$SKILL_FILE" > "$PROMPT_FILE"
+
+# テンプレート内容を追加
+echo "" >> "$PROMPT_FILE"
+echo "---" >> "$PROMPT_FILE"
+echo "" >> "$PROMPT_FILE"
+cat "$TEMPLATES_FILE" >> "$PROMPT_FILE"
+
+# --- データセットモード ---
+if [[ -n "$DATASET_SOURCE" ]]; then
+  echo "=== 要件生成（データセットモード） ==="
+  echo "ソース: ${DATASET_SOURCE}"
+  echo "データセット: ${DATASET_NAME}"
+  echo ""
+
+  PROMPT="以下のデータセットソースファイルを読み込んでください: ${DATASET_SOURCE}
+
+このファイルには、複数のアプリ要件から選択されたOverviewとFeatureが含まれています。
+これらの要件を組み合わせ・融合・発展させて、新しいユニークなアプリ案を構想し、
+上記の要件生成スキルの手順に従って新しいアプリの要件を生成してください。
+
+データセット名: ${DATASET_NAME}
+
+重要：
+- 既存の要件をそのままコピーするのではなく、選択された機能やコンセプトを融合・再解釈して新しいアプリを考案してください
+- _source_info.md には、参照元のアプリ名と機能名を記載してください
+- 生成完了後、以下のバリデーションスクリプトを実行して構造を検証してください:
+tsx scripts/validate-requirements.ts <生成したapp_name>"
+
+  claude -p "$PROMPT" \
+    --append-system-prompt-file "$PROMPT_FILE" \
+    --allowedTools "Read" "Write" "Glob" "Bash(mkdir:*)" "Bash(find:*)" "Bash(tsx:*)"
+
+  exit 0
+fi
+
+# --- 通常モード（keyword.jsonベース） ---
 if [[ -z "$TARGET_DIR" ]]; then
   TARGET_DIR=$(ls -1d "${DATA_SOURCE_DIR}"/*/ 2>/dev/null | xargs -n1 basename | sort | tail -1)
   if [[ -z "$TARGET_DIR" ]]; then
@@ -50,19 +97,6 @@ fi
 echo "=== 要件生成 ==="
 echo "対象: ${KEYWORD_FILE}"
 echo ""
-
-# --- スキル内容とテンプレートを結合してシステムプロンプトファイルを作成 ---
-PROMPT_FILE=$(mktemp)
-trap 'rm -f "$PROMPT_FILE"' EXIT
-
-# フロントマターを除去してスキル本文を抽出
-awk 'BEGIN{n=0} /^---/{n++; next} n>=2{print}' "$SKILL_FILE" > "$PROMPT_FILE"
-
-# テンプレート内容を追加
-echo "" >> "$PROMPT_FILE"
-echo "---" >> "$PROMPT_FILE"
-echo "" >> "$PROMPT_FILE"
-cat "$TEMPLATES_FILE" >> "$PROMPT_FILE"
 
 # --- Claude Code CLI で実行 ---
 PROMPT="以下のkeyword.jsonを読み込み、上記の要件生成スキルの手順に従ってアプリの要件を生成してください。

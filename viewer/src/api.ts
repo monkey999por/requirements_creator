@@ -57,3 +57,73 @@ export async function saveMemo(appName: string, content: string): Promise<{ succ
   });
   return res.json();
 }
+
+// --- Dataset API ---
+
+export interface DatasetItem {
+  appName: string;
+  type: "overview" | "feature";
+  featureId?: string;
+  title?: string;
+}
+
+export interface Dataset {
+  name: string;
+  createdAt: string;
+  items: DatasetItem[];
+}
+
+export async function fetchDatasets(): Promise<Dataset[]> {
+  const res = await fetch(`${BASE}/datasets`);
+  return res.json();
+}
+
+export async function fetchDataset(name: string): Promise<Dataset> {
+  const res = await fetch(`${BASE}/datasets/${name}`);
+  return res.json();
+}
+
+export async function createDataset(name: string): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${BASE}/datasets`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  return res.json();
+}
+
+export async function deleteDataset(name: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE}/datasets/${name}`, { method: "DELETE" });
+  return res.json();
+}
+
+export async function addDatasetItem(
+  datasetName: string,
+  item: DatasetItem,
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${BASE}/datasets/${datasetName}/items`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(item),
+  });
+  return res.json();
+}
+
+export async function removeDatasetItem(
+  datasetName: string,
+  item: DatasetItem,
+): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE}/datasets/${datasetName}/items`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(item),
+  });
+  return res.json();
+}
+
+export async function generateFromDataset(
+  name: string,
+): Promise<{ success: boolean; message?: string }> {
+  const res = await fetch(`${BASE}/datasets/${name}/generate`, { method: "POST" });
+  return res.json();
+}

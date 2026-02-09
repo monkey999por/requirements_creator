@@ -1,18 +1,24 @@
 import { useEffect, useState } from "react";
-import { fetchApps } from "./api";
+import { fetchApps, fetchMode } from "./api";
 import { AppView } from "./components/AppView";
+import { DatasetManager } from "./components/DatasetManager";
 import { Sidebar } from "./components/Sidebar";
 import { useIsMobile } from "./hooks/useIsMobile";
+
+type ViewMode = "apps" | "datasets";
 
 export function App() {
   const [apps, setApps] = useState<string[]>([]);
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("apps");
+  const [isDev, setIsDev] = useState(false);
   const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchApps().then(setApps);
+    fetchMode().then((r) => setIsDev(r.isDev));
   }, []);
 
   useEffect(() => {
@@ -24,15 +30,28 @@ export function App() {
   }, [apps, selectedApp]);
 
   useEffect(() => {
-    if (selectedApp) {
+    if (selectedApp && viewMode === "apps") {
       const url = new URL(window.location.href);
       url.searchParams.set("app", selectedApp);
+      url.searchParams.delete("view");
       window.history.replaceState({}, "", url.toString());
     }
-  }, [selectedApp]);
+    if (viewMode === "datasets") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("view", "datasets");
+      url.searchParams.delete("app");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [selectedApp, viewMode]);
 
   const handleSelectApp = (app: string) => {
     setSelectedApp(app);
+    setViewMode("apps");
+    if (isMobile) setMobileSidebarOpen(false);
+  };
+
+  const handleSelectDatasets = () => {
+    setViewMode("datasets");
     if (isMobile) setMobileSidebarOpen(false);
   };
 
@@ -62,20 +81,22 @@ export function App() {
             </svg>
           </button>
           <span className="text-sm font-semibold text-gray-200 truncate">
-            {selectedApp ?? "Requirements Viewer"}
+            {viewMode === "datasets" ? "データセット" : (selectedApp ?? "Requirements Viewer")}
           </span>
         </div>
       )}
 
       <Sidebar
         apps={apps}
-        selected={selectedApp}
+        selected={viewMode === "apps" ? selectedApp : null}
         onSelect={handleSelectApp}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
         isMobile={isMobile}
         mobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
+        viewMode={viewMode}
+        onSelectDatasets={handleSelectDatasets}
       />
 
       <main
@@ -85,7 +106,9 @@ export function App() {
             : "mb-3 mr-3 rounded-2xl bg-gray-900 shadow-2xl shadow-black/50 ring-1 ring-gray-800"
         }`}
       >
-        {selectedApp ? (
+        {viewMode === "datasets" ? (
+          <DatasetManager isMobile={isMobile} isDev={isDev} />
+        ) : selectedApp ? (
           <AppView key={selectedApp} appName={selectedApp} isMobile={isMobile} />
         ) : (
           <div className="flex h-full items-center justify-center text-gray-500 text-sm">
