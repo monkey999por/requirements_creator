@@ -39,16 +39,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │       └── generate-requirements/
 ├── gen/                      # 生成データ出力先（.gitignore対象）
 │   ├── tags.json             # タグ定義（generateごとに自由に追加可能）
+│   ├── favorite.json         # お気に入りデータ（FavoriteItem配列）
 │   ├── data_source/          # 外部APIから取得した生データ（タイムスタンプ付きサブディレクトリ）
 │   │   └── yyyy_mm_dd_hh_mm_ss/
 │   │       ├── news.json
 │   │       └── keyword.json
+│   ├── datasets/             # データセット定義（JSON、Viewer経由で管理）
+│   │   └── {dataset_name}.json
 │   └── requirements/         # 生成されたアプリ要件（アプリ単位のサブディレクトリ）
 │       └── {app_name}/
 │           ├── _source_info.json
 │           ├── overview.md
-│           └── features/
-│               └── {nn}_{feature_name}.md
+│           ├── memo.md           # メモ（Viewerから編集可能、dev mode時のみ）
+│           ├── features/
+│           │   └── {nn}_{feature_name}.md
+│           └── diagrams/         # 図解（Mermaid等のMarkdown）
+│               └── {nn}_{diagram_name}.md
 ├── scripts/                  # CLIツール群
 │   ├── collect.ts            # データ収集
 │   ├── extract.sh / extract.ts  # キーワード抽出
@@ -60,7 +66,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │       ├── config.ts         # app.config.yaml読み込み
 │       ├── data-source.ts    # data_source操作ユーティリティ
 │       ├── fetchers.ts       # API呼び出し（NewsAPI等）
-│       └── storage.ts        # ファイル出力
+│       ├── paths.ts          # パス定数
+│       ├── storage.ts        # ファイル出力
+│       └── tags.ts           # タグ管理（gen/tags.jsonから動的読み込み・バリデーション）
 ├── viewer/                   # Webビューワー（pnpmワークスペースパッケージ）
 │   ├── server.ts             # Hono APIサーバ + Vite dev middleware
 │   ├── vite.config.ts
@@ -70,9 +78,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │       ├── index.css
 │       ├── main.tsx
 │       └── components/
-│           ├── AppView.tsx    # メインビュー（overview + features表示）
-│           ├── MarkdownPane.tsx  # Markdownレンダリング
-│           └── Sidebar.tsx    # アプリ選択サイドバー
+│           ├── AppView.tsx        # メインビュー（overview + features + diagrams + memo表示）
+│           ├── DatasetAddButton.tsx  # データセットへのアイテム追加ボタン
+│           ├── DatasetManager.tsx # データセット管理画面
+│           ├── FavoritePage.tsx   # お気に入り一覧ページ（解除・データセット追加機能付き）
+│           ├── MarkdownPane.tsx   # Markdownレンダリング
+│           ├── MemoTab.tsx        # メモ編集タブ
+│           ├── SearchView.tsx     # 検索結果表示
+│           ├── Sidebar.tsx        # アプリ選択サイドバー（タグフィルタ・検索機能付き）
+│           └── Toast.tsx          # トースト通知
 ├── todo/                     # 開発タスク管理（フェーズ別）
 ├── app.config.yaml           # アプリケーション設定（フェーズ別の設定を階層管理）
 ├── biome.jsonc               # Biome設定（フォーマッター・リンター）
@@ -169,6 +183,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **YouTube Data API**: 無効（デフォルト）。人気動画ランキング取得
 - TikTok、RSSフィード: 今後追加予定（設定テンプレートのみ）
 
+## タグシステム
+
+タグ定義は `gen/tags.json`（文字列配列）に外部化されており、generateのたびに自由に追加可能。
+
+- **定義ファイル**: `gen/tags.json` -- 全タグの文字列配列
+- **バリデーション**: `scripts/lib/tags.ts` が `gen/tags.json` を動的に読み込み、各アプリに最低3つのタグを要求
+- **Viewer連携**: Sidebarのタグ選択は `GET /api/tags` から動的に取得（ハードコーディングなし）
+- **表示**: アプリ一覧では最大3つのタグをバッジ表示
+
 ## カスタムエージェント
 
 - `update-memory` - CLAUDE.mdをプロジェクト最新情報に同期更新
@@ -187,14 +210,54 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ビューワーサーバ（Hono）が提供するAPIエンドポイント:
 
+### アプリ・コンテンツ
+
 | エンドポイント | 説明 |
 | -------------- | ------ |
-| `GET /api/apps` | アプリ一覧 |
+| `GET /api/apps` | アプリ一覧（タグ最大3つ付き、更新日時降順） |
 | `GET /api/apps/:name/overview` | overview.mdの内容 |
 | `GET /api/apps/:name/features` | 機能一覧（タイトル・概要付き） |
 | `GET /api/apps/:name/features/:featureId` | 機能詳細のMarkdown |
 | `GET /api/apps/:name/source-info` | _source_info.jsonの内容 |
+| `GET /api/apps/:name/diagrams` | 図解一覧（Markdown） |
+| `GET /api/apps/:name/memo` | メモ内容の取得 |
+| `POST /api/apps/:name/memo` | メモ内容の保存（dev modeのみ） |
 | `GET /api/tags` | 定義済みタグ一覧（`gen/tags.json`） |
+| `GET /api/mode` | 動作モード（isDev）の取得 |
+
+### お気に入り
+
+| エンドポイント | 説明 |
+| -------------- | ------ |
+| `GET /api/favorites` | お気に入り一覧取得（`gen/favorite.json`） |
+| `POST /api/favorites` | お気に入り追加（body: `{appName, type, featureId?, diagramId?, title?}`） |
+| `DELETE /api/favorites` | お気に入り削除（body: 同上） |
+
+### データセット
+
+| エンドポイント | 説明 |
+| -------------- | ------ |
+| `GET /api/datasets` | データセット一覧 |
+| `GET /api/datasets/:name` | データセット詳細 |
+| `POST /api/datasets` | データセット作成（dev modeのみ） |
+| `DELETE /api/datasets/:name` | データセット削除（dev modeのみ） |
+| `POST /api/datasets/:name/items` | データセットにアイテム追加（dev modeのみ） |
+| `DELETE /api/datasets/:name/items` | データセットからアイテム削除（dev modeのみ） |
+| `POST /api/datasets/:name/generate` | データセットからパイプライン実行（dev modeのみ） |
+| `GET /api/datasets/:name/generated-apps` | データセットから生成されたアプリ一覧 |
+
+### 検索
+
+| エンドポイント | 説明 |
+| -------------- | ------ |
+| `GET /api/apps-with-tags` | 全アプリのタグ情報（全タグ取得、名前順） |
+| `GET /api/search?q=&tags=` | 全文検索 + タグAND検索（複合検索対応） |
+
+### Git操作
+
+| エンドポイント | 説明 |
+| -------------- | ------ |
+| `POST /api/git/commit-push` | genディレクトリのgit add + commit + push（dev modeのみ） |
 
 ## pnpmワークスペース構成
 

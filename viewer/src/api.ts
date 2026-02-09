@@ -214,6 +214,41 @@ export async function search(
   return res.json();
 }
 
+// --- Favorites API ---
+
+export interface FavoriteItem {
+  appName: string;
+  type: "overview" | "feature" | "diagram";
+  featureId?: string;
+  diagramId?: string;
+  title?: string;
+}
+
+export async function fetchFavorites(): Promise<FavoriteItem[]> {
+  const res = await fetch(`${BASE}/favorites`);
+  return res.json();
+}
+
+export async function addFavorite(
+  item: FavoriteItem,
+): Promise<{ success: boolean; error?: string }> {
+  const res = await fetch(`${BASE}/favorites`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(item),
+  });
+  return res.json();
+}
+
+export async function removeFavorite(item: FavoriteItem): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE}/favorites`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(item),
+  });
+  return res.json();
+}
+
 // --- Git API ---
 
 export interface GitResult {
