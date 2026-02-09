@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
+  commitAndPush,
   type Feature,
   fetchFeatureDetail,
   fetchFeatures,
@@ -10,6 +11,7 @@ import {
 } from "../api";
 import { MarkdownPane } from "./MarkdownPane";
 import { MemoTab } from "./MemoTab";
+import { useToast } from "./Toast";
 
 type LeftTab = "overview" | "source-info" | "memo";
 type MobileTab = "overview" | "source-info" | "features" | "memo";
@@ -34,6 +36,8 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
   const [mobileTab, setMobileTab] = useState<MobileTab>("overview");
   const [loading, setLoading] = useState(true);
   const [isDev, setIsDev] = useState(false);
+  const [pushing, setPushing] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     fetchMode().then((r) => setIsDev(r.isDev));
@@ -60,6 +64,28 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
       fetchFeatureDetail(appName, selectedFeature).then((r) => setFeatureContent(r.content));
     }
   }, [appName, selectedFeature]);
+
+  const handleCommitPush = useCallback(async () => {
+    if (pushing) return;
+    setPushing(true);
+    try {
+      const result = await commitAndPush();
+      showToast({
+        title: result.success ? "Commit & Push 完了" : "Commit & Push 失敗",
+        output: result.output,
+        success: result.success,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      showToast({
+        title: "Commit & Push エラー",
+        output: message,
+        success: false,
+      });
+    } finally {
+      setPushing(false);
+    }
+  }, [pushing, showToast]);
 
   if (loading) {
     return (
@@ -159,6 +185,12 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
             onClick={() => setMobileTab("memo")}
             label="Memo"
           />
+          {isDev && mobileTab === "memo" && (
+            <>
+              <div className="flex-1" />
+              <CommitPushButton pushing={pushing} onClick={handleCommitPush} />
+            </>
+          )}
         </div>
         {/* Content */}
         {mobileTab === "memo" ? (
@@ -281,6 +313,12 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
               }}
               label="Memo"
             />
+            {isDev && leftTab === "memo" && (
+              <>
+                <div className="flex-1" />
+                <CommitPushButton pushing={pushing} onClick={handleCommitPush} />
+              </>
+            )}
           </div>
           {/* Content */}
           {leftTab === "memo" ? (
@@ -477,6 +515,23 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
         )}
       </AnimatePresence>
     </motion.div>
+  );
+}
+
+function CommitPushButton({ pushing, onClick }: { pushing: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className={`px-3 py-1 my-1 text-xs font-medium rounded-lg transition-colors ${
+        pushing
+          ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+          : "bg-emerald-700 text-white hover:bg-emerald-600"
+      }`}
+      onClick={onClick}
+      disabled={pushing}
+    >
+      {pushing ? "Push中..." : "Commit & Push"}
+    </button>
   );
 }
 
