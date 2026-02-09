@@ -7,7 +7,6 @@ import {
   deleteDataset,
   fetchDatasets,
   fetchGeneratedAppsFromDataset,
-  generateFromDataset,
   removeDatasetItem,
 } from "../api";
 
@@ -16,18 +15,25 @@ export function DatasetManager({
   isDev,
   onSelectApp,
   initialSelected,
+  generating,
+  generatingDataset,
+  generatingMessage,
+  onGenerate,
 }: {
   isMobile: boolean;
   isDev: boolean;
   onSelectApp?: (appName: string) => void;
   initialSelected?: string | null;
+  generating: boolean;
+  generatingDataset: string | null;
+  generatingMessage: string | null;
+  onGenerate: (datasetName: string) => void;
 }) {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [selected, setSelected] = useState<string | null>(initialSelected ?? null);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
-  const [generating, setGenerating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const reload = useCallback(() => {
@@ -78,14 +84,11 @@ export function DatasetManager({
     [selected, reload],
   );
 
-  const handleGenerate = useCallback(async () => {
-    if (!selected) return;
-    setGenerating(true);
-    const result = await generateFromDataset(selected);
-    setMessage(result.message ?? (result.success ? "生成を開始しました" : "エラー"));
-    setGenerating(false);
-    setTimeout(() => setMessage(null), 5000);
-  }, [selected]);
+  const isGeneratingThis = generating && generatingDataset === selected;
+
+  const handleGenerateClick = useCallback(() => {
+    if (selected) onGenerate(selected);
+  }, [selected, onGenerate]);
 
   if (loading) {
     return (
@@ -120,13 +123,18 @@ export function DatasetManager({
           <DatasetDetailHeader
             dataset={selectedDataset}
             onBack={() => setSelected(null)}
-            onGenerate={handleGenerate}
-            generating={generating}
+            onGenerate={handleGenerateClick}
+            generating={isGeneratingThis}
             isDev={isDev}
             isMobile
           />
-          <DatasetItemList dataset={selectedDataset} onRemove={handleRemoveItem} isDev={isDev} />
-          <MessageToast message={message} />
+          <DatasetItemList
+            dataset={selectedDataset}
+            onRemove={handleRemoveItem}
+            isDev={isDev}
+            onSelectApp={onSelectApp}
+          />
+          <MessageToast message={generatingMessage ?? message} />
         </motion.div>
       );
     }
@@ -161,7 +169,7 @@ export function DatasetManager({
             isDev={isDev}
           />
         </div>
-        <MessageToast message={message} />
+        <MessageToast message={generatingMessage ?? message} />
       </motion.div>
     );
   }
@@ -225,7 +233,7 @@ export function DatasetManager({
           </div>
         )}
       </div>
-      <MessageToast message={message} />
+      <MessageToast message={generatingMessage ?? message} />
     </motion.div>
   );
 }

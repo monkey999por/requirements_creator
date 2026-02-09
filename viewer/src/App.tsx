@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type AppInfo,
   fetchApps,
+  fetchGeneratedAppsFromDataset,
   fetchMode,
+  fetchOverview,
   type GrepSearchResult,
+  generateFromDataset,
   searchByTag,
   searchGrep,
   type TagSearchResult,
@@ -26,6 +29,13 @@ export function App() {
   const [isDev, setIsDev] = useState(false);
   const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
   const isMobile = useIsMobile();
+
+  // Generation state (lifted from DatasetManager to survive view changes)
+  const [generating, setGenerating] = useState(false);
+  const [generatingDataset, setGeneratingDataset] = useState<string | null>(null);
+  const [generatingMessage, setGeneratingMessage] = useState<string | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Search state
   const [searchActive, setSearchActive] = useState(false);
@@ -86,6 +96,75 @@ export function App() {
   const handleNavigateToApp = (appName: string) => {
     handleSelectApp(appName);
   };
+
+  // --- Dataset generation with polling ---
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => stopPolling();
+  }, [stopPolling]);
+
+  const handleDatasetGenerate = useCallback(
+    async (datasetName: string) => {
+      setGenerating(true);
+      setGeneratingDataset(datasetName);
+
+      const currentApps = await fetchGeneratedAppsFromDataset(datasetName);
+      const result = await generateFromDataset(datasetName);
+
+      if (!result.success) {
+        setGeneratingMessage(result.message ?? "エラー");
+        setGenerating(false);
+        setGeneratingDataset(null);
+        setTimeout(() => setGeneratingMessage(null), 5000);
+        return;
+      }
+
+      setGeneratingMessage("生成中... overview.md の作成を待機しています");
+
+      pollingRef.current = setInterval(async () => {
+        try {
+          const latestApps = await fetchGeneratedAppsFromDataset(datasetName);
+          const newApps = latestApps.filter((a) => !currentApps.includes(a));
+          if (newApps.length > 0) {
+            const overview = await fetchOverview(newApps[0]);
+            if (overview.content) {
+              stopPolling();
+              setGenerating(false);
+              setGeneratingDataset(null);
+              setGeneratingMessage(`生成完了: ${newApps[0]}`);
+              fetchApps().then(setApps);
+              setTimeout(() => setGeneratingMessage(null), 5000);
+            }
+          }
+        } catch {
+          // overview未作成 or ポーリングエラー、継続
+        }
+      }, 3000);
+
+      timeoutRef.current = setTimeout(
+        () => {
+          stopPolling();
+          setGenerating(false);
+          setGeneratingDataset(null);
+          setGeneratingMessage("タイムアウトしました。アプリ一覧を確認してください。");
+          fetchApps().then(setApps);
+          setTimeout(() => setGeneratingMessage(null), 5000);
+        },
+        5 * 60 * 1000,
+      );
+    },
+    [stopPolling],
+  );
 
   const handleSearch = useCallback(
     async (query: string, type: "grep" | "tag") => {
@@ -180,6 +259,10 @@ export function App() {
               isDev={isDev}
               onSelectApp={handleNavigateToApp}
               initialSelected={selectedDataset}
+              generating={generating}
+              generatingDataset={generatingDataset}
+              generatingMessage={generatingMessage}
+              onGenerate={handleDatasetGenerate}
             />
           ) : searchActive ? (
             searching ? (
