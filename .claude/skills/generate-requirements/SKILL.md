@@ -27,7 +27,7 @@ allowed-tools: Read, Write, Glob, Bash
 
 ```
 gen/requirements/{app_name}/
-├── _source_info.md
+├── _source_info.json
 ├── overview.md
 └── features/
     ├── 01_{feature_name}.md
@@ -70,15 +70,16 @@ keyword.jsonの内容を元に、以下を思考する:
 
 Bashで `mkdir -p gen/requirements/{app_name}/features` を実行する。
 
-### ステップ4: _source_info.md の書き出し
+### ステップ4: _source_info.json の書き出し
 
-[テンプレート参照](templates.md) に従い、以下を含む `_source_info.md` を出力:
+[テンプレート参照](templates.md) に従い、以下を含む `_source_info.json` を出力:
 
-- 使用した data_source ディレクトリ名
-- 採用したキーワード・トレンド
-- このアプリ案に至った思考の経緯
+- `source`: 使用した data_source ディレクトリ名と収集日時
+- `keywords`: 採用したキーワードと関連度スコア
+- `tags`: 以下のenum値から **最低2つ** 選択: `AI`, `Web3`, `ヘルスケア`, `教育`, `金融`, `モビリティ`, `サステナビリティ`, `エンタメ`
+- `description`: このアプリ案に至った思考の経緯
 
-**出力先**: `gen/requirements/{app_name}/_source_info.md`
+**出力先**: `gen/requirements/{app_name}/_source_info.json`
 
 ### ステップ5: overview.md の書き出し
 
@@ -117,7 +118,8 @@ tsx scripts/validate-requirements.ts {app_name}
 ```
 
 このスクリプトは以下を自動検証する:
-- `_source_info.md`, `overview.md`, `features/` ディレクトリの存在
+- `_source_info.json`, `overview.md`, `features/` ディレクトリの存在
+- `_source_info.json` のJSONスキーマ（必須フィールド、tagsのenum値検証）
 - `app_name` がkebab-case、featureファイル名が `{nn}_{snake_case}.md` であること
 - 連番が01から連続していること
 - overview.mdの機能一覧テーブルの機能数とfeatureファイル数の一致

@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
+import type { AppInfo } from "../api";
 
 interface SidebarProps {
-  apps: string[];
+  apps: AppInfo[];
   selected: string | null;
   onSelect: (name: string) => void;
   collapsed: boolean;
@@ -12,6 +13,9 @@ interface SidebarProps {
   onMobileClose: () => void;
   viewMode: "apps" | "datasets";
   onSelectDatasets: () => void;
+  onSearch: (query: string, type: "grep" | "tag") => void;
+  onClearSearch: () => void;
+  isSearchActive: boolean;
 }
 
 const containerVariants = {
@@ -27,6 +31,105 @@ const itemVariants = {
 const SIDEBAR_WIDTH = 256;
 const STRIP_WIDTH = 48;
 
+function SearchInput({
+  onSearch,
+  onClear,
+  isActive,
+}: {
+  onSearch: (query: string, type: "grep" | "tag") => void;
+  onClear: () => void;
+  isActive: boolean;
+}) {
+  const [query, setQuery] = useState("");
+  const [searchType, setSearchType] = useState<"grep" | "tag">("grep");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.trim()) onSearch(query.trim(), searchType);
+  };
+
+  const handleClear = () => {
+    setQuery("");
+    onClear();
+  };
+
+  return (
+    <div className="px-3 pb-3">
+      <form onSubmit={handleSubmit} className="space-y-2">
+        <div className="relative">
+          <svg
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-gray-500 pointer-events-none"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+            />
+          </svg>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="検索..."
+            className="w-full pl-8 pr-8 py-1.5 text-xs bg-gray-800/80 border border-gray-700/50 rounded-lg text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20"
+          />
+          {(query || isActive) && (
+            <button
+              type="button"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+              onClick={handleClear}
+            >
+              <svg
+                className="size-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          )}
+        </div>
+        <div className="flex gap-1">
+          <button
+            type="button"
+            className={`flex-1 px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
+              searchType === "grep"
+                ? "bg-indigo-500/20 text-indigo-300 ring-1 ring-indigo-500/30"
+                : "bg-gray-800/50 text-gray-500 hover:text-gray-300"
+            }`}
+            onClick={() => setSearchType("grep")}
+          >
+            全文検索
+          </button>
+          <button
+            type="button"
+            className={`flex-1 px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
+              searchType === "tag"
+                ? "bg-indigo-500/20 text-indigo-300 ring-1 ring-indigo-500/30"
+                : "bg-gray-800/50 text-gray-500 hover:text-gray-300"
+            }`}
+            onClick={() => setSearchType("tag")}
+          >
+            タグ検索
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 export function Sidebar({
   apps,
   selected,
@@ -38,6 +141,9 @@ export function Sidebar({
   onMobileClose,
   viewMode,
   onSelectDatasets,
+  onSearch,
+  onClearSearch,
+  isSearchActive,
 }: SidebarProps) {
   const [hovered, setHovered] = useState(false);
   const expanded = !collapsed || hovered;
@@ -101,6 +207,9 @@ export function Sidebar({
                 </button>
               </div>
 
+              {/* Search */}
+              <SearchInput onSearch={onSearch} onClear={onClearSearch} isActive={isSearchActive} />
+
               {/* Navigation */}
               <nav className="flex-1 overflow-y-auto dark-scrollbar px-3 pb-4">
                 <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-600 whitespace-nowrap">
@@ -110,28 +219,42 @@ export function Sidebar({
                   {apps.map((app) => (
                     <button
                       type="button"
-                      key={app}
+                      key={app.name}
                       className={`
-                        w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] whitespace-nowrap
+                        w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-[13px]
                         ${
-                          selected === app
+                          selected === app.name
                             ? "bg-indigo-500/15 text-indigo-400 font-semibold shadow-lg shadow-indigo-500/5"
                             : "text-gray-400 hover:bg-white/[0.04] hover:text-gray-200"
                         }
                       `}
-                      onClick={() => onSelect(app)}
+                      onClick={() => onSelect(app.name)}
                     >
                       <span
                         className={`
-                          size-1.5 shrink-0 rounded-full
+                          size-1.5 shrink-0 rounded-full mt-1.5
                           ${
-                            selected === app
+                            selected === app.name
                               ? "bg-indigo-400 shadow-[0_0_6px_rgba(129,140,248,0.6)]"
                               : "bg-gray-700"
                           }
                         `}
                       />
-                      {app}
+                      <div className="min-w-0 flex-1">
+                        <span className="block truncate">{app.name}</span>
+                        {app.tags.length > 0 && (
+                          <span className="flex gap-1 mt-0.5">
+                            {app.tags.slice(0, 2).map((tag) => (
+                              <span
+                                key={tag}
+                                className="inline-flex px-1.5 py-0 rounded text-[9px] font-medium bg-gray-800/80 text-gray-500"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </span>
+                        )}
+                      </div>
                     </button>
                   ))}
                   {apps.length === 0 && (
@@ -259,6 +382,13 @@ export function Sidebar({
           </motion.button>
         </div>
 
+        {/* Search */}
+        <motion.div animate={{ opacity: expanded ? 1 : 0 }} transition={{ duration: 0.2 }}>
+          {expanded && (
+            <SearchInput onSearch={onSearch} onClear={onClearSearch} isActive={isSearchActive} />
+          )}
+        </motion.div>
+
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto dark-scrollbar px-3 pb-4">
           <motion.p
@@ -278,32 +408,46 @@ export function Sidebar({
             {apps.map((app) => (
               <motion.button
                 type="button"
-                key={app}
+                key={app.name}
                 variants={itemVariants}
                 whileHover={{ x: 2 }}
                 className={`
-                  group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] whitespace-nowrap
+                  group w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-[13px]
                   ${
-                    selected === app
+                    selected === app.name
                       ? "bg-indigo-500/15 text-indigo-400 font-semibold shadow-lg shadow-indigo-500/5"
                       : "text-gray-400 hover:bg-white/[0.04] hover:text-gray-200"
                   }
                 `}
-                onClick={() => onSelect(app)}
+                onClick={() => onSelect(app.name)}
               >
                 <motion.span
                   className={`
-                    size-1.5 shrink-0 rounded-full
+                    size-1.5 shrink-0 rounded-full mt-1.5
                     ${
-                      selected === app
+                      selected === app.name
                         ? "bg-indigo-400 shadow-[0_0_6px_rgba(129,140,248,0.6)]"
                         : "bg-gray-700 group-hover:bg-gray-500"
                     }
                   `}
-                  animate={selected === app ? { scale: [1, 1.4, 1] } : {}}
+                  animate={selected === app.name ? { scale: [1, 1.4, 1] } : {}}
                   transition={{ duration: 0.3 }}
                 />
-                {app}
+                <div className="min-w-0 flex-1">
+                  <span className="block truncate whitespace-nowrap">{app.name}</span>
+                  {app.tags.length > 0 && (
+                    <span className="flex gap-1 mt-0.5">
+                      {app.tags.slice(0, 2).map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex px-1.5 py-0 rounded text-[9px] font-medium bg-gray-800/80 text-gray-500"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </div>
               </motion.button>
             ))}
             {apps.length === 0 && (

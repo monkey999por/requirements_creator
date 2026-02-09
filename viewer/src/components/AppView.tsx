@@ -1,16 +1,19 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
+  commitAndPush,
   type Feature,
   fetchFeatureDetail,
   fetchFeatures,
   fetchMode,
   fetchOverview,
   fetchSourceInfo,
+  type SourceInfo,
 } from "../api";
 import { DatasetAddButton } from "./DatasetAddButton";
 import { MarkdownPane } from "./MarkdownPane";
 import { MemoTab } from "./MemoTab";
+import { useToast } from "./Toast";
 
 type LeftTab = "overview" | "source-info" | "memo";
 type MobileTab = "overview" | "source-info" | "features" | "memo";
@@ -27,7 +30,7 @@ const cardVariants = {
 
 export function AppView({ appName, isMobile }: { appName: string; isMobile: boolean }) {
   const [overview, setOverview] = useState("");
-  const [sourceInfo, setSourceInfo] = useState("");
+  const [sourceInfo, setSourceInfo] = useState<SourceInfo | null>(null);
   const [features, setFeatures] = useState<Feature[]>([]);
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const [featureContent, setFeatureContent] = useState("");
@@ -35,6 +38,8 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
   const [mobileTab, setMobileTab] = useState<MobileTab>("overview");
   const [loading, setLoading] = useState(true);
   const [isDev, setIsDev] = useState(false);
+  const [pushing, setPushing] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     fetchMode().then((r) => setIsDev(r.isDev));
@@ -50,8 +55,8 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
       fetchOverview(appName).then((r) => setOverview(r.content)),
       fetchFeatures(appName).then(setFeatures),
       fetchSourceInfo(appName)
-        .then((r) => setSourceInfo(r.content))
-        .catch(() => setSourceInfo("")),
+        .then((r) => setSourceInfo(r))
+        .catch(() => setSourceInfo(null)),
     ]).finally(() => setLoading(false));
   }, [appName]);
 
@@ -61,6 +66,28 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
       fetchFeatureDetail(appName, selectedFeature).then((r) => setFeatureContent(r.content));
     }
   }, [appName, selectedFeature]);
+
+  const handleCommitPush = useCallback(async () => {
+    if (pushing) return;
+    setPushing(true);
+    try {
+      const result = await commitAndPush();
+      showToast({
+        title: result.success ? "Commit & Push 完了" : "Commit & Push 失敗",
+        output: result.output,
+        success: result.success,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      showToast({
+        title: "Commit & Push エラー",
+        output: message,
+        success: false,
+      });
+    } finally {
+      setPushing(false);
+    }
+  }, [pushing, showToast]);
 
   if (loading) {
     return (
@@ -160,13 +187,17 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
             onClick={() => setMobileTab("memo")}
             label="Memo"
           />
-          {mobileTab === "overview" && (
-            <div className="ml-auto">
-              <DatasetAddButton
-                item={{ appName, type: "overview", title: appName }}
-                isDev={isDev}
-              />
-            </div>
+          {isDev && (
+            <>
+              {mobileTab === "overview" && (
+                <DatasetAddButton
+                  item={{ appName, type: "overview", title: appName }}
+                  isDev={isDev}
+                />
+              )}
+              <div className="flex-1" />
+              <CommitPushButton pushing={pushing} onClick={handleCommitPush} />
+            </>
           )}
         </div>
         {/* Content */}
@@ -232,6 +263,16 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
                     </button>
                   ))}
                 </motion.div>
+              ) : mobileTab === "source-info" ? (
+                <motion.div
+                  key="source-info"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <SourceInfoView info={sourceInfo} />
+                </motion.div>
               ) : (
                 <motion.div
                   key={mobileTab}
@@ -240,7 +281,7 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <MarkdownPane content={mobileTab === "overview" ? overview : sourceInfo} />
+                  <MarkdownPane content={overview} />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -301,13 +342,17 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
               }}
               label="Memo"
             />
-            {leftTab === "overview" && (
-              <div className="ml-auto">
-                <DatasetAddButton
-                  item={{ appName, type: "overview", title: appName }}
-                  isDev={isDev}
-                />
-              </div>
+            {isDev && (
+              <>
+                {leftTab === "overview" && (
+                  <DatasetAddButton
+                    item={{ appName, type: "overview", title: appName }}
+                    isDev={isDev}
+                  />
+                )}
+                <div className="flex-1" />
+                <CommitPushButton pushing={pushing} onClick={handleCommitPush} />
+              </>
             )}
           </div>
           {/* Content */}
@@ -318,15 +363,27 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
           ) : (
             <div className="flex-1 overflow-y-auto dark-scrollbar p-6 bg-gray-900">
               <AnimatePresence mode="wait">
-                <motion.div
-                  key={leftTab}
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.98 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  <MarkdownPane content={leftTab === "overview" ? overview : sourceInfo} />
-                </motion.div>
+                {leftTab === "source-info" ? (
+                  <motion.div
+                    key="source-info"
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <SourceInfoView info={sourceInfo} />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="overview"
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <MarkdownPane content={overview} />
+                  </motion.div>
+                )}
               </AnimatePresence>
             </div>
           )}
@@ -516,6 +573,109 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
         )}
       </AnimatePresence>
     </motion.div>
+  );
+}
+
+function SourceInfoView({ info }: { info: SourceInfo | null }) {
+  if (!info) {
+    return <p className="text-sm text-gray-500">ソース情報がありません</p>;
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Source */}
+      {info.source && (
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+            データソース
+          </h3>
+          <div className="p-3 rounded-lg bg-gray-800/50 border border-gray-700/30 space-y-1">
+            {info.source.directory && (
+              <p className="text-xs text-gray-300">
+                <span className="text-gray-500">ディレクトリ: </span>
+                <code className="text-indigo-400">{info.source.directory}</code>
+              </p>
+            )}
+            {info.source.collected_at && (
+              <p className="text-xs text-gray-300">
+                <span className="text-gray-500">収集日時: </span>
+                {info.source.collected_at}
+              </p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Tags */}
+      {info.tags && info.tags.length > 0 && (
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+            タグ
+          </h3>
+          <div className="flex flex-wrap gap-1.5">
+            {info.tags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-500/15 text-indigo-300 ring-1 ring-indigo-500/25"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Keywords */}
+      {info.keywords && info.keywords.length > 0 && (
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+            キーワード
+          </h3>
+          <div className="space-y-1">
+            {info.keywords.map((kw) => (
+              <div
+                key={kw.word}
+                className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-800/50 border border-gray-700/30"
+              >
+                <span className="text-xs text-gray-200">{kw.word}</span>
+                {kw.relevance != null && (
+                  <span className="text-[10px] text-gray-500 tabular-nums">
+                    {(kw.relevance * 100).toFixed(0)}%
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Description */}
+      {info.description && (
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+            生成の経緯
+          </h3>
+          <p className="text-sm text-gray-300 leading-relaxed">{info.description}</p>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function CommitPushButton({ pushing, onClick }: { pushing: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className={`px-3 py-1 my-1 text-xs font-medium rounded-lg transition-colors ${
+        pushing
+          ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+          : "bg-emerald-700 text-white hover:bg-emerald-600"
+      }`}
+      onClick={onClick}
+      disabled={pushing}
+    >
+      {pushing ? "Push中..." : "Commit & Push"}
+    </button>
   );
 }
 
