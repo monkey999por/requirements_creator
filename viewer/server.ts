@@ -1,5 +1,5 @@
 import { exec } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -55,8 +55,12 @@ app.get("/api/apps", (c) => {
   if (!existsSync(REQUIREMENTS_DIR)) return c.json([]);
   const dirs = readdirSync(REQUIREMENTS_DIR, { withFileTypes: true })
     .filter((d) => d.isDirectory())
-    .map((d) => d.name)
-    .sort();
+    .map((d) => ({
+      name: d.name,
+      mtime: statSync(join(REQUIREMENTS_DIR, d.name)).mtimeMs,
+    }))
+    .sort((a, b) => b.mtime - a.mtime)
+    .map((d) => d.name);
   return c.json(dirs);
 });
 
