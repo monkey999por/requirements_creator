@@ -120,7 +120,7 @@ export function MemoTab({
               placeholder="Markdownで入力..."
             />
           ) : (
-            <div className="p-4">
+            <div className="p-4 pb-8">
               <MarkdownPane content={content || "*メモはまだありません*"} />
             </div>
           )}

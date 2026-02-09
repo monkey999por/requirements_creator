@@ -150,7 +150,7 @@ export function DatasetManager({
           <div className="flex-1" />
           {isDev && <CreateButton onClick={() => setCreating(true)} />}
         </div>
-        <div className="flex-1 overflow-y-auto dark-scrollbar p-4 bg-gray-900">
+        <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-8 bg-gray-900">
           <CreateForm
             show={creating}
             name={newName}
@@ -544,7 +544,7 @@ function DatasetItemList({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto dark-scrollbar p-4 bg-gray-900">
+    <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-8 bg-gray-900">
       <motion.div
         className="space-y-4"
         initial={{ opacity: 0 }}

@@ -65,7 +65,7 @@ function TagResultsView({
 
   return (
     <motion.div
-      className={`h-full overflow-y-auto dark-scrollbar ${isMobile ? "p-4" : "p-6"}`}
+      className={`h-full overflow-y-auto dark-scrollbar ${isMobile ? "p-4 pb-8" : "p-6"}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
@@ -132,7 +132,7 @@ function GrepResultsView({
 
   if (isMobile) {
     return (
-      <div className="h-full overflow-y-auto dark-scrollbar p-4">
+      <div className="h-full overflow-y-auto dark-scrollbar p-4 pb-8">
         <p className="text-xs text-gray-500 mb-4">
           全文検索: &quot;{query}&quot; - {totalMatches}件のマッチ
         </p>

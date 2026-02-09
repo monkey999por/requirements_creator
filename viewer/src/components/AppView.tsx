@@ -160,7 +160,7 @@ export function AppView({
             </span>
           </div>
           {/* Content */}
-          <div className="flex-1 overflow-y-auto dark-scrollbar p-4 bg-gray-900">
+          <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-8 bg-gray-900">
             <MarkdownPane content={featureContent} />
           </div>
         </motion.div>
@@ -216,7 +216,7 @@ export function AppView({
             <MemoTab appName={appName} isMobile={isMobile} isDev={isDev} />
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto dark-scrollbar p-4 bg-gray-900">
+          <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-8 bg-gray-900">
             <AnimatePresence mode="wait">
               {mobileTab === "features" ? (
                 <motion.div
