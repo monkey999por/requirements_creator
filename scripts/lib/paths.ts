@@ -8,7 +8,7 @@ interface ConfigWithPaths {
 
 function loadOutputBaseDir(): string {
   try {
-    const configPath = resolve("collect.config.yaml");
+    const configPath = resolve("app.config.yaml");
     const raw = readFileSync(configPath, "utf-8");
     const config = parse(raw) as ConfigWithPaths;
     return config.output_base_dir ?? "gen";

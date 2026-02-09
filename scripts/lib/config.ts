@@ -11,12 +11,17 @@ export interface SourceConfig {
   output_file: string;
 }
 
-export type CollectConfig = Record<string, SourceConfig>;
+export interface AppConfig {
+  output_base_dir?: string;
+  collect: {
+    sources: Record<string, SourceConfig>;
+  };
+}
 
-export function loadConfig(configPath?: string): CollectConfig {
-  const filePath = resolve(configPath ?? "collect.config.yaml");
+export function loadAppConfig(configPath?: string): AppConfig {
+  const filePath = resolve(configPath ?? "app.config.yaml");
   const raw = readFileSync(filePath, "utf-8");
-  return parse(raw) as CollectConfig;
+  return parse(raw) as AppConfig;
 }
 
 export function getApiKey(source: SourceConfig): string | undefined {

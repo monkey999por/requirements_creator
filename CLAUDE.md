@@ -13,9 +13,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### データパイプライン
 
-1. **データ収集** (`pnpm collect`): NewsAPI・YouTube等の外部APIからトレンド情報を取得し `data_source/yyyy_mm_dd_hh_mm_ss/` に保存
+1. **データ収集** (`pnpm collect`): NewsAPI・YouTube等の外部APIからトレンド情報を取得し `gen/data_source/yyyy_mm_dd_hh_mm_ss/` に保存
 2. **キーワード抽出** (`pnpm extract`): 収集データからアプリ設計のヒントとなるキーワードを抽出（`keyword.json`）
-3. **要件生成** (`pnpm generate`): キーワードからの連想でアプリ案を生成し `requirements/{app_name}/` に配置
+3. **要件生成** (`pnpm generate`): キーワードからの連想でアプリ案を生成し `gen/requirements/{app_name}/` に配置
 4. **バリデーション** (`pnpm generate:validate`): 生成された要件の構造・内容を自動検証
 5. **閲覧** (`pnpm viewer`): Hono + React製のMarkdownビューワーで要件を表示
 
@@ -37,16 +37,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │       ├── extract-keywords/
 │       ├── fix-issue/
 │       └── generate-requirements/
-├── data_source/              # 外部APIから取得した生データ（タイムスタンプ付きサブディレクトリ）
-│   └── yyyy_mm_dd_hh_mm_ss/
-│       ├── news.json
-│       └── keyword.json
-├── requirements/             # 生成されたアプリ要件（アプリ単位のサブディレクトリ）
-│   └── {app_name}/
-│       ├── _source_info.md
-│       ├── overview.md
-│       └── features/
-│           └── {nn}_{feature_name}.md
+├── gen/                      # 生成データ出力先（.gitignore対象）
+│   ├── data_source/          # 外部APIから取得した生データ（タイムスタンプ付きサブディレクトリ）
+│   │   └── yyyy_mm_dd_hh_mm_ss/
+│   │       ├── news.json
+│   │       └── keyword.json
+│   └── requirements/         # 生成されたアプリ要件（アプリ単位のサブディレクトリ）
+│       └── {app_name}/
+│           ├── _source_info.md
+│           ├── overview.md
+│           └── features/
+│               └── {nn}_{feature_name}.md
 ├── scripts/                  # CLIツール群
 │   ├── collect.ts            # データ収集
 │   ├── extract.sh / extract.ts  # キーワード抽出
@@ -55,7 +56,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │   ├── pipeline.ts           # パイプライン一括実行
 │   └── lib/                  # 共通ライブラリ
 │       ├── cli.ts            # CLIオプションパーサー
-│       ├── config.ts         # collect.config.yaml読み込み
+│       ├── config.ts         # app.config.yaml読み込み
 │       ├── data-source.ts    # data_source操作ユーティリティ
 │       ├── fetchers.ts       # API呼び出し（NewsAPI等）
 │       └── storage.ts        # ファイル出力
@@ -72,7 +73,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │           ├── MarkdownPane.tsx  # Markdownレンダリング
 │           └── Sidebar.tsx    # アプリ選択サイドバー
 ├── todo/                     # 開発タスク管理（フェーズ別）
-├── collect.config.yaml       # データ収集設定（ソース別の有効/無効・パラメータ）
+├── app.config.yaml           # アプリケーション設定（フェーズ別の設定を階層管理）
 ├── biome.jsonc               # Biome設定（フォーマッター・リンター）
 ├── tsconfig.json             # TypeScript設定（scripts用）
 ├── pnpm-workspace.yaml       # pnpmワークスペース定義（viewer）
@@ -89,7 +90,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **データ収集・処理**:
 
 - スクリプト: TypeScript（tsx）+ シェルスクリプト
-- 設定: YAML（`collect.config.yaml`、`yaml`パッケージで読み込み）
+- 設定: YAML（`app.config.yaml`、`yaml`パッケージで読み込み）
 - 環境変数: `dotenv`
 
 **Webビューワー** (`viewer/`):
@@ -113,7 +114,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | コマンド | 説明 |
 | --------- | ------ |
-| `pnpm collect` | 外部APIからデータ収集（`collect.config.yaml`に基づく） |
+| `pnpm collect` | 外部APIからデータ収集（`app.config.yaml`に基づく） |
 | `pnpm extract` | 収集データからキーワード抽出 |
 | `pnpm generate` | キーワードから要件生成 |
 | `pnpm generate:validate` | 要件構造のバリデーション |
@@ -157,11 +158,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `.env` に以下のAPIキーを設定:
 
 - `NEWS_API_KEY` - NewsAPI用
-- `YOUTUBE_API_KEY` - YouTube Data API用（`collect.config.yaml`で`enabled: false`がデフォルト）
+- `YOUTUBE_API_KEY` - YouTube Data API用（`app.config.yaml`で`enabled: false`がデフォルト）
 
-## データ収集設定（`collect.config.yaml`）
+## アプリケーション設定（`app.config.yaml`）
 
-データソースごとの有効/無効、APIエンドポイント、パラメータ、出力ファイル名を管理する設定ファイル。対応ソース:
+フェーズごとの設定を階層管理する設定ファイル。`collect.sources` 配下にデータソースごとの有効/無効、APIエンドポイント、パラメータ、出力ファイル名を定義。対応ソース:
 
 - **NewsAPI**: 有効（デフォルト）。USビジネスニュースのトップヘッドライン取得
 - **YouTube Data API**: 無効（デフォルト）。人気動画ランキング取得

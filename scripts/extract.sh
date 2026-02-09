@@ -8,7 +8,7 @@ cd "$PROJECT_ROOT"
 SKILL_FILE=".claude/skills/extract-keywords/SKILL.md"
 
 # --- 出力先ベースディレクトリの読み込み ---
-OUTPUT_BASE=$(grep '^output_base_dir:' collect.config.yaml 2>/dev/null | sed 's/^output_base_dir:[[:space:]]*//' | tr -d ' "'"'" || true)
+OUTPUT_BASE=$(grep '^output_base_dir:' app.config.yaml 2>/dev/null | sed 's/^output_base_dir:[[:space:]]*//' | tr -d ' "'"'" || true)
 if [[ -z "$OUTPUT_BASE" ]]; then OUTPUT_BASE="gen"; fi
 DATA_SOURCE_DIR="${OUTPUT_BASE}/data_source"
 

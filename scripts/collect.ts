@@ -1,20 +1,20 @@
 import { parseArgs } from "./lib/cli.js";
-import { getApiKey, loadConfig } from "./lib/config.js";
+import { getApiKey, loadAppConfig } from "./lib/config.js";
 import { getFetcher } from "./lib/fetchers.js";
 import { createOutputDir, saveJson } from "./lib/storage.js";
 
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
-  const config = loadConfig(opts.config);
+  const appConfig = loadAppConfig(opts.config);
 
-  const sources = Object.entries(config).filter(([name, src]) => {
+  const sources = Object.entries(appConfig.collect.sources).filter(([name, src]) => {
     if (!src.enabled) return false;
     if (opts.only && name !== opts.only) return false;
     return true;
   });
 
   if (sources.length === 0) {
-    console.log("有効なデータソースがありません。collect.config.yaml を確認してください。");
+    console.log("有効なデータソースがありません。app.config.yaml を確認してください。");
     return;
   }
 

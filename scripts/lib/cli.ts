@@ -15,7 +15,7 @@ export function parseArgs(args: string[]): CollectOptions {
       console.log("APIからトレンドデータを収集します。");
       console.log("");
       console.log("Options:");
-      console.log("  --config <path>  設定ファイルパス（デフォルト: collect.config.yaml）");
+      console.log("  --config <path>  設定ファイルパス（デフォルト: app.config.yaml）");
       console.log("  --only <name>    指定ソースのみ取得");
       console.log("  --dry-run        実際のリクエストを行わず対象を表示");
       console.log("  -h, --help       このヘルプを表示");

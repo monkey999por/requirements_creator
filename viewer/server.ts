@@ -11,7 +11,7 @@ const projectRoot = resolve(__dirname, "..");
 
 function loadRequirementsDir(): string {
   try {
-    const configPath = resolve(projectRoot, "collect.config.yaml");
+    const configPath = resolve(projectRoot, "app.config.yaml");
     const raw = readFileSync(configPath, "utf-8");
     const config = parse(raw) as { output_base_dir?: string };
     const base = config.output_base_dir ?? "gen";
