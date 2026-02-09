@@ -7,8 +7,7 @@ import {
   fetchOverview,
   type GrepSearchResult,
   generateFromDataset,
-  searchByTag,
-  searchGrep,
+  search,
   type TagSearchResult,
 } from "./api";
 import { type AppTab, AppView } from "./components/AppView";
@@ -64,7 +63,8 @@ export function App() {
   // Search state
   const [searchActive, setSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchType, setSearchType] = useState<"grep" | "tag">("grep");
+  const [searchTags, setSearchTags] = useState<string[]>([]);
+  const [searchResultType, setSearchResultType] = useState<"grep" | "tag">("grep");
   const [grepResults, setGrepResults] = useState<GrepSearchResult[]>([]);
   const [tagResults, setTagResults] = useState<TagSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -295,21 +295,21 @@ export function App() {
   );
 
   const handleSearch = useCallback(
-    async (query: string, type: "grep" | "tag") => {
+    async (query: string, tags: string[]) => {
       setSearchQuery(query);
-      setSearchType(type);
+      setSearchTags(tags);
       setSearchActive(true);
       setViewMode("apps");
       setSearching(true);
       if (isMobile) setMobileSidebarOpen(false);
       try {
-        if (type === "grep") {
-          const results = await searchGrep(query);
-          setGrepResults(results);
+        const data = await search(query, tags);
+        setSearchResultType(data.resultType);
+        if (data.resultType === "grep") {
+          setGrepResults(data.results as GrepSearchResult[]);
           setTagResults([]);
         } else {
-          const results = await searchByTag(query);
-          setTagResults(results);
+          setTagResults(data.results as TagSearchResult[]);
           setGrepResults([]);
         }
       } finally {
@@ -322,6 +322,7 @@ export function App() {
   const handleClearSearch = useCallback(() => {
     setSearchActive(false);
     setSearchQuery("");
+    setSearchTags([]);
     setGrepResults([]);
     setTagResults([]);
   }, []);
@@ -400,7 +401,8 @@ export function App() {
             ) : (
               <SearchView
                 query={searchQuery}
-                searchType={searchType}
+                selectedTags={searchTags}
+                searchResultType={searchResultType}
                 grepResults={grepResults}
                 tagResults={tagResults}
                 onSelectApp={handleSelectApp}
