@@ -174,19 +174,19 @@ function validate(appName: string): ValidationError[] {
         message: `必須セクション「${section}」がありません`,
       });
     }
-    // D2コードブロックの存在チェック
-    const d2BlockCount = (diagramsContent.match(/```d2\n/g) || []).length;
-    if (d2BlockCount === 0) {
+    // Mermaidコードブロックの存在チェック
+    const mermaidBlockCount = (diagramsContent.match(/```mermaid\n/g) || []).length;
+    if (mermaidBlockCount === 0) {
       errors.push({
         file: "diagrams.md",
-        message: "D2コードブロック（```d2）が1つもありません",
+        message: "Mermaidコードブロック（```mermaid）が1つもありません",
       });
     }
     // ユーザーフローのシーケンス図チェック
-    if (!diagramsContent.includes("shape: sequence_diagram")) {
+    if (!diagramsContent.includes("sequenceDiagram")) {
       errors.push({
         file: "diagrams.md",
-        message: "ユーザーフローのシーケンス図（shape: sequence_diagram）が含まれていません",
+        message: "ユーザーフローのシーケンス図（sequenceDiagram）が含まれていません",
       });
     }
   }
