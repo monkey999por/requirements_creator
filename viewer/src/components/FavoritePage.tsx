@@ -353,7 +353,7 @@ export function FavoritePage({
                               className={`p-1 rounded-md transition-colors ${
                                 isActive
                                   ? "text-indigo-400 bg-indigo-400/10"
-                                  : "text-gray-600 hover:text-indigo-400 hover:bg-indigo-400/10 opacity-0 group-hover/item:opacity-100"
+                                  : "text-gray-600 hover:text-indigo-400 hover:bg-indigo-400/10"
                               }`}
                               onClick={() => handlePreview(item)}
                               title="プレビュー"
@@ -382,7 +382,7 @@ export function FavoritePage({
                             {isDev && <DatasetAddButton item={toDatasetItem(item)} isDev={isDev} />}
                             <button
                               type="button"
-                              className="p-1 rounded-md text-gray-600 hover:text-pink-400 hover:bg-pink-400/10 transition-colors opacity-0 group-hover/item:opacity-100"
+                              className="p-1 rounded-md text-gray-600 hover:text-pink-400 hover:bg-pink-400/10 transition-colors"
                               onClick={() => handleRemove(item)}
                               title="お気に入りから削除"
                             >
