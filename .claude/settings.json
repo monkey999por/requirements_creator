@@ -2,6 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(pnpm:*)",
+      "Bash(codex:*)",
+      "Bash(gemini:*)",
       "WebFetch(domain:docs.anthropic.com)",
       "Bash(cat:*)",
       "Bash(find:*)",
@@ -35,6 +37,17 @@
     "enableAllProjectMcpServers": true
   },
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/agent-router.py"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|MultiEdit|Write",
@@ -42,6 +55,15 @@
           {
             "type": "command",
             "command": "pnpm format"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/log-cli-tools.py"
           }
         ]
       }

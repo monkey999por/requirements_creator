@@ -55,5 +55,25 @@ collect:
 # --- extract フェーズ設定（将来の拡張用） ---
 # extract:
 
-# --- generate フェーズ設定（将来の拡張用） ---
-# generate:
+# --- generate フェーズ設定 ---
+generate:
+  # マルチエージェント設定
+  # 各エージェントに役割（role）を割り当て、要件生成の各フェーズで活用する
+  # 定義済みロール:
+  #   researcher - Phase 1: keyword.jsonからトレンド・技術の外部調査（主にGemini向け）
+  #   designer   - Phase 2: keywords + research結果からアプリコンセプト案を提案（主にCodex向け）
+  #   reviewer   - Phase 4: 生成された要件の品質・完全性チェック
+  #   enhancer   - Phase 5: レビュー結果に基づく要件の修正・補強
+  agents:
+    codex:
+      enabled: true
+      model: o4-mini
+      sandbox: read-only
+      roles:
+        - designer
+        - reviewer
+    gemini:
+      enabled: false
+      model: gemini-2.5-pro
+      roles:
+        - researcher

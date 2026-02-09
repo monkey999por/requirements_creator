@@ -162,6 +162,40 @@ tsx scripts/validate-requirements.ts {app_name}
 - 生成した機能数
 - バリデーション結果
 
+## マルチエージェント連携（generate.sh 経由の場合）
+
+`pnpm generate` で実行する場合、`app.config.yaml` の `generate.agents` 設定に基づき、外部エージェント（Codex CLI / Gemini CLI）が各フェーズで自動的に呼び出される。
+
+### フロー
+
+```
+[Phase 1: Research]  gemini (researcher) — トレンド・市場調査
+    ↓ research_context として渡される
+[Phase 2: Design]    codex (designer) — アプリコンセプト設計提案
+    ↓ design_context として渡される
+[Phase 3: Generate]  Claude Code — 本スキルによるメイン生成（本ステップ）
+    ↓
+[Phase 4: Review]    codex/gemini (reviewer) — 品質レビュー
+```
+
+- Phase 1-2 の結果はプロンプト内に「参考情報」として含まれる
+- 参考情報はあくまで参考であり、そのまま採用する必要はない
+- `--skip-agents` オプションで外部エージェントをスキップ可能
+
+### 対話的実行時の外部エージェント利用
+
+対話的に `/generate-requirements` を使う場合、必要に応じて手動でエージェントを呼び出せる:
+
+```bash
+# Codex に設計相談
+codex exec --model o4-mini --sandbox read-only --full-auto "{質問}" 2>/dev/null
+
+# Gemini にトレンド調査
+gemini -p "{調査内容}" 2>/dev/null
+```
+
+詳細は `.claude/rules/codex-delegation.md` / `.claude/rules/gemini-delegation.md` を参照。
+
 ## 注意事項
 
 - overview.md の機能一覧に載せた機能は **全て** features/ に個別ファイルを作ること。漏れは不可
