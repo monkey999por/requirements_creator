@@ -10,6 +10,9 @@ interface SidebarProps {
   isMobile: boolean;
   mobileOpen: boolean;
   onMobileClose: () => void;
+  onSearch: (query: string, type: "grep" | "tag") => void;
+  onClearSearch: () => void;
+  isSearchActive: boolean;
 }
 
 const containerVariants = {
@@ -25,6 +28,105 @@ const itemVariants = {
 const SIDEBAR_WIDTH = 256;
 const STRIP_WIDTH = 48;
 
+function SearchInput({
+  onSearch,
+  onClear,
+  isActive,
+}: {
+  onSearch: (query: string, type: "grep" | "tag") => void;
+  onClear: () => void;
+  isActive: boolean;
+}) {
+  const [query, setQuery] = useState("");
+  const [searchType, setSearchType] = useState<"grep" | "tag">("grep");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.trim()) onSearch(query.trim(), searchType);
+  };
+
+  const handleClear = () => {
+    setQuery("");
+    onClear();
+  };
+
+  return (
+    <div className="px-3 pb-3">
+      <form onSubmit={handleSubmit} className="space-y-2">
+        <div className="relative">
+          <svg
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-gray-500 pointer-events-none"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+            />
+          </svg>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="検索..."
+            className="w-full pl-8 pr-8 py-1.5 text-xs bg-gray-800/80 border border-gray-700/50 rounded-lg text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20"
+          />
+          {(query || isActive) && (
+            <button
+              type="button"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+              onClick={handleClear}
+            >
+              <svg
+                className="size-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          )}
+        </div>
+        <div className="flex gap-1">
+          <button
+            type="button"
+            className={`flex-1 px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
+              searchType === "grep"
+                ? "bg-indigo-500/20 text-indigo-300 ring-1 ring-indigo-500/30"
+                : "bg-gray-800/50 text-gray-500 hover:text-gray-300"
+            }`}
+            onClick={() => setSearchType("grep")}
+          >
+            全文検索
+          </button>
+          <button
+            type="button"
+            className={`flex-1 px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
+              searchType === "tag"
+                ? "bg-indigo-500/20 text-indigo-300 ring-1 ring-indigo-500/30"
+                : "bg-gray-800/50 text-gray-500 hover:text-gray-300"
+            }`}
+            onClick={() => setSearchType("tag")}
+          >
+            タグ検索
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 export function Sidebar({
   apps,
   selected,
@@ -34,6 +136,9 @@ export function Sidebar({
   isMobile,
   mobileOpen,
   onMobileClose,
+  onSearch,
+  onClearSearch,
+  isSearchActive,
 }: SidebarProps) {
   const [hovered, setHovered] = useState(false);
   const expanded = !collapsed || hovered;
@@ -96,6 +201,9 @@ export function Sidebar({
                   </svg>
                 </button>
               </div>
+
+              {/* Search */}
+              <SearchInput onSearch={onSearch} onClear={onClearSearch} isActive={isSearchActive} />
 
               {/* Navigation */}
               <nav className="flex-1 overflow-y-auto dark-scrollbar px-3 pb-4">
@@ -221,6 +329,13 @@ export function Sidebar({
             </svg>
           </motion.button>
         </div>
+
+        {/* Search */}
+        <motion.div animate={{ opacity: expanded ? 1 : 0 }} transition={{ duration: 0.2 }}>
+          {expanded && (
+            <SearchInput onSearch={onSearch} onClear={onClearSearch} isActive={isSearchActive} />
+          )}
+        </motion.div>
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto dark-scrollbar px-3 pb-4">

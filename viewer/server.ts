@@ -34,6 +34,23 @@ const MAX_PORT_RETRIES = 10;
 const app = new Hono();
 app.use("/api/*", cors());
 
+function extractTags(appDir: string): string[] {
+  const sourceInfoPath = join(appDir, "_source_info.md");
+  if (!existsSync(sourceInfoPath)) return [];
+  const content = readFileSync(sourceInfoPath, "utf-8");
+  const keywordSection = content.match(/## 使用キーワード\s*\n+([\s\S]*?)(?=\n## |$)/);
+  if (!keywordSection) return [];
+  return keywordSection[1]
+    .split("\n")
+    .map((line) =>
+      line
+        .replace(/^[-*]\s*/, "")
+        .replace(/（.*$/, "")
+        .trim(),
+    )
+    .filter(Boolean);
+}
+
 app.get("/api/apps", (c) => {
   if (!existsSync(REQUIREMENTS_DIR)) return c.json([]);
   const dirs = readdirSync(REQUIREMENTS_DIR, { withFileTypes: true })
@@ -104,6 +121,70 @@ app.post("/api/apps/:name/memo", async (c) => {
   const body = await c.req.json<{ content: string }>();
   writeFileSync(filePath, body.content, "utf-8");
   return c.json({ success: true });
+});
+
+app.get("/api/apps-with-tags", (c) => {
+  if (!existsSync(REQUIREMENTS_DIR)) return c.json([]);
+  const dirs = readdirSync(REQUIREMENTS_DIR, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const result = dirs.map((d) => ({
+    name: d.name,
+    tags: extractTags(join(REQUIREMENTS_DIR, d.name)),
+  }));
+  return c.json(result);
+});
+
+app.get("/api/search", async (c) => {
+  const query = c.req.query("q")?.trim();
+  const type = c.req.query("type") || "grep";
+  if (!query) return c.json({ results: [] });
+  if (!existsSync(REQUIREMENTS_DIR)) return c.json({ results: [] });
+
+  if (type === "tag") {
+    const dirs = readdirSync(REQUIREMENTS_DIR, { withFileTypes: true }).filter((d) =>
+      d.isDirectory(),
+    );
+    const results = dirs
+      .map((d) => {
+        const tags = extractTags(join(REQUIREMENTS_DIR, d.name));
+        const matched = tags.filter((t) => t.includes(query));
+        return matched.length > 0 ? { app: d.name, tags, matchedTags: matched } : null;
+      })
+      .filter(Boolean);
+    return c.json({ results });
+  }
+
+  // grep search
+  try {
+    const { stdout } = await execAsync(
+      `grep -rn --include='*.md' ${JSON.stringify(query)} ${JSON.stringify(REQUIREMENTS_DIR)}`,
+      { maxBuffer: 1024 * 1024 },
+    );
+    const lines = stdout.trim().split("\n").filter(Boolean);
+    const grouped: Record<string, { file: string; matches: { line: number; text: string }[] }[]> =
+      {};
+    for (const line of lines.slice(0, 200)) {
+      const match = line.match(/^(.+?):(\d+):(.*)$/);
+      if (!match) continue;
+      const [, fullPath, lineNum, text] = match;
+      const relPath = fullPath.replace(`${REQUIREMENTS_DIR}/`, "");
+      const parts = relPath.split("/");
+      const app = parts[0];
+      const file = parts.slice(1).join("/");
+      if (!grouped[app]) grouped[app] = [];
+      let entry = grouped[app].find((e) => e.file === file);
+      if (!entry) {
+        entry = { file, matches: [] };
+        grouped[app].push(entry);
+      }
+      entry.matches.push({ line: Number(lineNum), text: text.trim() });
+    }
+    const results = Object.entries(grouped).map(([app, files]) => ({ app, files }));
+    return c.json({ results });
+  } catch {
+    return c.json({ results: [] });
+  }
 });
 
 app.post("/api/git/commit-push", async (c) => {
