@@ -185,7 +185,7 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
             onClick={() => setMobileTab("memo")}
             label="Memo"
           />
-          {isDev && mobileTab === "memo" && (
+          {isDev && (
             <>
               <div className="flex-1" />
               <CommitPushButton pushing={pushing} onClick={handleCommitPush} />
@@ -313,7 +313,7 @@ export function AppView({ appName, isMobile }: { appName: string; isMobile: bool
               }}
               label="Memo"
             />
-            {isDev && leftTab === "memo" && (
+            {isDev && (
               <>
                 <div className="flex-1" />
                 <CommitPushButton pushing={pushing} onClick={handleCommitPush} />
