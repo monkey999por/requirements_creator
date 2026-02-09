@@ -57,3 +57,13 @@ export async function saveMemo(appName: string, content: string): Promise<{ succ
   });
   return res.json();
 }
+
+export interface GitResult {
+  success: boolean;
+  output: string;
+}
+
+export async function commitAndPush(): Promise<GitResult> {
+  const res = await fetch(`${BASE}/git/commit-push`, { method: "POST" });
+  return res.json();
+}
