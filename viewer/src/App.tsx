@@ -78,7 +78,7 @@ export function App() {
   // Pinned tab state (persisted in localStorage)
   const [pinnedTab, setPinnedTab] = useState<AppTab | null>(() => {
     const stored = localStorage.getItem("viewer:pinnedTab");
-    if (stored && ["overview", "source-info", "memo"].includes(stored)) {
+    if (stored && ["overview", "source-info", "diagrams", "memo"].includes(stored)) {
       return stored as AppTab;
     }
     return null;
@@ -112,7 +112,10 @@ export function App() {
         const featureParam = params.get("feature");
         if (featureParam) setSelectedFeature(featureParam);
         const tabParam = params.get("tab") as AppTab | null;
-        if (tabParam && ["overview", "source-info", "features", "memo"].includes(tabParam)) {
+        if (
+          tabParam &&
+          ["overview", "source-info", "diagrams", "features", "memo"].includes(tabParam)
+        ) {
           setSelectedTab(tabParam);
         }
       }
@@ -120,7 +123,7 @@ export function App() {
       // URL正規化
       const tabParam = params.get("tab") as AppTab | null;
       const validTab =
-        tabParam && ["overview", "source-info", "features", "memo"].includes(tabParam)
+        tabParam && ["overview", "source-info", "diagrams", "features", "memo"].includes(tabParam)
           ? tabParam
           : undefined;
       window.history.replaceState(
@@ -153,7 +156,10 @@ export function App() {
           setSelectedApp(appParam);
           setSelectedFeature(params.get("feature"));
           const tabParam = params.get("tab") as AppTab | null;
-          if (tabParam && ["overview", "source-info", "features", "memo"].includes(tabParam)) {
+          if (
+            tabParam &&
+            ["overview", "source-info", "diagrams", "features", "memo"].includes(tabParam)
+          ) {
             setSelectedTab(tabParam);
           } else {
             setSelectedTab("overview");

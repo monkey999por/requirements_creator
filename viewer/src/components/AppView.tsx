@@ -209,6 +209,8 @@ export function AppView({
             active={mobileTab === "diagrams"}
             onClick={() => onSelectTab("diagrams")}
             label="Diagrams"
+            pinned={pinnedTab === "diagrams"}
+            onPin={() => onPinTab("diagrams")}
           />
           <TabButton
             active={mobileTab === "features"}
@@ -404,6 +406,8 @@ export function AppView({
                 setFeatureContent("");
               }}
               label="Diagrams"
+              pinned={pinnedTab === "diagrams"}
+              onPin={() => onPinTab("diagrams")}
             />
             <TabButton
               active={leftTab === "memo"}
