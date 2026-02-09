@@ -75,6 +75,15 @@ export function App() {
   // Tab state (lifted from AppView for URL sync)
   const [selectedTab, setSelectedTab] = useState<AppTab>("overview");
 
+  // Pinned tab state (persisted in localStorage)
+  const [pinnedTab, setPinnedTab] = useState<AppTab | null>(() => {
+    const stored = localStorage.getItem("viewer:pinnedTab");
+    if (stored && ["overview", "source-info", "memo"].includes(stored)) {
+      return stored as AppTab;
+    }
+    return null;
+  });
+
   useEffect(() => {
     fetchApps().then(setApps);
     fetchMode().then((r) => setIsDev(r.isDev));
@@ -158,13 +167,14 @@ export function App() {
   }, [apps]);
 
   const handleSelectApp = (app: string) => {
+    const tab = pinnedTab ?? "overview";
     setSelectedApp(app);
     setSelectedFeature(null);
-    setSelectedTab("overview");
+    setSelectedTab(tab);
     setViewMode("apps");
     setSearchActive(false);
     if (isMobile) setMobileSidebarOpen(false);
-    window.history.pushState({}, "", buildUrl({ viewMode: "apps", app }));
+    window.history.pushState({}, "", buildUrl({ viewMode: "apps", app, tab }));
   };
 
   const handleSelectDatasets = () => {
@@ -203,6 +213,16 @@ export function App() {
       "",
       buildUrl({ viewMode: "apps", app: selectedApp, feature: selectedFeature, tab }),
     );
+  };
+
+  const handlePinTab = (tab: AppTab) => {
+    const newPinned = pinnedTab === tab ? null : tab;
+    setPinnedTab(newPinned);
+    if (newPinned) {
+      localStorage.setItem("viewer:pinnedTab", newPinned);
+    } else {
+      localStorage.removeItem("viewer:pinnedTab");
+    }
   };
 
   // --- Dataset generation with polling ---
@@ -398,6 +418,8 @@ export function App() {
               onSelectFeature={handleSelectFeature}
               selectedTab={selectedTab}
               onSelectTab={handleSelectTab}
+              pinnedTab={pinnedTab}
+              onPinTab={handlePinTab}
             />
           ) : (
             <div className="flex h-full items-center justify-center text-gray-500 text-sm">

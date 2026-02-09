@@ -37,6 +37,8 @@ export function AppView({
   onSelectFeature,
   selectedTab,
   onSelectTab,
+  pinnedTab,
+  onPinTab,
 }: {
   appName: string;
   isMobile: boolean;
@@ -46,6 +48,8 @@ export function AppView({
   onSelectFeature: (feature: string | null) => void;
   selectedTab: AppTab;
   onSelectTab: (tab: AppTab) => void;
+  pinnedTab: AppTab | null;
+  onPinTab: (tab: AppTab) => void;
 }) {
   const [overview, setOverview] = useState("");
   const [sourceInfo, setSourceInfo] = useState<SourceInfo | null>(null);
@@ -185,11 +189,15 @@ export function AppView({
             active={mobileTab === "overview"}
             onClick={() => onSelectTab("overview")}
             label="Overview"
+            pinned={pinnedTab === "overview"}
+            onPin={() => onPinTab("overview")}
           />
           <TabButton
             active={mobileTab === "source-info"}
             onClick={() => onSelectTab("source-info")}
             label="Source Info"
+            pinned={pinnedTab === "source-info"}
+            onPin={() => onPinTab("source-info")}
           />
           <TabButton
             active={mobileTab === "features"}
@@ -200,6 +208,8 @@ export function AppView({
             active={mobileTab === "memo"}
             onClick={() => onSelectTab("memo")}
             label="Memo"
+            pinned={pinnedTab === "memo"}
+            onPin={() => onPinTab("memo")}
           />
           {isDev && (
             <>
@@ -341,6 +351,8 @@ export function AppView({
                 setFeatureContent("");
               }}
               label="Overview"
+              pinned={pinnedTab === "overview"}
+              onPin={() => onPinTab("overview")}
             />
             <TabButton
               active={leftTab === "source-info"}
@@ -350,6 +362,8 @@ export function AppView({
                 setFeatureContent("");
               }}
               label="Source Info"
+              pinned={pinnedTab === "source-info"}
+              onPin={() => onPinTab("source-info")}
             />
             <TabButton
               active={leftTab === "memo"}
@@ -359,6 +373,8 @@ export function AppView({
                 setFeatureContent("");
               }}
               label="Memo"
+              pinned={pinnedTab === "memo"}
+              onPin={() => onPinTab("memo")}
             />
             {isDev && (
               <>
@@ -785,21 +801,53 @@ function TabButton({
   active,
   onClick,
   label,
+  pinned,
+  onPin,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
+  pinned?: boolean;
+  onPin?: () => void;
 }) {
   return (
-    <button
-      type="button"
-      className={`
-        relative px-3 py-2.5 text-xs font-medium whitespace-nowrap
-        ${active ? "text-indigo-400" : "text-gray-500 hover:text-gray-300"}
-      `}
-      onClick={onClick}
-    >
-      {label}
+    <div className="relative flex items-center">
+      <button
+        type="button"
+        className={`
+          px-3 py-2.5 text-xs font-medium whitespace-nowrap
+          ${active ? "text-indigo-400" : "text-gray-500 hover:text-gray-300"}
+        `}
+        onClick={onClick}
+      >
+        {label}
+      </button>
+      {onPin != null && (
+        <button
+          type="button"
+          className={`
+            -ml-1.5 p-1 rounded transition-colors
+            ${pinned ? "text-amber-400 hover:text-amber-300" : "text-gray-600 hover:text-gray-400"}
+          `}
+          onClick={onPin}
+          title={pinned ? "ピン解除" : "タブをピン留め"}
+        >
+          <svg
+            className="size-3"
+            viewBox="0 0 24 24"
+            fill={pinned ? "currentColor" : "none"}
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 4v6l-2 4v2h10v-2l-2-4V4M12 16v5M8 4h8"
+            />
+          </svg>
+        </button>
+      )}
       {/* Animated underline */}
       <motion.span
         className="absolute bottom-0 left-0 h-0.5 rounded-full bg-indigo-500"
@@ -807,6 +855,6 @@ function TabButton({
         animate={{ width: active ? "100%" : "0%", opacity: active ? 1 : 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
       />
-    </button>
+    </div>
   );
 }
