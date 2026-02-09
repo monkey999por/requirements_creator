@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
+import type { AppInfo } from "../api";
 
 interface SidebarProps {
-  apps: string[];
+  apps: AppInfo[];
   selected: string | null;
   onSelect: (name: string) => void;
   collapsed: boolean;
@@ -214,28 +215,42 @@ export function Sidebar({
                   {apps.map((app) => (
                     <button
                       type="button"
-                      key={app}
+                      key={app.name}
                       className={`
-                        w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] whitespace-nowrap
+                        w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-[13px]
                         ${
-                          selected === app
+                          selected === app.name
                             ? "bg-indigo-500/15 text-indigo-400 font-semibold shadow-lg shadow-indigo-500/5"
                             : "text-gray-400 hover:bg-white/[0.04] hover:text-gray-200"
                         }
                       `}
-                      onClick={() => onSelect(app)}
+                      onClick={() => onSelect(app.name)}
                     >
                       <span
                         className={`
-                          size-1.5 shrink-0 rounded-full
+                          size-1.5 shrink-0 rounded-full mt-1.5
                           ${
-                            selected === app
+                            selected === app.name
                               ? "bg-indigo-400 shadow-[0_0_6px_rgba(129,140,248,0.6)]"
                               : "bg-gray-700"
                           }
                         `}
                       />
-                      {app}
+                      <div className="min-w-0 flex-1">
+                        <span className="block truncate">{app.name}</span>
+                        {app.tags.length > 0 && (
+                          <span className="flex gap-1 mt-0.5">
+                            {app.tags.slice(0, 2).map((tag) => (
+                              <span
+                                key={tag}
+                                className="inline-flex px-1.5 py-0 rounded text-[9px] font-medium bg-gray-800/80 text-gray-500"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </span>
+                        )}
+                      </div>
                     </button>
                   ))}
                   {apps.length === 0 && (
@@ -356,32 +371,46 @@ export function Sidebar({
             {apps.map((app) => (
               <motion.button
                 type="button"
-                key={app}
+                key={app.name}
                 variants={itemVariants}
                 whileHover={{ x: 2 }}
                 className={`
-                  group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] whitespace-nowrap
+                  group w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-[13px]
                   ${
-                    selected === app
+                    selected === app.name
                       ? "bg-indigo-500/15 text-indigo-400 font-semibold shadow-lg shadow-indigo-500/5"
                       : "text-gray-400 hover:bg-white/[0.04] hover:text-gray-200"
                   }
                 `}
-                onClick={() => onSelect(app)}
+                onClick={() => onSelect(app.name)}
               >
                 <motion.span
                   className={`
-                    size-1.5 shrink-0 rounded-full
+                    size-1.5 shrink-0 rounded-full mt-1.5
                     ${
-                      selected === app
+                      selected === app.name
                         ? "bg-indigo-400 shadow-[0_0_6px_rgba(129,140,248,0.6)]"
                         : "bg-gray-700 group-hover:bg-gray-500"
                     }
                   `}
-                  animate={selected === app ? { scale: [1, 1.4, 1] } : {}}
+                  animate={selected === app.name ? { scale: [1, 1.4, 1] } : {}}
                   transition={{ duration: 0.3 }}
                 />
-                {app}
+                <div className="min-w-0 flex-1">
+                  <span className="block truncate whitespace-nowrap">{app.name}</span>
+                  {app.tags.length > 0 && (
+                    <span className="flex gap-1 mt-0.5">
+                      {app.tags.slice(0, 2).map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex px-1.5 py-0 rounded text-[9px] font-medium bg-gray-800/80 text-gray-500"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </div>
               </motion.button>
             ))}
             {apps.length === 0 && (

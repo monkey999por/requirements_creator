@@ -9,9 +9,21 @@ export interface MarkdownContent {
   content: string;
 }
 
+export interface AppInfo {
+  name: string;
+  tags: string[];
+}
+
+export interface SourceInfo {
+  source?: { directory?: string; collected_at?: string };
+  keywords?: { word?: string; relevance?: number }[];
+  tags?: string[];
+  description?: string;
+}
+
 const BASE = "/api";
 
-export async function fetchApps(): Promise<string[]> {
+export async function fetchApps(): Promise<AppInfo[]> {
   const res = await fetch(`${BASE}/apps`);
   return res.json();
 }
@@ -34,7 +46,7 @@ export async function fetchFeatureDetail(
   return res.json();
 }
 
-export async function fetchSourceInfo(appName: string): Promise<MarkdownContent> {
+export async function fetchSourceInfo(appName: string): Promise<SourceInfo> {
   const res = await fetch(`${BASE}/apps/${appName}/source-info`);
   return res.json();
 }

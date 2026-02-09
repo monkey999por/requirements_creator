@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  type AppInfo,
   fetchApps,
   type GrepSearchResult,
   searchByTag,
@@ -13,7 +14,7 @@ import { ToastProvider } from "./components/Toast";
 import { useIsMobile } from "./hooks/useIsMobile";
 
 export function App() {
-  const [apps, setApps] = useState<string[]>([]);
+  const [apps, setApps] = useState<AppInfo[]>([]);
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -35,7 +36,8 @@ export function App() {
     if (apps.length > 0 && !selectedApp) {
       const params = new URLSearchParams(window.location.search);
       const appParam = params.get("app");
-      setSelectedApp(appParam && apps.includes(appParam) ? appParam : apps[0]);
+      const names = apps.map((a) => a.name);
+      setSelectedApp(appParam && names.includes(appParam) ? appParam : apps[0].name);
     }
   }, [apps, selectedApp]);
 

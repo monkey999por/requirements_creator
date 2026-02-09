@@ -34,33 +34,43 @@ const MAX_PORT_RETRIES = 10;
 const app = new Hono();
 app.use("/api/*", cors());
 
+interface SourceInfoJson {
+  source?: { directory?: string; collected_at?: string };
+  keywords?: { word?: string; relevance?: number }[];
+  tags?: string[];
+  description?: string;
+}
+
+function readSourceInfo(appDir: string): SourceInfoJson | null {
+  const sourceInfoPath = join(appDir, "_source_info.json");
+  if (!existsSync(sourceInfoPath)) return null;
+  try {
+    return JSON.parse(readFileSync(sourceInfoPath, "utf-8")) as SourceInfoJson;
+  } catch {
+    return null;
+  }
+}
+
 function extractTags(appDir: string): string[] {
-  const sourceInfoPath = join(appDir, "_source_info.md");
-  if (!existsSync(sourceInfoPath)) return [];
-  const content = readFileSync(sourceInfoPath, "utf-8");
-  const keywordSection = content.match(/## 使用キーワード\s*\n+([\s\S]*?)(?=\n## |$)/);
-  if (!keywordSection) return [];
-  return keywordSection[1]
-    .split("\n")
-    .map((line) =>
-      line
-        .replace(/^[-*]\s*/, "")
-        .replace(/（.*$/, "")
-        .trim(),
-    )
-    .filter(Boolean);
+  const info = readSourceInfo(appDir);
+  return info?.tags ?? [];
 }
 
 app.get("/api/apps", (c) => {
   if (!existsSync(REQUIREMENTS_DIR)) return c.json([]);
   const dirs = readdirSync(REQUIREMENTS_DIR, { withFileTypes: true })
     .filter((d) => d.isDirectory())
-    .map((d) => ({
-      name: d.name,
-      mtime: statSync(join(REQUIREMENTS_DIR, d.name)).mtimeMs,
-    }))
+    .map((d) => {
+      const appDir = join(REQUIREMENTS_DIR, d.name);
+      const tags = extractTags(appDir);
+      return {
+        name: d.name,
+        tags: tags.slice(0, 2),
+        mtime: statSync(appDir).mtimeMs,
+      };
+    })
     .sort((a, b) => b.mtime - a.mtime)
-    .map((d) => d.name);
+    .map(({ name, tags }) => ({ name, tags }));
   return c.json(dirs);
 });
 
@@ -102,9 +112,10 @@ app.get("/api/apps/:name/features/:featureId", (c) => {
 
 app.get("/api/apps/:name/source-info", (c) => {
   const name = c.req.param("name");
-  const filePath = join(REQUIREMENTS_DIR, name, "_source_info.md");
-  if (!existsSync(filePath)) return c.json({ error: "Not found" }, 404);
-  return c.json({ content: readFileSync(filePath, "utf-8") });
+  const appDir = join(REQUIREMENTS_DIR, name);
+  const info = readSourceInfo(appDir);
+  if (!info) return c.json({ error: "Not found" }, 404);
+  return c.json(info);
 });
 
 app.get("/api/mode", (c) => {
@@ -162,7 +173,7 @@ app.get("/api/search", async (c) => {
   // grep search
   try {
     const { stdout } = await execAsync(
-      `grep -rn --include='*.md' ${JSON.stringify(query)} ${JSON.stringify(REQUIREMENTS_DIR)}`,
+      `grep -rn --include='*.md' --include='*.json' ${JSON.stringify(query)} ${JSON.stringify(REQUIREMENTS_DIR)}`,
       { maxBuffer: 1024 * 1024 },
     );
     const lines = stdout.trim().split("\n").filter(Boolean);
