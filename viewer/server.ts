@@ -166,6 +166,33 @@ app.get("/api/mode", (c) => {
   return c.json({ isDev });
 });
 
+app.get("/api/apps/:name/diagrams", async (c) => {
+  const name = c.req.param("name");
+  const filePath = join(REQUIREMENTS_DIR, name, "diagrams.md");
+  if (!existsSync(filePath)) return c.json({ content: "" });
+  const raw = readFileSync(filePath, "utf-8");
+
+  // D2コードブロックをSVGに変換
+  const d2BlockRegex = /```d2\n([\s\S]*?)```/g;
+  const matches = [...raw.matchAll(d2BlockRegex)];
+  let result = raw;
+  for (const match of matches) {
+    const d2Code = match[1];
+    try {
+      const { stdout } = await execAsync(`echo ${JSON.stringify(d2Code)} | d2 --theme 200 -`, {
+        timeout: 15000,
+      });
+      result = result.replace(match[0], `<div class="d2-diagram">\n${stdout}\n</div>`);
+    } catch {
+      result = result.replace(
+        match[0],
+        `<div class="d2-diagram-error">\n<pre><code>${d2Code}</code></pre>\n<p>D2レンダリングエラー: d2 CLIの実行に失敗しました</p>\n</div>`,
+      );
+    }
+  }
+  return c.json({ content: result });
+});
+
 app.get("/api/apps/:name/memo", (c) => {
   const name = c.req.param("name");
   const filePath = join(REQUIREMENTS_DIR, name, "memo.md");
