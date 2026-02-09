@@ -81,7 +81,7 @@ Bashで `mkdir -p gen/requirements/{app_name}/features` を実行する。
 
 - `source`: 使用した data_source ディレクトリ名と収集日時
 - `keywords`: 採用したキーワードと関連度スコア
-- `tags`: 以下のenum値から **最低2つ** 選択: `AI`, `Web3`, `ヘルスケア`, `教育`, `金融`, `モビリティ`, `サステナビリティ`, `エンタメ`
+- `tags`: `gen/tags.json` に定義されたタグ値から **最低3つ** 選択（該当するタグがない場合は新しいタグを `gen/tags.json` に追加してから使用すること）
 - `description`: このアプリ案に至った思考の経緯
 
 **データセットモードの場合**: `dataset` フィールドを追加し、`source.directory` を `dataset://{データセット名}` 形式にする。`dataset.sourceApps` にはデータセットに含まれる全アイテム（appName, type, featureId, title）を列挙する。詳細は[テンプレート参照](templates.md)の「データセットモード用」セクションを参照。
@@ -146,7 +146,7 @@ tsx scripts/validate-requirements.ts {app_name}
 
 このスクリプトは以下を自動検証する:
 - `_source_info.json`, `overview.md`, `diagrams/`（Mermaid記法）, `features/` ディレクトリの存在
-- `_source_info.json` のJSONスキーマ（必須フィールド、tagsのenum値検証）
+- `_source_info.json` のJSONスキーマ（必須フィールド、tagsが `gen/tags.json` に定義されたタグ値であることの検証）
 - `app_name` がkebab-case、featureファイル名が `{nn}_{snake_case}.md` であること
 - 連番が01から連続していること
 - overview.mdの機能一覧テーブルの機能数とfeatureファイル数の一致

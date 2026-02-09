@@ -109,7 +109,7 @@ app.get("/api/apps", (c) => {
       const tags = extractTags(appDir);
       return {
         name: d.name,
-        tags: tags.slice(0, 2),
+        tags: tags.slice(0, 3),
         mtime: statSync(appDir).mtimeMs,
       };
     })
@@ -160,6 +160,16 @@ app.get("/api/apps/:name/source-info", (c) => {
   const info = readSourceInfo(appDir);
   if (!info) return c.json({ error: "Not found" }, 404);
   return c.json(info);
+});
+
+app.get("/api/tags", (c) => {
+  const tagsPath = resolve(projectRoot, "gen", "tags.json");
+  if (!existsSync(tagsPath)) return c.json([]);
+  try {
+    return c.json(JSON.parse(readFileSync(tagsPath, "utf-8")));
+  } catch {
+    return c.json([]);
+  }
 });
 
 app.get("/api/mode", (c) => {

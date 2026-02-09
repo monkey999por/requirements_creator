@@ -7,10 +7,10 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { REQUIREMENTS_DIR } from "./lib/paths.js";
-import { TAG_VALUES, type Tag } from "./lib/tags.js";
+import { TAG_VALUES } from "./lib/tags.js";
 
 // タグ推定用のキーワードマッピング
-const TAG_HINTS: Record<Tag, string[]> = {
+const TAG_HINTS: Record<string, string[]> = {
   AI: ["AI", "エージェント", "機械学習", "自律", "LLM", "生成AI"],
   Web3: ["Web3", "ブロックチェーン", "暗号資産", "NFT", "分散"],
   ヘルスケア: ["ヘルス", "医療", "健康", "ヘルステック"],
@@ -21,9 +21,9 @@ const TAG_HINTS: Record<Tag, string[]> = {
   エンタメ: ["エンタメ", "ゲーム", "動画", "音楽", "コンテンツ"],
 };
 
-function inferTags(content: string): Tag[] {
-  const scores = new Map<Tag, number>();
-  for (const [tag, hints] of Object.entries(TAG_HINTS) as [Tag, string[]][]) {
+function inferTags(content: string): string[] {
+  const scores = new Map<string, number>();
+  for (const [tag, hints] of Object.entries(TAG_HINTS)) {
     let score = 0;
     for (const hint of hints) {
       const regex = new RegExp(hint, "gi");
@@ -32,19 +32,19 @@ function inferTags(content: string): Tag[] {
     }
     if (score > 0) scores.set(tag, score);
   }
-  // スコア降順で上位2つ（最低2つ）
+  // スコア降順で上位3つ（最低3つ）
   const sorted = [...scores.entries()].sort((a, b) => b[1] - a[1]);
-  const tags = sorted.slice(0, Math.max(2, sorted.length)).map(([tag]) => tag);
-  // 2つに満たない場合はAIをデフォルトで追加
-  if (tags.length < 2) {
+  const tags = sorted.slice(0, Math.max(3, sorted.length)).map(([tag]) => tag);
+  // 3つに満たない場合はデフォルトで追加
+  if (tags.length < 3) {
     for (const fallback of TAG_VALUES) {
       if (!tags.includes(fallback)) {
         tags.push(fallback);
-        if (tags.length >= 2) break;
+        if (tags.length >= 3) break;
       }
     }
   }
-  return tags.slice(0, 3);
+  return tags.slice(0, 5);
 }
 
 function parseSourceInfoMd(content: string): {

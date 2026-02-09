@@ -38,13 +38,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │       ├── fix-issue/
 │       └── generate-requirements/
 ├── gen/                      # 生成データ出力先（.gitignore対象）
+│   ├── tags.json             # タグ定義（generateごとに自由に追加可能）
 │   ├── data_source/          # 外部APIから取得した生データ（タイムスタンプ付きサブディレクトリ）
 │   │   └── yyyy_mm_dd_hh_mm_ss/
 │   │       ├── news.json
 │   │       └── keyword.json
 │   └── requirements/         # 生成されたアプリ要件（アプリ単位のサブディレクトリ）
 │       └── {app_name}/
-│           ├── _source_info.md
+│           ├── _source_info.json
 │           ├── overview.md
 │           └── features/
 │               └── {nn}_{feature_name}.md
@@ -192,7 +193,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `GET /api/apps/:name/overview` | overview.mdの内容 |
 | `GET /api/apps/:name/features` | 機能一覧（タイトル・概要付き） |
 | `GET /api/apps/:name/features/:featureId` | 機能詳細のMarkdown |
-| `GET /api/apps/:name/source-info` | _source_info.mdの内容 |
+| `GET /api/apps/:name/source-info` | _source_info.jsonの内容 |
+| `GET /api/tags` | 定義済みタグ一覧（`gen/tags.json`） |
 
 ## pnpmワークスペース構成
 

@@ -59,6 +59,11 @@ export async function fetchSourceInfo(appName: string): Promise<SourceInfo> {
   return res.json();
 }
 
+export async function fetchTags(): Promise<string[]> {
+  const res = await fetch(`${BASE}/tags`);
+  return res.json();
+}
+
 export async function fetchMode(): Promise<{ isDev: boolean }> {
   const res = await fetch(`${BASE}/mode`);
   return res.json();

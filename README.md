@@ -137,9 +137,10 @@ pnpm collect -- --dry-run
 │   │   └── yyyy_mm_dd_hh_mm_ss/ # タイムスタンプ付きサブディレクトリ
 │   │       ├── news.json     # NewsAPIから取得した記事データ
 │   │       └── keyword.json  # 抽出されたキーワード
+│   ├── tags.json             # タグ定義（generateごとに自由に追加可能）
 │   └── requirements/         # 生成されたアプリ要件
 │       └── {app_name}/      # アプリ単位のサブディレクトリ（kebab-case）
-│           ├── _source_info.md   # 使用データソース・キーワード・生成経緯
+│           ├── _source_info.json # メタ情報（タグ・キーワード・生成経緯）
 │           ├── overview.md       # アプリ概要（コンセプト、機能一覧、技術スタック等）
 │           ├── memo.md           # メモ（ビューワーから編集可能）
 │           └── features/         # 機能別仕様
@@ -201,11 +202,12 @@ pnpm collect -- --dry-run
 - API設計
 - 非機能要件
 
-### _source_info.md の必須セクション
+### _source_info.json の必須フィールド
 
-- 使用データソース
-- 使用キーワード
-- 生成の経緯
+- `source`: データソース情報（directory, collected_at）
+- `keywords`: キーワード一覧
+- `tags`: カテゴリタグ（`gen/tags.json` で定義）
+- `description`: 生成の経緯
 
 ## Viewer API
 
@@ -217,9 +219,10 @@ pnpm collect -- --dry-run
 | `/api/apps/:name/overview` | GET | overview.mdの内容 |
 | `/api/apps/:name/features` | GET | 機能一覧（タイトル・概要付き） |
 | `/api/apps/:name/features/:featureId` | GET | 機能詳細のMarkdown |
-| `/api/apps/:name/source-info` | GET | _source_info.mdの内容 |
+| `/api/apps/:name/source-info` | GET | _source_info.jsonの内容 |
 | `/api/apps/:name/memo` | GET | memo.mdの内容 |
 | `/api/apps/:name/memo` | POST | memo.mdの更新（開発モードのみ） |
+| `/api/tags` | GET | 定義済みタグ一覧（`gen/tags.json`） |
 | `/api/mode` | GET | 現在の動作モード（dev/production） |
 
 ## 技術スタック
