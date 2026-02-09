@@ -1,16 +1,32 @@
-import { useEffect, useState } from "react";
-import { fetchApps } from "./api";
+import { useCallback, useEffect, useState } from "react";
+import {
+  type AppInfo,
+  fetchApps,
+  type GrepSearchResult,
+  searchByTag,
+  searchGrep,
+  type TagSearchResult,
+} from "./api";
 import { AppView } from "./components/AppView";
+import { SearchView } from "./components/SearchView";
 import { Sidebar } from "./components/Sidebar";
 import { ToastProvider } from "./components/Toast";
 import { useIsMobile } from "./hooks/useIsMobile";
 
 export function App() {
-  const [apps, setApps] = useState<string[]>([]);
+  const [apps, setApps] = useState<AppInfo[]>([]);
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
+
+  // Search state
+  const [searchActive, setSearchActive] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchType, setSearchType] = useState<"grep" | "tag">("grep");
+  const [grepResults, setGrepResults] = useState<GrepSearchResult[]>([]);
+  const [tagResults, setTagResults] = useState<TagSearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     fetchApps().then(setApps);
@@ -20,7 +36,8 @@ export function App() {
     if (apps.length > 0 && !selectedApp) {
       const params = new URLSearchParams(window.location.search);
       const appParam = params.get("app");
-      setSelectedApp(appParam && apps.includes(appParam) ? appParam : apps[0]);
+      const names = apps.map((a) => a.name);
+      setSelectedApp(appParam && names.includes(appParam) ? appParam : apps[0].name);
     }
   }, [apps, selectedApp]);
 
@@ -34,8 +51,40 @@ export function App() {
 
   const handleSelectApp = (app: string) => {
     setSelectedApp(app);
+    setSearchActive(false);
     if (isMobile) setMobileSidebarOpen(false);
   };
+
+  const handleSearch = useCallback(
+    async (query: string, type: "grep" | "tag") => {
+      setSearchQuery(query);
+      setSearchType(type);
+      setSearchActive(true);
+      setSearching(true);
+      if (isMobile) setMobileSidebarOpen(false);
+      try {
+        if (type === "grep") {
+          const results = await searchGrep(query);
+          setGrepResults(results);
+          setTagResults([]);
+        } else {
+          const results = await searchByTag(query);
+          setTagResults(results);
+          setGrepResults([]);
+        }
+      } finally {
+        setSearching(false);
+      }
+    },
+    [isMobile],
+  );
+
+  const handleClearSearch = useCallback(() => {
+    setSearchActive(false);
+    setSearchQuery("");
+    setGrepResults([]);
+    setTagResults([]);
+  }, []);
 
   return (
     <ToastProvider>
@@ -78,6 +127,9 @@ export function App() {
           isMobile={isMobile}
           mobileOpen={mobileSidebarOpen}
           onMobileClose={() => setMobileSidebarOpen(false)}
+          onSearch={handleSearch}
+          onClearSearch={handleClearSearch}
+          isSearchActive={searchActive}
         />
 
         <main
@@ -87,7 +139,22 @@ export function App() {
               : "mb-3 mr-3 rounded-2xl bg-gray-900 shadow-2xl shadow-black/50 ring-1 ring-gray-800"
           }`}
         >
-          {selectedApp ? (
+          {searchActive ? (
+            searching ? (
+              <div className="flex h-full items-center justify-center text-gray-500 text-sm">
+                検索中...
+              </div>
+            ) : (
+              <SearchView
+                query={searchQuery}
+                searchType={searchType}
+                grepResults={grepResults}
+                tagResults={tagResults}
+                onSelectApp={handleSelectApp}
+                isMobile={isMobile}
+              />
+            )
+          ) : selectedApp ? (
             <AppView key={selectedApp} appName={selectedApp} isMobile={isMobile} />
           ) : (
             <div className="flex h-full items-center justify-center text-gray-500 text-sm">

@@ -9,9 +9,21 @@ export interface MarkdownContent {
   content: string;
 }
 
+export interface AppInfo {
+  name: string;
+  tags: string[];
+}
+
+export interface SourceInfo {
+  source?: { directory?: string; collected_at?: string };
+  keywords?: { word?: string; relevance?: number }[];
+  tags?: string[];
+  description?: string;
+}
+
 const BASE = "/api";
 
-export async function fetchApps(): Promise<string[]> {
+export async function fetchApps(): Promise<AppInfo[]> {
   const res = await fetch(`${BASE}/apps`);
   return res.json();
 }
@@ -34,7 +46,7 @@ export async function fetchFeatureDetail(
   return res.json();
 }
 
-export async function fetchSourceInfo(appName: string): Promise<MarkdownContent> {
+export async function fetchSourceInfo(appName: string): Promise<SourceInfo> {
   const res = await fetch(`${BASE}/apps/${appName}/source-info`);
   return res.json();
 }
@@ -56,6 +68,49 @@ export async function saveMemo(appName: string, content: string): Promise<{ succ
     body: JSON.stringify({ content }),
   });
   return res.json();
+}
+
+export interface AppWithTags {
+  name: string;
+  tags: string[];
+}
+
+export interface GrepMatch {
+  line: number;
+  text: string;
+}
+
+export interface GrepFileResult {
+  file: string;
+  matches: GrepMatch[];
+}
+
+export interface GrepSearchResult {
+  app: string;
+  files: GrepFileResult[];
+}
+
+export interface TagSearchResult {
+  app: string;
+  tags: string[];
+  matchedTags: string[];
+}
+
+export async function fetchAppsWithTags(): Promise<AppWithTags[]> {
+  const res = await fetch(`${BASE}/apps-with-tags`);
+  return res.json();
+}
+
+export async function searchGrep(query: string): Promise<GrepSearchResult[]> {
+  const res = await fetch(`${BASE}/search?type=grep&q=${encodeURIComponent(query)}`);
+  const data = await res.json();
+  return data.results;
+}
+
+export async function searchByTag(tag: string): Promise<TagSearchResult[]> {
+  const res = await fetch(`${BASE}/search?type=tag&q=${encodeURIComponent(tag)}`);
+  const data = await res.json();
+  return data.results;
 }
 
 export interface GitResult {

@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { REQUIREMENTS_DIR } from "./lib/paths.js";
+import { validateTags } from "./lib/tags.js";
 
 // --- 必須セクション定義 ---
 const OVERVIEW_REQUIRED_SECTIONS = [
@@ -21,7 +22,12 @@ const FEATURE_REQUIRED_SECTIONS = [
   "非機能要件",
 ];
 
-const SOURCE_INFO_REQUIRED_SECTIONS = ["使用データソース", "使用キーワード", "生成の経緯"];
+interface SourceInfoJson {
+  source?: { directory?: string; collected_at?: string };
+  keywords?: { word?: string; relevance?: number }[];
+  tags?: string[];
+  description?: string;
+}
 
 // --- ヘルパー ---
 interface ValidationError {
@@ -73,7 +79,7 @@ function validate(appName: string): ValidationError[] {
   }
 
   // 3. 必須ファイル存在チェック
-  const requiredFiles = ["_source_info.md", "overview.md"];
+  const requiredFiles = ["_source_info.json", "overview.md"];
   for (const file of requiredFiles) {
     if (!existsSync(join(appDir, file))) {
       errors.push({ file, message: "必須ファイルが存在しません" });
@@ -87,13 +93,35 @@ function validate(appName: string): ValidationError[] {
     return errors;
   }
 
-  // 5. _source_info.md セクションチェック
-  const sourceInfoPath = join(appDir, "_source_info.md");
+  // 5. _source_info.json スキーマバリデーション
+  const sourceInfoPath = join(appDir, "_source_info.json");
   if (existsSync(sourceInfoPath)) {
-    const content = readFileSync(sourceInfoPath, "utf-8");
-    const missing = checkSections(content, SOURCE_INFO_REQUIRED_SECTIONS);
-    for (const section of missing) {
-      errors.push({ file: "_source_info.md", message: `必須セクション「${section}」がありません` });
+    try {
+      const raw = readFileSync(sourceInfoPath, "utf-8");
+      const data = JSON.parse(raw) as SourceInfoJson;
+
+      if (!data.source?.directory) {
+        errors.push({ file: "_source_info.json", message: "source.directoryが未設定です" });
+      }
+      if (!data.source?.collected_at) {
+        errors.push({ file: "_source_info.json", message: "source.collected_atが未設定です" });
+      }
+      if (!Array.isArray(data.keywords) || data.keywords.length === 0) {
+        errors.push({ file: "_source_info.json", message: "keywordsが空または未設定です" });
+      }
+      if (!data.description) {
+        errors.push({ file: "_source_info.json", message: "descriptionが未設定です" });
+      }
+
+      const tagErrors = validateTags(data.tags);
+      for (const te of tagErrors) {
+        errors.push({ file: "_source_info.json", message: te });
+      }
+    } catch (e) {
+      errors.push({
+        file: "_source_info.json",
+        message: `JSONパースエラー: ${e instanceof Error ? e.message : String(e)}`,
+      });
     }
   }
 
