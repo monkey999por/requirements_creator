@@ -1,10 +1,14 @@
+import { exec } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { parse } from "yaml";
+
+const execAsync = promisify(exec);
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const projectRoot = resolve(__dirname, "..");
@@ -100,6 +104,65 @@ app.post("/api/apps/:name/memo", async (c) => {
   const body = await c.req.json<{ content: string }>();
   writeFileSync(filePath, body.content, "utf-8");
   return c.json({ success: true });
+});
+
+app.post("/api/git/commit-push", async (c) => {
+  if (!isDev) return c.json({ error: "Only available in dev mode" }, 403);
+
+  const genDir = resolve(REQUIREMENTS_DIR, "..");
+  const logs: string[] = [];
+
+  try {
+    await execAsync("git rev-parse --git-dir", { cwd: genDir });
+  } catch {
+    return c.json({
+      success: false,
+      output: "Error: gen ディレクトリに git リポジトリが見つかりません",
+    });
+  }
+
+  try {
+    const add = await execAsync("git add .", { cwd: genDir });
+    logs.push("$ git add .");
+    if (add.stdout.trim()) logs.push(add.stdout.trim());
+    if (add.stderr.trim()) logs.push(add.stderr.trim());
+  } catch (err: unknown) {
+    const e = err as { message: string };
+    logs.push("$ git add .", e.message);
+    return c.json({ success: false, output: logs.join("\n") });
+  }
+
+  try {
+    const commit = await execAsync('git commit -m "update"', { cwd: genDir });
+    logs.push('$ git commit -m "update"');
+    if (commit.stdout.trim()) logs.push(commit.stdout.trim());
+    if (commit.stderr.trim()) logs.push(commit.stderr.trim());
+  } catch (err: unknown) {
+    const e = err as { stdout?: string; stderr?: string; message: string };
+    logs.push('$ git commit -m "update"');
+    const output = `${e.stdout || ""}${e.stderr || ""}`.trim();
+    if (output.includes("nothing to commit")) {
+      logs.push(output);
+      return c.json({ success: true, output: logs.join("\n") });
+    }
+    logs.push(output || e.message);
+    return c.json({ success: false, output: logs.join("\n") });
+  }
+
+  try {
+    const push = await execAsync("git push", { cwd: genDir });
+    logs.push("$ git push");
+    if (push.stdout.trim()) logs.push(push.stdout.trim());
+    if (push.stderr.trim()) logs.push(push.stderr.trim());
+  } catch (err: unknown) {
+    const e = err as { stdout?: string; stderr?: string; message: string };
+    logs.push("$ git push");
+    const output = `${e.stdout || ""}${e.stderr || ""}`.trim();
+    logs.push(output || e.message);
+    return c.json({ success: false, output: logs.join("\n") });
+  }
+
+  return c.json({ success: true, output: logs.join("\n") });
 });
 
 // --- Server ---

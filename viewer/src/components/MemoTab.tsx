@@ -1,7 +1,8 @@
 import { motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchMemo, saveMemo } from "../api";
+import { commitAndPush, fetchMemo, saveMemo } from "../api";
 import { MarkdownPane } from "./MarkdownPane";
+import { useToast } from "./Toast";
 
 type MemoView = "edit" | "preview";
 
@@ -18,8 +19,10 @@ export function MemoTab({
   const [savedContent, setSavedContent] = useState("");
   const [view, setView] = useState<MemoView>("edit");
   const [saving, setSaving] = useState(false);
+  const [pushing, setPushing] = useState(false);
   const [loading, setLoading] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     setLoading(true);
@@ -40,6 +43,28 @@ export function MemoTab({
     setSavedContent(content);
     setSaving(false);
   }, [appName, content, hasChanges, saving]);
+
+  const handleCommitPush = useCallback(async () => {
+    if (pushing) return;
+    setPushing(true);
+    try {
+      const result = await commitAndPush();
+      showToast({
+        title: result.success ? "Commit & Push 完了" : "Commit & Push 失敗",
+        output: result.output,
+        success: result.success,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      showToast({
+        title: "Commit & Push エラー",
+        output: message,
+        success: false,
+      });
+    } finally {
+      setPushing(false);
+    }
+  }, [pushing, showToast]);
 
   if (loading) {
     return (
@@ -95,18 +120,32 @@ export function MemoTab({
           )}
           <div className="flex-1" />
           {isDev && (
-            <button
-              type="button"
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                hasChanges
-                  ? "bg-indigo-600 text-white hover:bg-indigo-500"
-                  : "bg-gray-800 text-gray-600 cursor-not-allowed"
-              }`}
-              onClick={handleSave}
-              disabled={!hasChanges || saving}
-            >
-              {saving ? "保存中..." : "保存"}
-            </button>
+            <>
+              <button
+                type="button"
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  hasChanges
+                    ? "bg-indigo-600 text-white hover:bg-indigo-500"
+                    : "bg-gray-800 text-gray-600 cursor-not-allowed"
+                }`}
+                onClick={handleSave}
+                disabled={!hasChanges || saving}
+              >
+                {saving ? "保存中..." : "保存"}
+              </button>
+              <button
+                type="button"
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  pushing
+                    ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                    : "bg-emerald-700 text-white hover:bg-emerald-600"
+                }`}
+                onClick={handleCommitPush}
+                disabled={pushing}
+              >
+                {pushing ? "Push中..." : "Commit & Push"}
+              </button>
+            </>
           )}
         </div>
         {/* Content */}
@@ -149,6 +188,18 @@ export function MemoTab({
               disabled={!hasChanges || saving}
             >
               {saving ? "保存中..." : "保存"}
+            </button>
+            <button
+              type="button"
+              className={`px-3 py-1.5 my-1 text-xs font-medium rounded-lg transition-colors ${
+                pushing
+                  ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                  : "bg-emerald-700 text-white hover:bg-emerald-600"
+              }`}
+              onClick={handleCommitPush}
+              disabled={pushing}
+            >
+              {pushing ? "Push中..." : "Commit & Push"}
             </button>
           </div>
           <textarea
