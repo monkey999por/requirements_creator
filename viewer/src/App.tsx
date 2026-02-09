@@ -51,8 +51,14 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    // URL から datasets ビュー + 選択データセットを復元
+    if (params.get("view") === "datasets") {
+      setViewMode("datasets");
+      const dsParam = params.get("dataset");
+      if (dsParam) setSelectedDataset(dsParam);
+    }
     if (apps.length > 0 && !selectedApp) {
-      const params = new URLSearchParams(window.location.search);
       const appParam = params.get("app");
       const names = apps.map((a) => a.name);
       setSelectedApp(appParam && names.includes(appParam) ? appParam : apps[0].name);
@@ -64,15 +70,21 @@ export function App() {
       const url = new URL(window.location.href);
       url.searchParams.set("app", selectedApp);
       url.searchParams.delete("view");
+      url.searchParams.delete("dataset");
       window.history.replaceState({}, "", url.toString());
     }
     if (viewMode === "datasets") {
       const url = new URL(window.location.href);
       url.searchParams.set("view", "datasets");
       url.searchParams.delete("app");
+      if (selectedDataset) {
+        url.searchParams.set("dataset", selectedDataset);
+      } else {
+        url.searchParams.delete("dataset");
+      }
       window.history.replaceState({}, "", url.toString());
     }
-  }, [selectedApp, viewMode]);
+  }, [selectedApp, viewMode, selectedDataset]);
 
   const handleSelectApp = (app: string) => {
     setSelectedApp(app);

@@ -216,8 +216,8 @@ export function DatasetManager({
           <>
             <DatasetDetailHeader
               dataset={selectedDataset}
-              onGenerate={handleGenerate}
-              generating={generating}
+              onGenerate={handleGenerateClick}
+              generating={isGeneratingThis}
               isDev={isDev}
             />
             <DatasetItemList
