@@ -262,6 +262,9 @@ export function Sidebar({
               {/* Header */}
               <div className="px-5 py-6 flex items-center justify-between">
                 <div className="flex items-center gap-3">
+                  <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm font-bold shadow-lg shadow-indigo-500/25">
+                    R
+                  </span>
                   <button
                     type="button"
                     className={`p-1.5 rounded-lg transition-colors shrink-0 ${
@@ -287,9 +290,6 @@ export function Sidebar({
                       />
                     </svg>
                   </button>
-                  <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm font-bold shadow-lg shadow-indigo-500/25">
-                    R
-                  </span>
                   <div>
                     <h1 className="text-sm font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent whitespace-nowrap">
                       Requirements
@@ -456,6 +456,9 @@ export function Sidebar({
         {/* Header */}
         <div className="px-5 py-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm font-bold shadow-lg shadow-indigo-500/25">
+              R
+            </span>
             <motion.button
               type="button"
               className={`p-1.5 rounded-lg transition-colors shrink-0 ${
@@ -483,9 +486,6 @@ export function Sidebar({
                 />
               </svg>
             </motion.button>
-            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm font-bold shadow-lg shadow-indigo-500/25">
-              R
-            </span>
             <motion.div animate={{ opacity: expanded ? 1 : 0 }} transition={{ duration: 0.2 }}>
               <h1 className="text-sm font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent whitespace-nowrap">
                 Requirements

@@ -227,6 +227,32 @@ export function App() {
     handleSelectApp(appName);
   };
 
+  const handleNavigateToFeature = (appName: string, featureId: string) => {
+    setSelectedApp(appName);
+    setSelectedFeature(featureId);
+    setSelectedTab("features");
+    setViewMode("apps");
+    setSearchActive(false);
+    if (isMobile) setMobileSidebarOpen(false);
+    window.history.pushState(
+      {},
+      "",
+      buildUrl({ viewMode: "apps", app: appName, feature: featureId, tab: "features" }),
+    );
+  };
+
+  const handleNavigateToDiagram = (appName: string) => {
+    setSelectedApp(appName);
+    setSelectedFeature(null);
+    setSelectedTab("diagrams");
+    setPinnedTab(null);
+    localStorage.removeItem("viewer:pinnedTab");
+    setViewMode("apps");
+    setSearchActive(false);
+    if (isMobile) setMobileSidebarOpen(false);
+    window.history.pushState({}, "", buildUrl({ viewMode: "apps", app: appName, tab: "diagrams" }));
+  };
+
   const handleSelectFeature = (feature: string | null) => {
     setSelectedFeature(feature);
     window.history.pushState(
@@ -419,7 +445,13 @@ export function App() {
           }`}
         >
           {viewMode === "favorites" ? (
-            <FavoritePage isMobile={isMobile} isDev={isDev} onSelectApp={handleNavigateToApp} />
+            <FavoritePage
+              isMobile={isMobile}
+              isDev={isDev}
+              onSelectApp={handleNavigateToApp}
+              onSelectFeature={handleNavigateToFeature}
+              onSelectDiagram={handleNavigateToDiagram}
+            />
           ) : viewMode === "datasets" ? (
             <DatasetManager
               isMobile={isMobile}

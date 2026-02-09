@@ -7,6 +7,8 @@ interface FavoritePageProps {
   isMobile: boolean;
   isDev: boolean;
   onSelectApp: (appName: string) => void;
+  onSelectFeature: (appName: string, featureId: string) => void;
+  onSelectDiagram: (appName: string) => void;
   onRefresh?: () => void;
 }
 
@@ -56,7 +58,14 @@ function toDatasetItem(fav: FavoriteItem) {
   };
 }
 
-export function FavoritePage({ isMobile, isDev, onSelectApp, onRefresh }: FavoritePageProps) {
+export function FavoritePage({
+  isMobile,
+  isDev,
+  onSelectApp,
+  onSelectFeature,
+  onSelectDiagram,
+  onRefresh,
+}: FavoritePageProps) {
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -222,9 +231,21 @@ export function FavoritePage({ isMobile, isDev, onSelectApp, onRefresh }: Favori
                             >
                               {typeLabel(item.type)}
                             </span>
-                            <span className="flex-1 text-xs text-gray-300 truncate">
+                            <button
+                              type="button"
+                              className="flex-1 text-xs text-gray-300 truncate text-left hover:text-indigo-300 transition-colors"
+                              onClick={() => {
+                                if (item.type === "feature" && item.featureId) {
+                                  onSelectFeature(item.appName, item.featureId);
+                                } else if (item.type === "diagram") {
+                                  onSelectDiagram(item.appName);
+                                } else {
+                                  onSelectApp(item.appName);
+                                }
+                              }}
+                            >
                               {item.title ?? item.appName}
-                            </span>
+                            </button>
                             <div className="flex items-center gap-1 shrink-0">
                               {isDev && (
                                 <DatasetAddButton item={toDatasetItem(item)} isDev={isDev} />
