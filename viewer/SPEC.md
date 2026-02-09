@@ -9,27 +9,36 @@ Viewerは `gen/` 配下のファイルを参照する。ベースディレクト
 ```text
 gen/
 ├── requirements/              # アプリ要件（Viewerの主要データソース）
-│   └── {app_name}/
+│   └── {app_name}/           # kebab-case（英小文字・数字・ハイフンのみ）
 │       ├── overview.md        # 必須: アプリ概要
 │       ├── _source_info.json  # 必須: メタ情報（タグ・キーワード等）
 │       ├── memo.md            # 任意: メモ（Viewerから編集可能）
-│       └── features/          # 任意: 機能別仕様
+│       └── features/          # 必須: 機能別仕様（1ファイル以上）
 │           └── {nn}_{feature_name}.md
 └── datasets/                  # 任意: データセット
     └── {dataset_name}.json
 ```
 
+### app_name 命名規則
+
+`{app_name}` はkebab-caseに従うこと。
+
+- 正規表現: `/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/`
+- 使用可能文字: 英小文字、数字、ハイフン
+- 先頭は英小文字
+- 例: `trust-lens`, `health-tracker`, `ai-news`
+
 ### 必須/任意の判定
 
-| ファイル | 必須 | 不在時の挙動 |
-|---------|------|-------------|
-| `gen/requirements/` | - | 全APIが空配列を返す |
-| `overview.md` | 必須 | `/api/apps/:name/overview` が 404 |
-| `_source_info.json` | 必須 | `/api/apps/:name/source-info` が 404、タグ情報が失われる |
-| `features/` | 任意 | `/api/apps/:name/features` が空配列を返す |
-| `features/{nn}_{name}.md` | 任意 | 個別取得時に 404 |
-| `memo.md` | 任意 | 空文字列を返す（404ではない） |
-| `gen/datasets/` | 任意 | `/api/datasets` が空配列を返す |
+| ファイル | 必須 | 不在時の挙動（Viewer API） | バリデーション |
+|---------|------|--------------------------|--------------|
+| `gen/requirements/` | - | 全APIが空配列を返す | - |
+| `overview.md` | 必須 | `/api/apps/:name/overview` が 404 | 必須セクションチェック |
+| `_source_info.json` | 必須 | `/api/apps/:name/source-info` が 404、タグ情報が失われる | スキーマチェック |
+| `features/` | 必須 | `/api/apps/:name/features` が空配列を返す | 1ファイル以上必要 |
+| `features/{nn}_{name}.md` | 必須（1つ以上） | 個別取得時に 404 | 命名・連番・セクションチェック |
+| `memo.md` | 任意 | 空文字列を返す（404ではない） | - |
+| `gen/datasets/` | 任意 | `/api/datasets` が空配列を返す | - |
 
 ## 2. ファイル仕様
 
@@ -67,17 +76,21 @@ gen/
 
 | フィールド | 型 | 必須 | 説明 |
 |-----------|---|------|------|
-| `source` | object | 任意 | データソース情報 |
-| `source.directory` | string | 任意 | 収集データのディレクトリパス |
-| `source.collected_at` | string | 任意 | 収集日時 |
-| `dataset` | object | 任意 | データセットからの生成情報 |
-| `dataset.name` | string | 任意 | データセット名 |
-| `dataset.sourceApps` | array | 任意 | 参照元アプリ情報 |
-| `keywords` | array | 任意 | キーワード一覧 |
+| `source` | object | 必須 | データソース情報 |
+| `source.directory` | string | 必須 | 収集データのディレクトリパス |
+| `source.collected_at` | string | 必須 | 収集日時 |
+| `dataset` | object | 任意 | データセットからの生成情報（存在する場合、内部フィールドは必須） |
+| `dataset.name` | string | dataset内必須 | データセット名 |
+| `dataset.sourceApps` | array | dataset内必須 | 参照元アプリ情報（1つ以上） |
+| `dataset.sourceApps[].appName` | string | 要素内必須 | 参照元アプリ名 |
+| `dataset.sourceApps[].type` | string | 要素内必須 | `"overview"` または `"feature"` のみ |
+| `dataset.sourceApps[].featureId` | string | 任意 | type="feature" の場合のfeature ID |
+| `dataset.sourceApps[].title` | string | 任意 | タイトル |
+| `keywords` | array | 必須 | キーワード一覧（1つ以上） |
 | `keywords[].word` | string | 要素内必須 | キーワード文字列 |
 | `keywords[].relevance` | number | 任意 | 関連度スコア (0-1) |
-| `tags` | string[] | 任意 | カテゴリタグ |
-| `description` | string | 任意 | 生成の経緯・背景説明 |
+| `tags` | string[] | 必須 | カテゴリタグ（1つ以上、定義済みタグ値のみ） |
+| `description` | string | 必須 | 生成の経緯・背景説明 |
 
 ### 2.2 `overview.md`
 
@@ -108,6 +121,9 @@ gen/
 | ID | 機能名 | 概要 |
 |----|-------|------|
 | 01 | ... | ... |
+| 02 | ... | ... |
+
+ID列は2桁の連番（`| 01 |`, `| 02 |` ...）。テーブル内のID数とfeaturesディレクトリのファイル数が一致すること。
 
 ## マネタイズ
 
@@ -128,8 +144,10 @@ gen/
 
 **ファイル命名規則:**
 
-- `{nn}`: 2桁の連番（01, 02, 03...）。ソート順に使用される
-- `{feature_name}`: スネークケース（例: `article_scoring`）
+- 正規表現: `/^(\d{2})_([a-z][a-z0-9]*(?:_[a-z0-9]+)*)\.md$/`
+- `{nn}`: 2桁の連番（01, 02, 03...）。01から連続であること（欠番不可）
+- `{feature_name}`: スネークケース（英小文字・数字・アンダースコア。例: `article_scoring`）
+- overview.mdの機能一覧テーブルのID数とfeatureファイル数が一致すること
 
 **必須セクション:**
 
@@ -257,3 +275,53 @@ gen/
 | `memo.md` が存在しない | 空文字列 `""` を返す（404ではない） |
 | `gen/datasets/` が存在しない | 空配列 `[]` を返す |
 | 本番モードで書き込みAPI呼び出し | 403 |
+
+## 7. バリデーションルール
+
+`pnpm generate:validate` で実行されるバリデーション（`scripts/validate-requirements.ts`）の一覧。
+
+### 7.1 ディレクトリ・ファイル存在チェック
+
+| チェック対象 | ルール |
+|------------|-------|
+| `{app_name}/` | ディレクトリが存在すること |
+| `app_name` | kebab-case（`/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/`） |
+| `overview.md` | 存在すること |
+| `_source_info.json` | 存在すること |
+| `features/` | ディレクトリが存在すること |
+| `features/*.md` | 1ファイル以上存在すること |
+
+### 7.2 `_source_info.json` スキーマチェック
+
+| チェック対象 | ルール |
+|------------|-------|
+| JSON構文 | パース可能であること |
+| `source.directory` | 設定されていること |
+| `source.collected_at` | 設定されていること |
+| `keywords` | 非空配列であること |
+| `tags` | 非空配列かつ定義済みタグ値のみ |
+| `description` | 設定されていること |
+| `dataset`（存在時） | `name` が設定されていること |
+| `dataset.sourceApps`（存在時） | 非空配列、各要素に `appName` と `type`（`"overview"` / `"feature"`）が必要 |
+
+### 7.3 `overview.md` セクションチェック
+
+`## セクション名` の形式で以下が存在すること:
+
+1. コンセプト
+2. ターゲットユーザー
+3. 機能一覧
+4. マネタイズ
+5. 技術スタック
+6. 運用方針
+
+追加チェック: 機能一覧テーブルに2桁IDの行（`| 01 |` 形式）が1つ以上存在すること。
+
+### 7.4 `features/{nn}_{name}.md` チェック
+
+| チェック対象 | ルール |
+|------------|-------|
+| ファイル名 | `/^(\d{2})_([a-z][a-z0-9]*(?:_[a-z0-9]+)*)\.md$/` に一致 |
+| 連番 | 01から連続（欠番不可） |
+| ファイル数 | overview.mdの機能一覧テーブルのID数と一致 |
+| 必須セクション | 概要、画面構成、ユーザーフロー、データモデル、API設計、非機能要件 |
