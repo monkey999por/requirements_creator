@@ -12,7 +12,7 @@
     "viewer": "pnpm --filter viewer dev",
     "viewer:build": "pnpm --filter viewer build",
     "viewer:start": "pnpm --filter viewer start",
-    "setup": "bash scripts/setup.sh",
+    "setup": "bash setup.sh",
     "pipeline": "tsx scripts/pipeline.ts",
     "format": "biome format --write .",
     "lint": "biome lint .",

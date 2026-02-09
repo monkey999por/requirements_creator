@@ -4,7 +4,7 @@ set -euo pipefail
 # ========================================
 # プロジェクト初期セットアップスクリプト
 # ========================================
-# 実行方法: bash scripts/setup.sh
+# 実行方法: bash setup.sh
 #
 # 以下を一括で実行します:
 #   1. Node.js バージョンチェック
@@ -12,8 +12,7 @@ set -euo pipefail
 #   3. gen/ ディレクトリの初期化
 #   4. .env ファイルの作成（未作成の場合）
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT_ROOT"
 
 # --- ユーティリティ ---
@@ -47,7 +46,7 @@ info "pnpm v$PNPM_VERSION"
 pnpm install
 info "依存パッケージのインストール完了"
 
-# --- 3. gen/ ディレクトリの初期化 ---
+# --- 3. gen/ ディレクトリの初期化（requirements_pool リポジトリのクローン） ---
 step "gen/ ディレクトリの初期化"
 
 # app.config.yaml から output_base_dir を読み取る（デフォルト: gen）
@@ -59,44 +58,23 @@ if [ -f "app.config.yaml" ]; then
   fi
 fi
 
-DIRS=(
-  "$OUTPUT_BASE_DIR/data_source"
-  "$OUTPUT_BASE_DIR/requirements"
-  "$OUTPUT_BASE_DIR/datasets"
-)
+GEN_REPO="git@github.com:monkey999por/requirements_pool.git"
 
-for dir in "${DIRS[@]}"; do
-  mkdir -p "$dir"
-  info "$dir/"
-done
-
-# data_source の README を配置（テンプレートが存在する場合）
-if [ ! -f "$OUTPUT_BASE_DIR/data_source/README.md" ]; then
-  cat > "$OUTPUT_BASE_DIR/data_source/README.md" << 'HEREDOC'
-# data_source
-
-外部API（NewsAPI、YouTube Data API等）から取得したトレンド情報の生データを格納するディレクトリです。
-
-## ディレクトリ構造
-
-データ収集（`pnpm collect`）を実行するたびに、タイムスタンプ付きのサブディレクトリが作成されます。
-
-```text
-data_source/
-└── yyyy_mm_dd_hh_mm_ss/
-    ├── news.json         # NewsAPIから取得した記事データ
-    ├── youtube.json      # YouTube Data APIから取得した動画データ（有効時のみ）
-    └── keyword.json      # キーワード抽出（pnpm extract）で生成
-```
-HEREDOC
-  info "data_source/README.md を作成"
+if [ -d "$OUTPUT_BASE_DIR/.git" ]; then
+  info "$OUTPUT_BASE_DIR/ は既にgitリポジトリです（pull で最新化）"
+  git -C "$OUTPUT_BASE_DIR" pull --ff-only || warn "pull に失敗しました。手動で確認してください"
+elif [ -d "$OUTPUT_BASE_DIR" ] && [ "$(ls -A "$OUTPUT_BASE_DIR" 2>/dev/null)" ]; then
+  warn "$OUTPUT_BASE_DIR/ が既に存在し、空ではありません（クローンをスキップ）"
+  warn "requirements_pool を使用するには、$OUTPUT_BASE_DIR/ を削除してから再実行してください"
+else
+  rm -rf "$OUTPUT_BASE_DIR"
+  git clone "$GEN_REPO" "$OUTPUT_BASE_DIR"
+  info "$OUTPUT_BASE_DIR/ に requirements_pool をクローンしました"
 fi
 
-# .gitkeep を配置（空ディレクトリをgit管理する場合用）
-for dir in "${DIRS[@]}"; do
-  if [ "$(ls -A "$dir" 2>/dev/null | head -1)" = "" ]; then
-    touch "$dir/.gitkeep"
-  fi
+# 必要なサブディレクトリが存在しない場合は作成
+for dir in "$OUTPUT_BASE_DIR/data_source" "$OUTPUT_BASE_DIR/requirements"; do
+  mkdir -p "$dir"
 done
 
 info "gen/ ディレクトリの初期化完了"
