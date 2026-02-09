@@ -11,7 +11,7 @@ import {
   searchGrep,
   type TagSearchResult,
 } from "./api";
-import { AppView } from "./components/AppView";
+import { type AppTab, AppView } from "./components/AppView";
 import { DatasetManager } from "./components/DatasetManager";
 import { SearchView } from "./components/SearchView";
 import { Sidebar } from "./components/Sidebar";
@@ -25,18 +25,21 @@ function buildUrl(state: {
   app?: string | null;
   feature?: string | null;
   dataset?: string | null;
+  tab?: AppTab | null;
 }) {
   const url = new URL(window.location.href);
   url.searchParams.delete("app");
   url.searchParams.delete("view");
   url.searchParams.delete("dataset");
   url.searchParams.delete("feature");
+  url.searchParams.delete("tab");
   if (state.viewMode === "datasets") {
     url.searchParams.set("view", "datasets");
     if (state.dataset) url.searchParams.set("dataset", state.dataset);
   } else {
     if (state.app) url.searchParams.set("app", state.app);
     if (state.feature) url.searchParams.set("feature", state.feature);
+    if (state.tab && state.tab !== "overview") url.searchParams.set("tab", state.tab);
   }
   return url.toString();
 }
@@ -69,6 +72,18 @@ export function App() {
   // Feature state (lifted from AppView for URL sync)
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
 
+  // Tab state (lifted from AppView for URL sync)
+  const [selectedTab, setSelectedTab] = useState<AppTab>("overview");
+
+  // Pinned tab state (persisted in localStorage)
+  const [pinnedTab, setPinnedTab] = useState<AppTab | null>(() => {
+    const stored = localStorage.getItem("viewer:pinnedTab");
+    if (stored && ["overview", "source-info", "memo"].includes(stored)) {
+      return stored as AppTab;
+    }
+    return null;
+  });
+
   useEffect(() => {
     fetchApps().then(setApps);
     fetchMode().then((r) => setIsDev(r.isDev));
@@ -92,13 +107,22 @@ export function App() {
       const app = validApp ? appParam : apps[0].name;
       setSelectedApp(app);
 
-      // feature パラメータの復元（apps ビューの場合のみ）
+      // feature / tab パラメータの復元（apps ビューの場合のみ）
       if (!isDatasetView && validApp) {
         const featureParam = params.get("feature");
         if (featureParam) setSelectedFeature(featureParam);
+        const tabParam = params.get("tab") as AppTab | null;
+        if (tabParam && ["overview", "source-info", "features", "memo"].includes(tabParam)) {
+          setSelectedTab(tabParam);
+        }
       }
 
       // URL正規化
+      const tabParam = params.get("tab") as AppTab | null;
+      const validTab =
+        tabParam && ["overview", "source-info", "features", "memo"].includes(tabParam)
+          ? tabParam
+          : undefined;
       window.history.replaceState(
         {},
         "",
@@ -107,6 +131,7 @@ export function App() {
           app: isDatasetView ? undefined : app,
           feature: !isDatasetView && validApp ? params.get("feature") : undefined,
           dataset: isDatasetView ? params.get("dataset") : undefined,
+          tab: !isDatasetView && validApp ? validTab : undefined,
         }),
       );
     }
@@ -120,12 +145,19 @@ export function App() {
         setViewMode("datasets");
         setSelectedDataset(params.get("dataset"));
         setSelectedFeature(null);
+        setSelectedTab("overview");
       } else {
         setViewMode("apps");
         const appParam = params.get("app");
         if (appParam && apps.some((a) => a.name === appParam)) {
           setSelectedApp(appParam);
           setSelectedFeature(params.get("feature"));
+          const tabParam = params.get("tab") as AppTab | null;
+          if (tabParam && ["overview", "source-info", "features", "memo"].includes(tabParam)) {
+            setSelectedTab(tabParam);
+          } else {
+            setSelectedTab("overview");
+          }
         }
       }
       setSearchActive(false);
@@ -135,12 +167,14 @@ export function App() {
   }, [apps]);
 
   const handleSelectApp = (app: string) => {
+    const tab = pinnedTab ?? "overview";
     setSelectedApp(app);
     setSelectedFeature(null);
+    setSelectedTab(tab);
     setViewMode("apps");
     setSearchActive(false);
     if (isMobile) setMobileSidebarOpen(false);
-    window.history.pushState({}, "", buildUrl({ viewMode: "apps", app }));
+    window.history.pushState({}, "", buildUrl({ viewMode: "apps", app, tab }));
   };
 
   const handleSelectDatasets = () => {
@@ -165,7 +199,30 @@ export function App() {
 
   const handleSelectFeature = (feature: string | null) => {
     setSelectedFeature(feature);
-    window.history.pushState({}, "", buildUrl({ viewMode: "apps", app: selectedApp, feature }));
+    window.history.pushState(
+      {},
+      "",
+      buildUrl({ viewMode: "apps", app: selectedApp, feature, tab: selectedTab }),
+    );
+  };
+
+  const handleSelectTab = (tab: AppTab) => {
+    setSelectedTab(tab);
+    window.history.pushState(
+      {},
+      "",
+      buildUrl({ viewMode: "apps", app: selectedApp, feature: selectedFeature, tab }),
+    );
+  };
+
+  const handlePinTab = (tab: AppTab) => {
+    const newPinned = pinnedTab === tab ? null : tab;
+    setPinnedTab(newPinned);
+    if (newPinned) {
+      localStorage.setItem("viewer:pinnedTab", newPinned);
+    } else {
+      localStorage.removeItem("viewer:pinnedTab");
+    }
   };
 
   // --- Dataset generation with polling ---
@@ -359,6 +416,10 @@ export function App() {
               onNavigateToApp={handleNavigateToApp}
               selectedFeature={selectedFeature}
               onSelectFeature={handleSelectFeature}
+              selectedTab={selectedTab}
+              onSelectTab={handleSelectTab}
+              pinnedTab={pinnedTab}
+              onPinTab={handlePinTab}
             />
           ) : (
             <div className="flex h-full items-center justify-center text-gray-500 text-sm">
