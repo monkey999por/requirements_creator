@@ -20,6 +20,27 @@ import { useIsMobile } from "./hooks/useIsMobile";
 
 type ViewMode = "apps" | "datasets";
 
+function buildUrl(state: {
+  viewMode: ViewMode;
+  app?: string | null;
+  feature?: string | null;
+  dataset?: string | null;
+}) {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("app");
+  url.searchParams.delete("view");
+  url.searchParams.delete("dataset");
+  url.searchParams.delete("feature");
+  if (state.viewMode === "datasets") {
+    url.searchParams.set("view", "datasets");
+    if (state.dataset) url.searchParams.set("dataset", state.dataset);
+  } else {
+    if (state.app) url.searchParams.set("app", state.app);
+    if (state.feature) url.searchParams.set("feature", state.feature);
+  }
+  return url.toString();
+}
+
 export function App() {
   const [apps, setApps] = useState<AppInfo[]>([]);
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
@@ -45,68 +66,106 @@ export function App() {
   const [tagResults, setTagResults] = useState<TagSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
 
+  // Feature state (lifted from AppView for URL sync)
+  const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
+
   useEffect(() => {
     fetchApps().then(setApps);
     fetchMode().then((r) => setIsDev(r.isDev));
   }, []);
 
+  // 初回ロード: URLからstate復元
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const isDatasetView = params.get("view") === "datasets";
     // URL から datasets ビュー + 選択データセットを復元
-    if (params.get("view") === "datasets") {
+    if (isDatasetView) {
       setViewMode("datasets");
       const dsParam = params.get("dataset");
       if (dsParam) setSelectedDataset(dsParam);
     }
+
     if (apps.length > 0 && !selectedApp) {
       const appParam = params.get("app");
       const names = apps.map((a) => a.name);
-      setSelectedApp(appParam && names.includes(appParam) ? appParam : apps[0].name);
+      const validApp = appParam && names.includes(appParam);
+      const app = validApp ? appParam : apps[0].name;
+      setSelectedApp(app);
+
+      // feature パラメータの復元（apps ビューの場合のみ）
+      if (!isDatasetView && validApp) {
+        const featureParam = params.get("feature");
+        if (featureParam) setSelectedFeature(featureParam);
+      }
+
+      // URL正規化
+      window.history.replaceState(
+        {},
+        "",
+        buildUrl({
+          viewMode: isDatasetView ? "datasets" : "apps",
+          app: isDatasetView ? undefined : app,
+          feature: !isDatasetView && validApp ? params.get("feature") : undefined,
+          dataset: isDatasetView ? params.get("dataset") : undefined,
+        }),
+      );
     }
   }, [apps, selectedApp]);
 
+  // ブラウザバック/フォワード対応
   useEffect(() => {
-    if (selectedApp && viewMode === "apps") {
-      const url = new URL(window.location.href);
-      url.searchParams.set("app", selectedApp);
-      url.searchParams.delete("view");
-      url.searchParams.delete("dataset");
-      window.history.replaceState({}, "", url.toString());
-    }
-    if (viewMode === "datasets") {
-      const url = new URL(window.location.href);
-      url.searchParams.set("view", "datasets");
-      url.searchParams.delete("app");
-      if (selectedDataset) {
-        url.searchParams.set("dataset", selectedDataset);
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("view") === "datasets") {
+        setViewMode("datasets");
+        setSelectedDataset(params.get("dataset"));
+        setSelectedFeature(null);
       } else {
-        url.searchParams.delete("dataset");
+        setViewMode("apps");
+        const appParam = params.get("app");
+        if (appParam && apps.some((a) => a.name === appParam)) {
+          setSelectedApp(appParam);
+          setSelectedFeature(params.get("feature"));
+        }
       }
-      window.history.replaceState({}, "", url.toString());
-    }
-  }, [selectedApp, viewMode, selectedDataset]);
+      setSearchActive(false);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [apps]);
 
   const handleSelectApp = (app: string) => {
     setSelectedApp(app);
+    setSelectedFeature(null);
     setViewMode("apps");
     setSearchActive(false);
     if (isMobile) setMobileSidebarOpen(false);
+    window.history.pushState({}, "", buildUrl({ viewMode: "apps", app }));
   };
 
   const handleSelectDatasets = () => {
     setViewMode("datasets");
+    setSelectedFeature(null);
     setSearchActive(false);
     if (isMobile) setMobileSidebarOpen(false);
+    window.history.pushState({}, "", buildUrl({ viewMode: "datasets", dataset: selectedDataset }));
   };
 
   const handleNavigateToDataset = (datasetName: string) => {
     setSelectedDataset(datasetName);
+    setSelectedFeature(null);
     setViewMode("datasets");
     setSearchActive(false);
+    window.history.pushState({}, "", buildUrl({ viewMode: "datasets", dataset: datasetName }));
   };
 
   const handleNavigateToApp = (appName: string) => {
     handleSelectApp(appName);
+  };
+
+  const handleSelectFeature = (feature: string | null) => {
+    setSelectedFeature(feature);
+    window.history.pushState({}, "", buildUrl({ viewMode: "apps", app: selectedApp, feature }));
   };
 
   // --- Dataset generation with polling ---
@@ -298,6 +357,8 @@ export function App() {
               isMobile={isMobile}
               onNavigateToDataset={handleNavigateToDataset}
               onNavigateToApp={handleNavigateToApp}
+              selectedFeature={selectedFeature}
+              onSelectFeature={handleSelectFeature}
             />
           ) : (
             <div className="flex h-full items-center justify-center text-gray-500 text-sm">

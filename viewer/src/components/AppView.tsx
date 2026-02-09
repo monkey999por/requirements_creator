@@ -33,16 +33,19 @@ export function AppView({
   isMobile,
   onNavigateToDataset,
   onNavigateToApp,
+  selectedFeature,
+  onSelectFeature,
 }: {
   appName: string;
   isMobile: boolean;
   onNavigateToDataset?: (datasetName: string) => void;
   onNavigateToApp?: (appName: string) => void;
+  selectedFeature: string | null;
+  onSelectFeature: (feature: string | null) => void;
 }) {
   const [overview, setOverview] = useState("");
   const [sourceInfo, setSourceInfo] = useState<SourceInfo | null>(null);
   const [features, setFeatures] = useState<Feature[]>([]);
-  const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const [featureContent, setFeatureContent] = useState("");
   const [leftTab, setLeftTab] = useState<LeftTab>("overview");
   const [mobileTab, setMobileTab] = useState<MobileTab>("overview");
@@ -56,7 +59,6 @@ export function AppView({
   }, []);
 
   useEffect(() => {
-    setSelectedFeature(null);
     setFeatureContent("");
     setLeftTab("overview");
     setMobileTab("overview");
@@ -136,7 +138,7 @@ export function AppView({
               type="button"
               className="p-1.5 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-700/50 transition-colors"
               onClick={() => {
-                setSelectedFeature(null);
+                onSelectFeature(null);
                 setFeatureContent("");
               }}
             >
@@ -232,7 +234,7 @@ export function AppView({
                       type="button"
                       key={f.id}
                       className="w-full flex items-start gap-3 p-4 rounded-xl border border-gray-700/50 bg-gray-800/60 text-left active:bg-gray-800 transition-colors"
-                      onClick={() => setSelectedFeature(f.id)}
+                      onClick={() => onSelectFeature(f.id)}
                     >
                       <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold bg-gradient-to-br from-indigo-900/40 to-purple-900/40 text-indigo-400">
                         {f.id.split("_")[0]}
@@ -320,7 +322,7 @@ export function AppView({
         transition={{ duration: 0.3, ease: "easeOut" }}
         onClick={() => {
           if (selectedFeature) {
-            setSelectedFeature(null);
+            onSelectFeature(null);
             setFeatureContent("");
           }
         }}
@@ -333,7 +335,7 @@ export function AppView({
               active={leftTab === "overview"}
               onClick={() => {
                 setLeftTab("overview");
-                setSelectedFeature(null);
+                onSelectFeature(null);
                 setFeatureContent("");
               }}
               label="Overview"
@@ -342,7 +344,7 @@ export function AppView({
               active={leftTab === "source-info"}
               onClick={() => {
                 setLeftTab("source-info");
-                setSelectedFeature(null);
+                onSelectFeature(null);
                 setFeatureContent("");
               }}
               label="Source Info"
@@ -351,7 +353,7 @@ export function AppView({
               active={leftTab === "memo"}
               onClick={() => {
                 setLeftTab("memo");
-                setSelectedFeature(null);
+                onSelectFeature(null);
                 setFeatureContent("");
               }}
               label="Memo"
@@ -414,7 +416,7 @@ export function AppView({
             <TabButton
               active
               onClick={() => {
-                setSelectedFeature(null);
+                onSelectFeature(null);
                 setFeatureContent("");
               }}
               label="Features"
@@ -446,7 +448,7 @@ export function AppView({
                   onClick={(e) => {
                     e.stopPropagation();
                     if (selectedFeature === f.id) return;
-                    setSelectedFeature(f.id);
+                    onSelectFeature(f.id);
                   }}
                 >
                   {/* Number Badge */}
@@ -550,7 +552,7 @@ export function AppView({
                 type="button"
                 className="ml-auto p-1.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-700/50 transition-colors"
                 onClick={() => {
-                  setSelectedFeature(null);
+                  onSelectFeature(null);
                   setFeatureContent("");
                 }}
                 whileHover={{ scale: 1.1 }}
