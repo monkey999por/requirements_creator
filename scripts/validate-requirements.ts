@@ -13,6 +13,8 @@ const OVERVIEW_REQUIRED_SECTIONS = [
   "運用方針",
 ];
 
+const DIAGRAMS_REQUIRED_SECTIONS = ["画面遷移図", "システム構成図"];
+
 const FEATURE_REQUIRED_SECTIONS = [
   "概要",
   "画面構成",
@@ -87,7 +89,7 @@ function validate(appName: string): ValidationError[] {
   }
 
   // 3. 必須ファイル存在チェック
-  const requiredFiles = ["_source_info.json", "overview.md"];
+  const requiredFiles = ["_source_info.json", "overview.md", "diagrams.md"];
   for (const file of requiredFiles) {
     if (!existsSync(join(appDir, file))) {
       errors.push({ file, message: "必須ファイルが存在しません" });
@@ -157,6 +159,34 @@ function validate(appName: string): ValidationError[] {
       errors.push({
         file: "_source_info.json",
         message: `JSONパースエラー: ${e instanceof Error ? e.message : String(e)}`,
+      });
+    }
+  }
+
+  // 5.5. diagrams.md チェック
+  const diagramsPath = join(appDir, "diagrams.md");
+  if (existsSync(diagramsPath)) {
+    const diagramsContent = readFileSync(diagramsPath, "utf-8");
+    const missingDiagrams = checkSections(diagramsContent, DIAGRAMS_REQUIRED_SECTIONS);
+    for (const section of missingDiagrams) {
+      errors.push({
+        file: "diagrams.md",
+        message: `必須セクション「${section}」がありません`,
+      });
+    }
+    // D2コードブロックの存在チェック
+    const d2BlockCount = (diagramsContent.match(/```d2\n/g) || []).length;
+    if (d2BlockCount === 0) {
+      errors.push({
+        file: "diagrams.md",
+        message: "D2コードブロック（```d2）が1つもありません",
+      });
+    }
+    // ユーザーフローのシーケンス図チェック
+    if (!diagramsContent.includes("shape: sequence_diagram")) {
+      errors.push({
+        file: "diagrams.md",
+        message: "ユーザーフローのシーケンス図（shape: sequence_diagram）が含まれていません",
       });
     }
   }

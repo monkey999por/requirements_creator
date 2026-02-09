@@ -70,6 +70,187 @@
 {パフォーマンス目標、セキュリティ要件、アクセシビリティ等}
 ```
 
+## diagrams.md
+
+overview.mdと各機能の仕様内容に基づき、D2記法でアプリケーションの設計図を作成する。
+
+````markdown
+# {アプリ名} 設計図
+
+## 画面遷移図
+
+アプリの主要画面間のナビゲーション遷移を示す。
+
+```d2
+direction: right
+
+home: ホーム画面 {
+  shape: rectangle
+}
+login: ログイン画面 {
+  shape: rectangle
+}
+dashboard: ダッシュボード {
+  shape: rectangle
+}
+settings: 設定画面 {
+  shape: rectangle
+}
+
+home -> login: ログイン
+login -> dashboard: 認証成功
+dashboard -> settings: 設定へ
+settings -> dashboard: 戻る
+```
+
+## ユーザーフロー: {メインユースケース名}
+
+{メインのユースケースをシーケンス図で記述。2〜3シナリオ作成する}
+
+```d2
+shape: sequence_diagram
+
+user: ユーザー
+frontend: フロントエンド
+api: APIサーバー
+db: データベース
+
+user -> frontend: 操作する
+frontend -> api: リクエスト送信
+api -> db: データ取得
+db -> api: 結果返却
+api -> frontend: レスポンス
+frontend -> user: 結果表示
+```
+
+## システム構成図
+
+フロントエンド・バックエンド・DB・外部サービスの構成を示す。
+
+```d2
+direction: right
+
+client: クライアント {
+  browser: ブラウザ {
+    shape: rectangle
+  }
+}
+
+server: サーバー {
+  api: APIサーバー {
+    shape: rectangle
+  }
+  auth: 認証サービス {
+    shape: rectangle
+  }
+}
+
+data: データ層 {
+  db: データベース {
+    shape: cylinder
+  }
+  cache: キャッシュ {
+    shape: cylinder
+  }
+}
+
+client.browser -> server.api: HTTPS
+server.api -> server.auth: 認証チェック
+server.api -> data.db: クエリ
+server.api -> data.cache: キャッシュ参照
+```
+````
+
+### diagrams.md 作成時の注意事項
+
+- D2コードブロックは必ず ` ```d2 ` で開始し ` ``` ` で閉じる
+- 画面遷移図・ユーザーフロー・システム構成図の **3種類すべて** を含めること
+- ユーザーフローは `shape: sequence_diagram` を使ったシーケンス図で記述すること（2〜3シナリオ）
+- ラベルやコメントは日本語で記述する
+- overview.mdの機能一覧・技術スタックと整合性を保つこと
+- 上記テンプレートはあくまで構造の例。実際のアプリの内容に合わせて図の中身を具体的に記述すること
+
+## D2記法リファレンス
+
+D2（Declarative Diagramming）の主要な記法。公式ドキュメント: https://d2lang.com/tour/intro/
+
+### ノード（形状）の宣言
+
+```d2
+# 基本宣言（デフォルトは rectangle）
+my_node
+
+# ラベル付き
+my_node: "表示ラベル"
+
+# 形状指定
+db: データベース {
+  shape: cylinder
+}
+user: ユーザー {
+  shape: person
+}
+cloud_service: クラウド {
+  shape: cloud
+}
+```
+
+**利用可能な形状**: `rectangle`, `circle`, `oval`, `diamond`, `hexagon`, `cylinder`, `queue`, `package`, `step`, `callout`, `stored_data`, `person`, `document`, `page`, `parallelogram`, `cloud`
+
+### 接続（矢印）
+
+```d2
+# 右方向矢印
+A -> B
+
+# 左方向矢印
+A <- B
+
+# 双方向矢印
+A <-> B
+
+# ラベル付き接続
+A -> B: リクエスト送信
+
+# 接続チェイン
+A -> B -> C -> D
+```
+
+### コンテナ（グループ化）
+
+```d2
+server: サーバー {
+  api: API {
+    shape: rectangle
+  }
+  db: DB {
+    shape: cylinder
+  }
+  api -> db: クエリ
+}
+```
+
+### レイアウト方向
+
+```d2
+direction: right  # right, left, up, down
+```
+
+### シーケンス図
+
+```d2
+shape: sequence_diagram
+
+actor1: アクター1
+actor2: アクター2
+system: システム
+
+actor1 -> system: リクエスト
+system -> actor2: 通知
+actor2 -> system: 応答
+system -> actor1: 結果返却
+```
+
 ## _source_info.json
 
 ```json
