@@ -29,8 +29,8 @@ export function validateTags(tags: unknown): string[] {
     errors.push("tagsが配列ではありません");
     return errors;
   }
-  if (tags.length === 0) {
-    errors.push("tagsが空です（1つ以上必要）");
+  if (tags.length < 3) {
+    errors.push("tagsが不足しています（3つ以上必要）");
     return errors;
   }
   for (const tag of tags) {

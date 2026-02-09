@@ -81,7 +81,7 @@ Bashで `mkdir -p gen/requirements/{app_name}/features` を実行する。
 
 - `source`: 使用した data_source ディレクトリ名と収集日時
 - `keywords`: 採用したキーワードと関連度スコア
-- `tags`: `gen/tags.json` に定義されたタグ値から **最低2つ** 選択（該当するタグがない場合は新しいタグを `gen/tags.json` に追加してから使用すること）
+- `tags`: `gen/tags.json` に定義されたタグ値から **最低3つ** 選択（該当するタグがない場合は新しいタグを `gen/tags.json` に追加してから使用すること）
 - `description`: このアプリ案に至った思考の経緯
 
 **データセットモードの場合**: `dataset` フィールドを追加し、`source.directory` を `dataset://{データセット名}` 形式にする。`dataset.sourceApps` にはデータセットに含まれる全アイテム（appName, type, featureId, title）を列挙する。詳細は[テンプレート参照](templates.md)の「データセットモード用」セクションを参照。

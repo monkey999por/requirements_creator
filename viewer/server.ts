@@ -109,7 +109,7 @@ app.get("/api/apps", (c) => {
       const tags = extractTags(appDir);
       return {
         name: d.name,
-        tags: tags.slice(0, 2),
+        tags: tags.slice(0, 3),
         mtime: statSync(appDir).mtimeMs,
       };
     })

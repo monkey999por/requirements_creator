@@ -335,7 +335,7 @@ export function Sidebar({
                         <span className="block truncate">{app.name}</span>
                         {app.tags.length > 0 && (
                           <span className="flex gap-1 mt-0.5">
-                            {app.tags.slice(0, 2).map((tag) => (
+                            {app.tags.slice(0, 3).map((tag) => (
                               <span
                                 key={tag}
                                 className="inline-flex px-1.5 py-0 rounded text-[9px] font-medium bg-gray-800/80 text-gray-500"
@@ -533,7 +533,7 @@ export function Sidebar({
                   <span className="block truncate whitespace-nowrap">{app.name}</span>
                   {app.tags.length > 0 && (
                     <span className="flex gap-1 mt-0.5">
-                      {app.tags.slice(0, 2).map((tag) => (
+                      {app.tags.slice(0, 3).map((tag) => (
                         <span
                           key={tag}
                           className="inline-flex px-1.5 py-0 rounded text-[9px] font-medium bg-gray-800/80 text-gray-500"

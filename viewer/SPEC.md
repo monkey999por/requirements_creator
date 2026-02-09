@@ -254,7 +254,7 @@ ID列は2桁の連番（`| 01 |`, `| 02 |` ...）。テーブル内のID数とfe
 
 **バリデーション:** `scripts/lib/tags.ts` が `gen/tags.json` を読み込み、`_source_info.json` の `tags` 値が定義済みタグに含まれることを検証する。
 
-**表示:** Sidebarでアプリ名の下に最大2つ表示。
+**表示:** Sidebarでアプリ名の下に最大3つ表示。
 
 **検索:** `/api/search?tags=:tag1,:tag2` でタグのAND検索。
 
