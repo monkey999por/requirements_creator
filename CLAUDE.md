@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## プロジェクト概要
 
-ニュースやトレンド情報を収集し、そこからアプリケーション設計アイデアを連想方式で生成するツール。収集したデータからキーワードを抽出し、要件定義（overview + 機能別仕様）を自動生成する。生成された要件はMarkdownベースのWebビューワーで閲覧可能。
+ニュースやトレンド情報を収集し、そこからアプリケーション設計アイデアを連想方式で生成するツール。収集したデータからキーワードを抽出し、要件定義（overview + 機能別仕様）を自動生成する。生成された要件はMarkdownベースのWebビューワーで閲覧・検索・タグ絞り込みが可能。
 
 ## アーキテクチャ
 
@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 2. **キーワード抽出** (`pnpm extract`): 収集データからアプリ設計のヒントとなるキーワードを抽出（`keyword.json`）
 3. **要件生成** (`pnpm generate`): キーワードからの連想でアプリ案を生成し `gen/requirements/{app_name}/` に配置
 4. **バリデーション** (`pnpm generate:validate`): 生成された要件の構造・内容を自動検証
-5. **閲覧** (`pnpm viewer`): Hono + React製のMarkdownビューワーで要件を表示
+5. **閲覧** (`pnpm viewer`): Hono + React製のMarkdownビューワーで要件を表示（検索・タグフィルタ対応）
 
 一括実行: `pnpm pipeline` で収集→抽出→生成→検証を連続実行可能（`--skip-collect`, `--skip-extract`, `--source <dir>` オプション対応）
 
@@ -44,8 +44,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │   │       └── keyword.json
 │   └── requirements/         # 生成されたアプリ要件（アプリ単位のサブディレクトリ）
 │       └── {app_name}/
-│           ├── _source_info.md
+│           ├── _source_info.json  # データソース・キーワード・タグ情報（JSON形式）
 │           ├── overview.md
+│           ├── memo.md            # メモ（ビューワーから編集可能）
 │           └── features/
 │               └── {nn}_{feature_name}.md
 ├── scripts/                  # CLIツール群
@@ -54,12 +55,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │   ├── generate.sh / generate.ts  # 要件生成
 │   ├── validate-requirements.ts  # バリデーション
 │   ├── pipeline.ts           # パイプライン一括実行
+│   ├── migrate-source-info.ts  # 一時移行スクリプト（_source_info.md→.json）
 │   └── lib/                  # 共通ライブラリ
 │       ├── cli.ts            # CLIオプションパーサー
 │       ├── config.ts         # app.config.yaml読み込み
 │       ├── data-source.ts    # data_source操作ユーティリティ
 │       ├── fetchers.ts       # API呼び出し（NewsAPI等）
-│       └── storage.ts        # ファイル出力
+│       ├── paths.ts          # パス定数（DATA_SOURCE_DIR, REQUIREMENTS_DIR）
+│       ├── storage.ts        # ファイル出力
+│       └── tags.ts           # タグ定義・バリデーション
 ├── viewer/                   # Webビューワー（pnpmワークスペースパッケージ）
 │   ├── server.ts             # Hono APIサーバ + Vite dev middleware
 │   ├── vite.config.ts
@@ -68,11 +72,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │       ├── api.ts
 │       ├── index.css
 │       ├── main.tsx
+│       ├── vite-env.d.ts
+│       ├── hooks/
+│       │   └── useIsMobile.ts  # モバイル判定フック
 │       └── components/
-│           ├── AppView.tsx    # メインビュー（overview + features表示）
+│           ├── AppView.tsx       # メインビュー（overview + features表示）
 │           ├── MarkdownPane.tsx  # Markdownレンダリング
-│           └── Sidebar.tsx    # アプリ選択サイドバー
-├── todo/                     # 開発タスク管理（フェーズ別）
+│           ├── MemoTab.tsx       # メモ編集タブ
+│           ├── SearchView.tsx    # 全文検索・タグ検索ビュー
+│           ├── Sidebar.tsx       # アプリ選択サイドバー
+│           └── Toast.tsx         # トースト通知
+├── setup.sh                  # セットアップスクリプト
 ├── app.config.yaml           # アプリケーション設定（フェーズ別の設定を階層管理）
 ├── biome.jsonc               # Biome設定（フォーマッター・リンター）
 ├── tsconfig.json             # TypeScript設定（scripts用）
@@ -92,12 +102,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - スクリプト: TypeScript（tsx）+ シェルスクリプト
 - 設定: YAML（`app.config.yaml`、`yaml`パッケージで読み込み）
 - 環境変数: `dotenv`
+- Claude Code CLI（キーワード抽出・要件生成で使用）
 
 **Webビューワー** (`viewer/`):
 
 - サーバ: Hono + @hono/node-server
 - フロントエンド: React 19 + Vite 6
-- スタイリング: Tailwind CSS 4 + @tailwindcss/typography
+- スタイリング: Tailwind CSS 4 + @tailwindcss/vite + @tailwindcss/typography
 - Markdownレンダリング: react-markdown + remark-gfm
 - アニメーション: motion (framer-motion)
 - 開発サーバ: Vite dev middleware統合（APIとフロントエンドを同一ポートで提供）
@@ -114,7 +125,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | コマンド | 説明 |
 | --------- | ------ |
-| `pnpm collect` | 外部APIからデータ収集（`app.config.yaml`に基づく） |
+| `pnpm collect` | 外部APIからデータ収集（`app.config.yaml`に基づく。`--only newsapi`, `--dry-run` オプション対応） |
 | `pnpm extract` | 収集データからキーワード抽出 |
 | `pnpm generate` | キーワードから要件生成 |
 | `pnpm generate:validate` | 要件構造のバリデーション |
@@ -136,6 +147,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `pnpm lint` | Biomeでリント |
 | `pnpm check` | Biomeでフォーマット+リントの一括チェック・修正 |
 
+### その他
+
+| コマンド | 説明 |
+| --------- | ------ |
+| `pnpm setup` | セットアップスクリプト実行（`setup.sh`） |
+
 ## コーディング規約
 
 ### Biome設定（`biome.jsonc`）
@@ -150,7 +167,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - ドキュメント・コミュニケーションは日本語（コード例は除く）
 - 技術選定時は必ず公式ドキュメントを参照し、内部知識だけで判断しない（`tech-spec-validator`エージェントを活用）
-- 調査結果は `docs/_research/{date}_{title}` 形式でドキュメント化
 - コミットメッセージは `fix:`, `feat:`, `refactor:`, `docs:` 等のconventional commits形式
 
 ## 環境変数
@@ -167,6 +183,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **NewsAPI**: 有効（デフォルト）。USビジネスニュースのトップヘッドライン取得
 - **YouTube Data API**: 無効（デフォルト）。人気動画ランキング取得
 - TikTok、RSSフィード: 今後追加予定（設定テンプレートのみ）
+
+## タグシステム
+
+生成されたアプリ要件には `_source_info.json` 内の `tags` フィールドでカテゴリタグが付与される。定義済みタグ値（`scripts/lib/tags.ts`）:
+
+- AI, Web3, ヘルスケア, 教育, 金融, モビリティ, サステナビリティ, エンタメ
+
+ビューワーのサイドバーやSearchViewでタグによる絞り込みが可能。
 
 ## カスタムエージェント
 
@@ -186,19 +210,59 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ビューワーサーバ（Hono）が提供するAPIエンドポイント:
 
-| エンドポイント | 説明 |
-| -------------- | ------ |
-| `GET /api/apps` | アプリ一覧 |
-| `GET /api/apps/:name/overview` | overview.mdの内容 |
-| `GET /api/apps/:name/features` | 機能一覧（タイトル・概要付き） |
-| `GET /api/apps/:name/features/:featureId` | 機能詳細のMarkdown |
-| `GET /api/apps/:name/source-info` | _source_info.mdの内容 |
+| エンドポイント | メソッド | 説明 |
+| -------------- | -------- | ------ |
+| `/api/apps` | GET | アプリ一覧（更新日時降順、タグ付き） |
+| `/api/apps/:name/overview` | GET | overview.mdの内容 |
+| `/api/apps/:name/features` | GET | 機能一覧（タイトル・概要付き） |
+| `/api/apps/:name/features/:featureId` | GET | 機能詳細のMarkdown |
+| `/api/apps/:name/source-info` | GET | _source_info.jsonの内容（JSON形式） |
+| `/api/apps/:name/memo` | GET | memo.mdの内容 |
+| `/api/apps/:name/memo` | POST | memo.mdの更新（開発モードのみ） |
+| `/api/mode` | GET | 現在の動作モード（dev/production） |
+| `/api/apps-with-tags` | GET | 全アプリのタグ一覧 |
+| `/api/search` | GET | 全文検索（`?type=grep&q=...`）またはタグ検索（`?type=tag&q=...`） |
+| `/api/git/commit-push` | POST | genリポジトリのgit add + commit + push（開発モードのみ） |
 
 ## pnpmワークスペース構成
 
 ```yaml
 packages:
   - viewer
+
+onlyBuiltDependencies:
+  - esbuild
 ```
 
 `viewer/` は独立したパッケージとして管理。ルートの `pnpm --filter viewer <cmd>` で操作。
+
+## 要件のフォーマット
+
+### _source_info.json の構造
+
+```json
+{
+  "source": { "directory": "...", "collected_at": "..." },
+  "keywords": [{ "word": "...", "relevance": 0.9 }],
+  "tags": ["AI", "金融"],
+  "description": "..."
+}
+```
+
+### overview.md の必須セクション
+
+- コンセプト
+- ターゲットユーザー
+- 機能一覧（テーブル形式: ID / 機能名 / 概要）
+- マネタイズ
+- 技術スタック
+- 運用方針
+
+### features/{nn}_{feature_name}.md の必須セクション
+
+- 概要
+- 画面構成
+- ユーザーフロー
+- データモデル
+- API設計
+- 非機能要件
