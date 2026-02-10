@@ -109,13 +109,25 @@ function validate(appName: string): ValidationError[] {
     errors.push({ file: "diagrams/", message: "diagramsディレクトリが存在しません" });
   }
 
-  // 5. _source_info.json スキーマバリデーション
+  // 5. _source_info.json バリデーション（JSON構文 + スキーマ）
   const sourceInfoPath = join(appDir, "_source_info.json");
   if (existsSync(sourceInfoPath)) {
-    try {
-      const raw = readFileSync(sourceInfoPath, "utf-8");
-      const data = JSON.parse(raw) as SourceInfoJson;
+    const raw = readFileSync(sourceInfoPath, "utf-8");
 
+    // 5a. JSON構文チェック（未エスケープのクォート等を検出）
+    let data: SourceInfoJson | null = null;
+    try {
+      data = JSON.parse(raw) as SourceInfoJson;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      errors.push({
+        file: "_source_info.json",
+        message: `JSON構文エラー: ${msg}（未エスケープのダブルクォートや末尾カンマ等がないか確認してください）`,
+      });
+    }
+
+    // 5b. スキーマバリデーション（JSON構文が正常な場合のみ）
+    if (data) {
       if (!data.source?.directory) {
         errors.push({ file: "_source_info.json", message: "source.directoryが未設定です" });
       }
@@ -161,11 +173,6 @@ function validate(appName: string): ValidationError[] {
           }
         }
       }
-    } catch (e) {
-      errors.push({
-        file: "_source_info.json",
-        message: `JSONパースエラー: ${e instanceof Error ? e.message : String(e)}`,
-      });
     }
   }
 

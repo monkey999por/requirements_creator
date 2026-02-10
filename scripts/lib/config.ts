@@ -11,10 +11,20 @@ export interface SourceConfig {
   output_file: string;
 }
 
+export interface AgentConfig {
+  enabled: boolean;
+  model: string;
+  sandbox?: string;
+  roles: string[];
+}
+
 export interface AppConfig {
   output_base_dir?: string;
   collect: {
     sources: Record<string, SourceConfig>;
+  };
+  generate?: {
+    agents?: Record<string, AgentConfig>;
   };
 }
 

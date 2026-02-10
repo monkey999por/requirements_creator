@@ -1,0 +1,12 @@
+# Codex CLI Project Configuration
+# Used by the requirements_creator pipeline for app design and review
+
+model = "o4-mini"
+approval_policy = "on-request"
+
+[features]
+skills = true
+
+[[skills.config]]
+enabled = true
+path = ".codex/skills/context-loader"
