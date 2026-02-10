@@ -13,12 +13,13 @@ import {
 } from "./api";
 import { type AppTab, AppView } from "./components/AppView";
 import { DatasetManager } from "./components/DatasetManager";
+import { FavoritePage } from "./components/FavoritePage";
 import { SearchView } from "./components/SearchView";
 import { Sidebar } from "./components/Sidebar";
 import { ToastProvider } from "./components/Toast";
 import { useIsMobile } from "./hooks/useIsMobile";
 
-type ViewMode = "apps" | "datasets";
+type ViewMode = "apps" | "datasets" | "favorites";
 
 function buildUrl(state: {
   viewMode: ViewMode;
@@ -36,6 +37,8 @@ function buildUrl(state: {
   if (state.viewMode === "datasets") {
     url.searchParams.set("view", "datasets");
     if (state.dataset) url.searchParams.set("dataset", state.dataset);
+  } else if (state.viewMode === "favorites") {
+    url.searchParams.set("view", "favorites");
   } else {
     if (state.app) url.searchParams.set("app", state.app);
     if (state.feature) url.searchParams.set("feature", state.feature);
@@ -95,9 +98,13 @@ export function App() {
   // 初回ロード: URLからstate復元
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const isDatasetView = params.get("view") === "datasets";
-    // URL から datasets ビュー + 選択データセットを復元
-    if (isDatasetView) {
+    const viewParam = params.get("view");
+    const isDatasetView = viewParam === "datasets";
+    const isFavoritesView = viewParam === "favorites";
+    // URL から datasets/favorites ビュー復元
+    if (isFavoritesView) {
+      setViewMode("favorites");
+    } else if (isDatasetView) {
       setViewMode("datasets");
       const dsParam = params.get("dataset");
       if (dsParam) setSelectedDataset(dsParam);
@@ -129,15 +136,16 @@ export function App() {
         tabParam && ["overview", "source-info", "diagrams", "features", "memo"].includes(tabParam)
           ? tabParam
           : undefined;
+      const currentViewMode = isFavoritesView ? "favorites" : isDatasetView ? "datasets" : "apps";
       window.history.replaceState(
         {},
         "",
         buildUrl({
-          viewMode: isDatasetView ? "datasets" : "apps",
-          app: isDatasetView ? undefined : app,
-          feature: !isDatasetView && validApp ? params.get("feature") : undefined,
+          viewMode: currentViewMode,
+          app: currentViewMode === "apps" ? app : undefined,
+          feature: currentViewMode === "apps" && validApp ? params.get("feature") : undefined,
           dataset: isDatasetView ? params.get("dataset") : undefined,
-          tab: !isDatasetView && validApp ? validTab : undefined,
+          tab: currentViewMode === "apps" && validApp ? validTab : undefined,
         }),
       );
     }
@@ -147,7 +155,12 @@ export function App() {
   useEffect(() => {
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
-      if (params.get("view") === "datasets") {
+      const viewParam = params.get("view");
+      if (viewParam === "favorites") {
+        setViewMode("favorites");
+        setSelectedFeature(null);
+        setSelectedTab("overview");
+      } else if (viewParam === "datasets") {
         setViewMode("datasets");
         setSelectedDataset(params.get("dataset"));
         setSelectedFeature(null);
@@ -194,6 +207,14 @@ export function App() {
     window.history.pushState({}, "", buildUrl({ viewMode: "datasets", dataset: selectedDataset }));
   };
 
+  const handleSelectFavorites = () => {
+    setViewMode("favorites");
+    setSelectedFeature(null);
+    setSearchActive(false);
+    if (isMobile) setMobileSidebarOpen(false);
+    window.history.pushState({}, "", buildUrl({ viewMode: "favorites" }));
+  };
+
   const handleNavigateToDataset = (datasetName: string) => {
     setSelectedDataset(datasetName);
     setSelectedFeature(null);
@@ -204,6 +225,32 @@ export function App() {
 
   const handleNavigateToApp = (appName: string) => {
     handleSelectApp(appName);
+  };
+
+  const handleNavigateToFeature = (appName: string, featureId: string) => {
+    setSelectedApp(appName);
+    setSelectedFeature(featureId);
+    setSelectedTab("features");
+    setViewMode("apps");
+    setSearchActive(false);
+    if (isMobile) setMobileSidebarOpen(false);
+    window.history.pushState(
+      {},
+      "",
+      buildUrl({ viewMode: "apps", app: appName, feature: featureId, tab: "features" }),
+    );
+  };
+
+  const handleNavigateToDiagram = (appName: string) => {
+    setSelectedApp(appName);
+    setSelectedFeature(null);
+    setSelectedTab("diagrams");
+    setPinnedTab(null);
+    localStorage.removeItem("viewer:pinnedTab");
+    setViewMode("apps");
+    setSearchActive(false);
+    if (isMobile) setMobileSidebarOpen(false);
+    window.history.pushState({}, "", buildUrl({ viewMode: "apps", app: appName, tab: "diagrams" }));
   };
 
   const handleSelectFeature = (feature: string | null) => {
@@ -363,7 +410,11 @@ export function App() {
               </svg>
             </button>
             <span className="text-sm font-semibold text-gray-200 truncate">
-              {viewMode === "datasets" ? "データセット" : (selectedApp ?? "Requirements Viewer")}
+              {viewMode === "favorites"
+                ? "お気に入り"
+                : viewMode === "datasets"
+                  ? "データセット"
+                  : (selectedApp ?? "Requirements Viewer")}
             </span>
           </div>
         )}
@@ -379,6 +430,7 @@ export function App() {
           onMobileClose={() => setMobileSidebarOpen(false)}
           viewMode={viewMode}
           onSelectDatasets={handleSelectDatasets}
+          onSelectFavorites={handleSelectFavorites}
           onSearch={handleSearch}
           onClearSearch={handleClearSearch}
           isSearchActive={searchActive}
@@ -392,7 +444,15 @@ export function App() {
               : "mb-3 mr-3 rounded-2xl bg-gray-900 shadow-2xl shadow-black/50 ring-1 ring-gray-800"
           }`}
         >
-          {viewMode === "datasets" ? (
+          {viewMode === "favorites" ? (
+            <FavoritePage
+              isMobile={isMobile}
+              isDev={isDev}
+              onSelectApp={handleNavigateToApp}
+              onSelectFeature={handleNavigateToFeature}
+              onSelectDiagram={handleNavigateToDiagram}
+            />
+          ) : viewMode === "datasets" ? (
             <DatasetManager
               isMobile={isMobile}
               isDev={isDev}
