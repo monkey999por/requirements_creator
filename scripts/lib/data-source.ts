@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { createInterface } from "node:readline";
 import { DATA_SOURCE_DIR } from "./paths.js";
 
 /** user_proposal.md のファイル名 */
@@ -18,6 +19,42 @@ export function listDataSources(): string[] {
 /** 最新のdata_sourceサブディレクトリ名を返す */
 export function getLatestDataSource(): string | undefined {
   return listDataSources()[0];
+}
+
+/** 直近7件のdata_sourceを表示し、ユーザーに対話選択させる */
+export async function selectDataSource(): Promise<string | undefined> {
+  const maxItems = 7;
+  const sources = listDataSources().slice(0, maxItems);
+
+  if (sources.length === 0) return undefined;
+  if (sources.length === 1) {
+    console.log(`データソース: ${sources[0]}`);
+    return sources[0];
+  }
+
+  console.log(`データソースを選択してください（直近${sources.length}件）:`);
+  for (let i = 0; i < sources.length; i++) {
+    const suffix = i === 0 ? "  <- 最新" : "";
+    console.log(`  ${i + 1}) ${sources[i]}${suffix}`);
+  }
+
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const answer = await new Promise<string>((resolve) => {
+    rl.question("番号を入力 [1]: ", (ans) => {
+      rl.close();
+      resolve(ans.trim());
+    });
+  });
+
+  const choice = answer === "" ? 1 : Number.parseInt(answer, 10);
+  if (Number.isNaN(choice) || choice < 1 || choice > sources.length) {
+    console.error(`エラー: 無効な選択です。1〜${sources.length} の番号を入力してください。`);
+    return undefined;
+  }
+
+  const selected = sources[choice - 1];
+  console.log(`選択: ${selected}`);
+  return selected;
 }
 
 /** 指定ディレクトリのJSONファイルを読み込む */
