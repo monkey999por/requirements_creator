@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { loadAppConfig } from "./lib/config.js";
 import { getLatestDataSource, loadAllTexts, loadJson } from "./lib/data-source.js";
 import { DATA_SOURCE_DIR, DATASETS_DIR, REQUIREMENTS_DIR } from "./lib/paths.js";
 
@@ -238,6 +239,7 @@ async function main() {
   }
 
   // 対象ディレクトリ決定
+  // 優先順位: 1. --source オプション → 2. app.config.yaml の pipeline.default_source → 3. 最新自動検出
   let targetDir: string;
   if (opts.source) {
     targetDir = opts.source;
@@ -247,14 +249,27 @@ async function main() {
       process.exit(1);
     }
   } else {
-    const latest = getLatestDataSource();
-    if (!latest) {
-      console.error(
-        `エラー: ${DATA_SOURCE_DIR}/ にデータがありません。先に pnpm collect を実行してください。`,
-      );
-      process.exit(1);
+    const config = loadAppConfig();
+    const configSource = config.pipeline?.default_source;
+    if (configSource) {
+      const fullPath = resolve(DATA_SOURCE_DIR, configSource);
+      if (!existsSync(fullPath)) {
+        console.error(
+          `エラー: 設定ファイルの pipeline.default_source で指定された ${DATA_SOURCE_DIR}/${configSource} が存在しません。`,
+        );
+        process.exit(1);
+      }
+      targetDir = configSource;
+    } else {
+      const latest = getLatestDataSource();
+      if (!latest) {
+        console.error(
+          `エラー: ${DATA_SOURCE_DIR}/ にデータがありません。先に pnpm collect を実行してください。`,
+        );
+        process.exit(1);
+      }
+      targetDir = latest;
     }
-    targetDir = latest;
   }
   console.log(`対象ディレクトリ: ${DATA_SOURCE_DIR}/${targetDir}\n`);
 
