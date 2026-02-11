@@ -26,7 +26,7 @@ export function getLatestDataSource(): string | undefined {
  * 非TTY環境では最新を自動選択する。
  */
 export async function selectDataSource(): Promise<string | undefined> {
-  const maxItems = 7;
+  const maxItems = 15;
   const sources = listDataSources().slice(0, maxItems);
 
   if (sources.length === 0) return undefined;

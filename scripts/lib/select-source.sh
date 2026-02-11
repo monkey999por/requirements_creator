@@ -8,7 +8,7 @@
 # 戻り値: 0=成功, 1=データなしまたはキャンセル
 select_data_source() {
   local data_source_dir="$1"
-  local max_items=7
+  local max_items=15
 
   # ディレクトリ一覧を新しい順で取得
   local dirs=()
