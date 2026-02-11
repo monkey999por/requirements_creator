@@ -9,6 +9,7 @@ import {
   selectDataSource,
 } from "./lib/data-source.js";
 import { DATA_SOURCE_DIR, DATASETS_DIR, REQUIREMENTS_DIR } from "./lib/paths.js";
+import { notifyPipelineResult, type PipelineStepResult } from "./lib/slack.js";
 
 // --- 型定義 ---
 interface PipelineOptions {
@@ -144,7 +145,8 @@ process.on("SIGTERM", cleanup);
 // --- 子プロセス実行ヘルパー ---
 function runStep(cmd: string, args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { stdio: "inherit", detached: true });
+    const env = { ...process.env, PIPELINE_MODE: "1" };
+    const child = spawn(cmd, args, { stdio: "inherit", detached: true, env });
     activeChild = child;
     child.on("error", (err) => {
       activeChild = null;
@@ -244,7 +246,7 @@ async function main() {
     } catch (err) {
       console.error(`\nregenerate 失敗: ${err instanceof Error ? err.message : err}`);
       results.push({ name: "regenerate", status: "failed" });
-      printSummary(results);
+      await printSummary(results, undefined, undefined, "再生成");
       process.exit(1);
     }
 
@@ -259,7 +261,7 @@ async function main() {
       results.push({ name: "validate", status: "failed" });
     }
 
-    printSummary(results, undefined, [appName]);
+    await printSummary(results, undefined, [appName], "再生成");
     return;
   }
 
@@ -293,7 +295,7 @@ async function main() {
     } catch (err) {
       console.error(`\ngenerate 失敗: ${err instanceof Error ? err.message : err}`);
       results.push({ name: "generate", status: "failed" });
-      printSummary(results);
+      await printSummary(results, undefined, undefined, "データセット");
       process.exit(1);
     }
 
@@ -318,7 +320,7 @@ async function main() {
       results.push({ name: "validate", status: "skipped" });
     }
 
-    printSummary(results, undefined, newApps);
+    await printSummary(results, undefined, newApps, "データセット");
     return;
   }
 
@@ -338,7 +340,7 @@ async function main() {
     } catch (err) {
       console.error(`\ncollect 失敗: ${err instanceof Error ? err.message : err}`);
       results.push({ name: "collect", status: "failed" });
-      printSummary(results);
+      await printSummary(results);
       process.exit(1);
     }
   }
@@ -415,7 +417,7 @@ async function main() {
     } catch (err) {
       console.error(`\nextract 失敗: ${err instanceof Error ? err.message : err}`);
       results.push({ name: "extract", status: "failed" });
-      printSummary(results);
+      await printSummary(results);
       process.exit(1);
     }
   }
@@ -435,7 +437,7 @@ async function main() {
   } catch (err) {
     console.error(`\ngenerate 失敗: ${err instanceof Error ? err.message : err}`);
     results.push({ name: "generate", status: "failed" });
-    printSummary(results);
+    await printSummary(results);
     process.exit(1);
   }
 
@@ -461,10 +463,15 @@ async function main() {
   }
 
   // サマリー
-  printSummary(results, targetDir, newApps);
+  await printSummary(results, targetDir, newApps);
 }
 
-function printSummary(results: StepResult[], targetDir?: string, newApps?: string[]): void {
+async function printSummary(
+  results: StepResult[],
+  targetDir?: string,
+  newApps?: string[],
+  mode?: string,
+): Promise<void> {
   console.log("========================================");
   console.log("パイプライン実行結果:");
   console.log("========================================");
@@ -479,11 +486,14 @@ function printSummary(results: StepResult[], targetDir?: string, newApps?: strin
     console.log(`  ${statusLabel[r.status]}  ${r.name}`);
   }
 
+  let articleCount: number | undefined;
+  let keywordCount: number | undefined;
+
   if (targetDir) {
     const texts = loadAllTexts(targetDir);
     const keywordData = loadJson<{ keywords?: unknown[] }>(targetDir, "keyword.json");
-    const articleCount = texts.length;
-    const keywordCount = keywordData?.keywords?.length ?? 0;
+    articleCount = texts.length;
+    keywordCount = keywordData?.keywords?.length ?? 0;
 
     console.log("");
     if (newApps && newApps.length > 0) {
@@ -506,6 +516,23 @@ function printSummary(results: StepResult[], targetDir?: string, newApps?: strin
     console.log("\n一部ステップが失敗しました。");
   } else {
     console.log("\n全ステップ完了。");
+  }
+
+  // Slack通知
+  const slackSteps: PipelineStepResult[] = results.map((r) => ({
+    name: r.name,
+    status: r.status,
+  }));
+  const slackResult = await notifyPipelineResult(slackSteps, {
+    newApps,
+    articleCount,
+    keywordCount,
+    mode,
+  });
+  if (slackResult.success) {
+    console.log("Slack通知を送信しました。");
+  } else if (slackResult.error && slackResult.error !== "Slack通知が無効または未設定です") {
+    console.error(`Slack通知エラー: ${slackResult.error}`);
   }
 }
 
