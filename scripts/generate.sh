@@ -41,6 +41,20 @@ run_interruptible() {
   CHILD_PID=""
   return $status
 }
+
+# claude -p をストリーミングモードで実行するヘルパー
+# stream-json 出力をフィルターにパイプし、ツール実行状況をstderrに表示する
+STREAM_FILTER="${SCRIPT_DIR}/lib/claude-stream-filter.ts"
+
+run_claude_stream() {
+  "$@" --output-format stream-json --verbose 2>/dev/null > >(tsx "$STREAM_FILTER") &
+  CHILD_PID=$!
+  wait $CHILD_PID
+  local status=$?
+  CHILD_PID=""
+  return $status
+}
+
 RESEARCH_CONTEXT="${TMPDIR_AGENTS}/research_context.md"
 DESIGN_CONTEXT="${TMPDIR_AGENTS}/design_context.md"
 REVIEW_RESULT="${TMPDIR_AGENTS}/review_result.md"
@@ -139,7 +153,7 @@ if [[ -n "$DATASET_SOURCE" ]]; then
 - 生成完了後、以下のバリデーションスクリプトを実行して構造を検証してください:
 tsx scripts/validate-requirements.ts <生成したapp_name>"
 
-  run_interruptible claude -p "$PROMPT" \
+  run_claude_stream claude -p "$PROMPT" \
     --append-system-prompt-file "$PROMPT_FILE" \
     --allowedTools "Read" "Write" "Glob" "Bash(mkdir:*)" "Bash(find:*)" "Bash(tsx:*)"
 
@@ -233,7 +247,7 @@ ${PERSPECTIVES_CONTEXT}
 生成完了後、以下のバリデーションスクリプトを実行して構造を検証してください:
 tsx scripts/validate-requirements.ts <生成したapp_name>"
 
-  run_interruptible claude -p "$PROMPT" \
+  run_claude_stream claude -p "$PROMPT" \
     --append-system-prompt-file "$PROMPT_FILE" \
     --allowedTools "Read" "Write" "Glob" "Bash(mkdir:*)" "Bash(find:*)" "Bash(tsx:*)"
 
@@ -379,7 +393,7 @@ ${PERSPECTIVES_CONTEXT}
 生成完了後、以下のバリデーションスクリプトを実行して構造を検証してください:
 tsx scripts/validate-requirements.ts <生成したapp_name>"
 
-run_interruptible claude -p "$PROMPT" \
+run_claude_stream claude -p "$PROMPT" \
   --append-system-prompt-file "$PROMPT_FILE" \
   --allowedTools "Read" "Write" "Glob" "Bash(mkdir:*)" "Bash(find:*)" "Bash(tsx:*)"
 
