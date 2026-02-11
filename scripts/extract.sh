@@ -122,7 +122,7 @@ ${ASSOCIATION_INSTRUCTION}"
 STREAM_FILTER="${SCRIPT_DIR}/lib/claude-stream-filter.ts"
 
 claude -p "$PROMPT" \
-  --output-format stream-json \
+  --output-format stream-json --verbose \
   --append-system-prompt-file "$PROMPT_FILE" \
   --allowedTools "Read" "Write" "Glob" "Bash(ls:*)" "Bash(find:*)"  \
   --dangerously-skip-permissions 2>/dev/null | tsx "$STREAM_FILTER" &

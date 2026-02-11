@@ -1,11 +1,11 @@
 /**
  * Claude CLI stream-json output filter
  *
- * Reads JSONL from stdin (claude -p --output-format stream-json)
+ * Reads JSONL from stdin (claude -p --output-format stream-json --verbose)
  * and outputs formatted progress to stderr.
  *
  * Usage:
- *   claude -p "..." --output-format stream-json | tsx scripts/lib/claude-stream-filter.ts
+ *   claude -p "..." --output-format stream-json --verbose | tsx scripts/lib/claude-stream-filter.ts
  */
 import { createInterface } from "node:readline";
 
@@ -22,9 +22,31 @@ interface StreamEvent {
   message?: {
     content?: ContentBlock[];
   };
-  cost_usd?: number;
+  total_cost_usd?: number;
   duration_ms?: number;
   num_turns?: number;
+}
+
+function formatToolInput(name: string, input?: Record<string, unknown>): string {
+  if (!input) return "";
+  switch (name) {
+    case "Read":
+    case "Write":
+    case "Edit":
+      return typeof input.file_path === "string" ? input.file_path : "";
+    case "Bash":
+      return typeof input.command === "string" ? truncate(input.command, 80) : "";
+    case "Glob":
+      return typeof input.pattern === "string" ? input.pattern : "";
+    case "Grep":
+      return typeof input.pattern === "string" ? input.pattern : "";
+    default:
+      return "";
+  }
+}
+
+function truncate(s: string, max: number): string {
+  return s.length > max ? `${s.slice(0, max)}...` : s;
 }
 
 const rl = createInterface({ input: process.stdin });
@@ -48,8 +70,8 @@ rl.on("line", (line) => {
       }
       case "result": {
         const parts: string[] = [];
-        if (event.cost_usd !== undefined) {
-          parts.push(`cost: $${Number(event.cost_usd).toFixed(4)}`);
+        if (event.total_cost_usd !== undefined) {
+          parts.push(`cost: $${Number(event.total_cost_usd).toFixed(4)}`);
         }
         if (event.duration_ms !== undefined) {
           const sec = (event.duration_ms / 1000).toFixed(1);

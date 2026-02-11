@@ -281,7 +281,7 @@ tsx scripts/validate-requirements.ts ${APP_NAME}"
 STREAM_FILTER="${SCRIPT_DIR}/lib/claude-stream-filter.ts"
 
 claude -p "$PROMPT" \
-  --output-format stream-json \
+  --output-format stream-json --verbose \
   --append-system-prompt-file "$PROMPT_FILE" \
   --allowedTools "Read" "Write" "Glob" "Bash(mkdir:*)" "Bash(find:*)" "Bash(tsx:*)" "Bash(rm:*)" \
   2>/dev/null | tsx "$STREAM_FILTER"
