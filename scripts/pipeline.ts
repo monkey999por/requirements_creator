@@ -92,9 +92,14 @@ Options:
 let activeChild: ChildProcess | null = null;
 
 function cleanup() {
-  if (activeChild) {
+  if (activeChild?.pid) {
     console.log("\n中断シグナルを受信しました。子プロセスを終了しています...");
-    activeChild.kill("SIGTERM");
+    try {
+      // detached: true で独自プロセスグループを持つため、-pid でグループ全体を終了
+      process.kill(-activeChild.pid, "SIGTERM");
+    } catch {
+      // プロセスが既に終了している場合は無視
+    }
     activeChild = null;
   }
   process.exit(130);
@@ -106,7 +111,7 @@ process.on("SIGTERM", cleanup);
 // --- 子プロセス実行ヘルパー ---
 function runStep(cmd: string, args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { stdio: "inherit" });
+    const child = spawn(cmd, args, { stdio: "inherit", detached: true });
     activeChild = child;
     child.on("error", (err) => {
       activeChild = null;

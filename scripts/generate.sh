@@ -17,16 +17,32 @@ REQUIREMENTS_DIR="${OUTPUT_BASE}/requirements"
 
 # --- 一時ファイル管理 ---
 TMPDIR_AGENTS=$(mktemp -d)
+CHILD_PID=""
 
 cleanup() {
   echo "" >&2
   echo "中断シグナルを受信しました。スクリプトを終了しています..." >&2
-  rm -rf "$TMPDIR_AGENTS"
+  if [[ -n "$CHILD_PID" ]]; then
+    kill "$CHILD_PID" 2>/dev/null || true
+    wait "$CHILD_PID" 2>/dev/null || true
+  fi
+  rm -rf "$TMPDIR_AGENTS" "${PROMPT_FILE:-}"
   exit 130
 }
 
 trap cleanup SIGINT SIGTERM
 trap 'rm -rf "$TMPDIR_AGENTS"' EXIT
+
+# シグナル割り込み可能な外部コマンド実行ヘルパー
+# バックグラウンド実行 + wait により、trapがコマンド実行中でも発火可能になる
+run_interruptible() {
+  "$@" &
+  CHILD_PID=$!
+  wait $CHILD_PID
+  local status=$?
+  CHILD_PID=""
+  return $status
+}
 RESEARCH_CONTEXT="${TMPDIR_AGENTS}/research_context.md"
 DESIGN_CONTEXT="${TMPDIR_AGENTS}/design_context.md"
 REVIEW_RESULT="${TMPDIR_AGENTS}/review_result.md"
@@ -242,7 +258,7 @@ run_research_phase() {
   keywords=$(cat "$keyword_file")
 
   if [[ "$agent" == "gemini" ]]; then
-    gemini -p "
+    run_interruptible gemini -p "
 You are a trend research analyst. Analyze these extracted keywords for current technology trends and market opportunities.
 
 Keywords data:
@@ -262,7 +278,7 @@ Output: Structured analysis in markdown format.
     local sandbox
     sandbox=$(get_agent_sandbox "$agent")
     sandbox="${sandbox:-read-only}"
-    codex exec --model "${model:-o4-mini}" --sandbox "$sandbox" --full-auto "
+    run_interruptible codex exec --model "${model:-o4-mini}" --sandbox "$sandbox" --full-auto "
 You are a trend research analyst. Analyze these extracted keywords for current technology trends and market opportunities.
 
 Keywords data:
@@ -311,7 +327,7 @@ $(cat "$RESEARCH_CONTEXT")"
     local sandbox
     sandbox=$(get_agent_sandbox "$agent")
     sandbox="${sandbox:-read-only}"
-    codex exec --model "${model:-o4-mini}" --sandbox "$sandbox" --full-auto "
+    run_interruptible codex exec --model "${model:-o4-mini}" --sandbox "$sandbox" --full-auto "
 You are an innovative app designer. Given these keywords from trend analysis, brainstorm a creative and viable app concept.
 
 Keywords data:
@@ -333,7 +349,7 @@ Output: Structured markdown format.
 " 2>/dev/null > "$DESIGN_CONTEXT" || true
 
   elif [[ "$agent" == "gemini" ]]; then
-    gemini -p "
+    run_interruptible gemini -p "
 You are an innovative app designer. Given these keywords from trend analysis, brainstorm a creative and viable app concept.
 
 Keywords data:
@@ -398,7 +414,7 @@ $(cat "$f")"
     local sandbox
     sandbox=$(get_agent_sandbox "$agent")
     sandbox="${sandbox:-read-only}"
-    codex exec --model "${model:-o4-mini}" --sandbox "$sandbox" --full-auto "
+    run_interruptible codex exec --model "${model:-o4-mini}" --sandbox "$sandbox" --full-auto "
 Review these app requirements for quality and completeness.
 
 ## overview.md
@@ -423,7 +439,7 @@ Output format:
 " 2>/dev/null > "$REVIEW_RESULT" || true
 
   elif [[ "$agent" == "gemini" ]]; then
-    gemini -p "
+    run_interruptible gemini -p "
 Review these app requirements for quality and completeness.
 
 ## overview.md
@@ -464,14 +480,6 @@ Output format:
 # スキル内容とテンプレートを結合してシステムプロンプトファイルを作成
 # =============================================================================
 PROMPT_FILE=$(mktemp)
-# cleanup関数を更新してPROMPT_FILEも含める
-cleanup() {
-  echo "" >&2
-  echo "中断シグナルを受信しました。スクリプトを終了しています..." >&2
-  rm -rf "$TMPDIR_AGENTS" "$PROMPT_FILE"
-  exit 130
-}
-trap cleanup SIGINT SIGTERM
 trap 'rm -rf "$TMPDIR_AGENTS" "$PROMPT_FILE"' EXIT
 
 # フロントマターを除去してスキル本文を抽出
@@ -508,7 +516,7 @@ if [[ -n "$DATASET_SOURCE" ]]; then
 - 生成完了後、以下のバリデーションスクリプトを実行して構造を検証してください:
 tsx scripts/validate-requirements.ts <生成したapp_name>"
 
-  claude -p "$PROMPT" \
+  run_interruptible claude -p "$PROMPT" \
     --append-system-prompt-file "$PROMPT_FILE" \
     --allowedTools "Read" "Write" "Glob" "Bash(mkdir:*)" "Bash(find:*)" "Bash(tsx:*)"
 
@@ -637,7 +645,7 @@ ${CONSTRAINTS_CONTEXT}
 生成完了後、以下のバリデーションスクリプトを実行して構造を検証してください:
 tsx scripts/validate-requirements.ts <生成したapp_name>"
 
-claude -p "$PROMPT" \
+run_interruptible claude -p "$PROMPT" \
   --append-system-prompt-file "$PROMPT_FILE" \
   --allowedTools "Read" "Write" "Glob" "Bash(mkdir:*)" "Bash(find:*)" "Bash(tsx:*)"
 
