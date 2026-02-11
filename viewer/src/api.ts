@@ -249,6 +249,83 @@ export async function removeFavorite(item: FavoriteItem): Promise<{ success: boo
   return res.json();
 }
 
+// --- Commands API ---
+
+export async function fetchDataSources(): Promise<string[]> {
+  const res = await fetch(`${BASE}/commands/data-sources`);
+  return res.json();
+}
+
+export async function fetchRequirementApps(): Promise<string[]> {
+  const res = await fetch(`${BASE}/commands/apps`);
+  return res.json();
+}
+
+export async function fetchCollectSources(): Promise<string[]> {
+  const res = await fetch(`${BASE}/commands/collect-sources`);
+  return res.json();
+}
+
+export async function fetchDatasetNames(): Promise<string[]> {
+  const res = await fetch(`${BASE}/commands/dataset-names`);
+  return res.json();
+}
+
+export interface CommandEvent {
+  type: "start" | "stdout" | "stderr" | "exit" | "error";
+  data: string;
+}
+
+export async function executeCommand(
+  command: string,
+  args: string[],
+  onEvent: (event: CommandEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch(`${BASE}/commands/execute`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ command, args }),
+    signal,
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || "Unknown error");
+  }
+
+  if (!res.body) throw new Error("Response body is null");
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+    for (const line of lines) {
+      if (line.trim()) {
+        try {
+          onEvent(JSON.parse(line) as CommandEvent);
+        } catch {}
+      }
+    }
+  }
+
+  if (buffer.trim()) {
+    try {
+      onEvent(JSON.parse(buffer) as CommandEvent);
+    } catch {}
+  }
+}
+
+export async function abortCommand(): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE}/commands/abort`, { method: "POST" });
+  return res.json();
+}
+
 // --- Git API ---
 
 export interface GitResult {
