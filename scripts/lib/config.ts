@@ -59,7 +59,7 @@ export interface PerspectivesConfig {
 
 export interface SlackConfig {
   enabled: boolean;
-  webhook_url_env?: string;
+  token_env?: string;
 }
 
 export interface NotificationsConfig {

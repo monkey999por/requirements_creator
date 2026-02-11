@@ -1,40 +1,38 @@
 import { loadAppConfig } from "./config.js";
 import "dotenv/config";
 
+const SLACK_API_URL = "https://slack.com/api/chat.postMessage";
+const SLACK_CHANNEL = "#requirements_notify";
+
 export interface SlackNotificationResult {
   success: boolean;
   error?: string;
 }
 
-interface SlackBlock {
-  type: string;
-  text?: { type: string; text: string };
-  elements?: { type: string; text: string }[];
-  fields?: { type: string; text: string }[];
-}
-
-function getWebhookUrl(): string | undefined {
+function getToken(): string | undefined {
   const config = loadAppConfig();
   const slackConfig = config.notifications?.slack;
   if (!slackConfig?.enabled) return undefined;
-  const envKey = slackConfig.webhook_url_env ?? "SLACK_WEBHOOK_URL";
+  const envKey = slackConfig.token_env ?? "SLACK_BOT_TOKEN";
   return process.env[envKey];
 }
 
-async function postToSlack(
-  webhookUrl: string,
-  blocks: SlackBlock[],
-  text: string,
-): Promise<SlackNotificationResult> {
+async function postToSlack(token: string, text: string): Promise<SlackNotificationResult> {
   try {
-    const res = await fetch(webhookUrl, {
+    const params = new URLSearchParams();
+    params.append("token", token);
+    params.append("channel", SLACK_CHANNEL);
+    params.append("text", text);
+
+    const res = await fetch(SLACK_API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, blocks }),
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString(),
     });
-    if (!res.ok) {
-      const body = await res.text();
-      return { success: false, error: `Slack API error: ${res.status} ${body}` };
+
+    const data = (await res.json()) as { ok: boolean; error?: string };
+    if (!data.ok) {
+      return { success: false, error: `Slack API error: ${data.error}` };
     }
     return { success: true };
   } catch (err) {
@@ -59,8 +57,8 @@ export async function notifyPipelineResult(
     mode?: string;
   },
 ): Promise<SlackNotificationResult> {
-  const webhookUrl = getWebhookUrl();
-  if (!webhookUrl) return { success: false, error: "Slack通知が無効または未設定です" };
+  const token = getToken();
+  if (!token) return { success: false, error: "Slack通知が無効または未設定です" };
 
   const hasFailed = steps.some((s) => s.status === "failed");
   const emoji = hasFailed ? ":warning:" : ":white_check_mark:";
@@ -71,74 +69,33 @@ export async function notifyPipelineResult(
     .map((s) => {
       const icon =
         s.status === "success" ? ":ok:" : s.status === "failed" ? ":x:" : ":fast_forward:";
-      return `${icon} ${s.name}`;
+      return `  ${icon} ${s.name}`;
     })
     .join("\n");
 
-  const blocks: SlackBlock[] = [
-    {
-      type: "header",
-      text: { type: "plain_text", text: `${emoji} パイプライン${statusText}${modeLabel}` },
-    },
-    {
-      type: "section",
-      text: { type: "mrkdwn", text: `*ステップ結果:*\n${stepLines}` },
-    },
-  ];
+  const lines: string[] = [`${emoji} *パイプライン${statusText}${modeLabel}*`, "", stepLines];
 
-  const details: string[] = [];
   if (opts?.articleCount !== undefined) {
-    details.push(`記事数: ${opts.articleCount}`);
+    lines.push("", `記事数: ${opts.articleCount}`);
   }
   if (opts?.keywordCount !== undefined) {
-    details.push(`キーワード数: ${opts.keywordCount}`);
+    lines.push(`キーワード数: ${opts.keywordCount}`);
   }
   if (opts?.newApps && opts.newApps.length > 0) {
-    details.push(`生成アプリ: ${opts.newApps.join(", ")}`);
+    lines.push(`生成アプリ: ${opts.newApps.join(", ")}`);
   }
 
-  if (details.length > 0) {
-    blocks.push({
-      type: "section",
-      fields: details.map((d) => ({ type: "mrkdwn", text: d })),
-    });
-  }
-
-  blocks.push({
-    type: "context",
-    elements: [
-      { type: "mrkdwn", text: `_${new Date().toLocaleString("ja-JP")}_ | requirements_creator` },
-    ],
-  });
-
-  const fallbackText = `パイプライン${statusText}${modeLabel}`;
-  return postToSlack(webhookUrl, blocks, fallbackText);
+  return postToSlack(token, lines.join("\n"));
 }
 
 export async function notifyGenerateResult(newApps?: string[]): Promise<SlackNotificationResult> {
-  const webhookUrl = getWebhookUrl();
-  if (!webhookUrl) return { success: false, error: "Slack通知が無効または未設定です" };
+  const token = getToken();
+  if (!token) return { success: false, error: "Slack通知が無効または未設定です" };
 
   const appList = newApps && newApps.length > 0 ? newApps.join(", ") : "（新規アプリなし）";
+  const text = `:white_check_mark: *要件生成完了*\n生成アプリ: ${appList}`;
 
-  const blocks: SlackBlock[] = [
-    {
-      type: "header",
-      text: { type: "plain_text", text: ":white_check_mark: 要件生成完了" },
-    },
-    {
-      type: "section",
-      text: { type: "mrkdwn", text: `*生成アプリ:* ${appList}` },
-    },
-    {
-      type: "context",
-      elements: [
-        { type: "mrkdwn", text: `_${new Date().toLocaleString("ja-JP")}_ | requirements_creator` },
-      ],
-    },
-  ];
-
-  return postToSlack(webhookUrl, blocks, `要件生成完了: ${appList}`);
+  return postToSlack(token, text);
 }
 
 // CLI用エントリーポイント: generate.sh から呼び出し
