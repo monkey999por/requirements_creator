@@ -159,8 +159,8 @@ function validate(appName: string): ValidationError[] {
       if (!data.source?.collected_at) {
         errors.push({ file: "_source_info.json", message: "source.collected_atが未設定です" });
       }
-      if (!Array.isArray(data.keywords) || data.keywords.length === 0) {
-        errors.push({ file: "_source_info.json", message: "keywordsが空または未設定です" });
+      if (!Array.isArray(data.keywords)) {
+        errors.push({ file: "_source_info.json", message: "keywordsが未設定です（空配列は許可）" });
       }
       if (!data.description) {
         errors.push({ file: "_source_info.json", message: "descriptionが未設定です" });

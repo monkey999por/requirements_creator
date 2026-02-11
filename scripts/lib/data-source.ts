@@ -156,21 +156,61 @@ export function extractYoutubeTexts(data: unknown): ArticleText[] {
 export function extractUserProposalTexts(dirName: string): ArticleText[] {
   const filePath = join(DATA_SOURCE_DIR, dirName, USER_PROPOSAL_FILE);
   if (!existsSync(filePath)) return [];
+  return extractMarkdownTexts(filePath, "ユーザー提案");
+}
+
+/** Markdownファイルからテキスト要素を抽出（## 見出し単位で分割） */
+function extractMarkdownTexts(filePath: string, defaultTitle: string): ArticleText[] {
   const content = readFileSync(filePath, "utf-8").trim();
   if (!content) return [];
 
-  // Markdownの見出し(##)単位でセクションに分割
   const sections = content.split(/^## /m).filter(Boolean);
   if (sections.length <= 1) {
-    // 見出しがないか1セクションのみの場合はそのまま1エントリとして返す
-    return [{ title: "ユーザー提案", description: content }];
+    return [{ title: defaultTitle, description: content }];
   }
   return sections.map((section) => {
     const lines = section.split("\n");
-    const title = lines[0]?.trim() || "ユーザー提案";
+    const title = lines[0]?.trim() || defaultTitle;
     const description = lines.slice(1).join("\n").trim();
     return { title, description };
   });
+}
+
+/** テキストファイル対応の拡張子一覧 */
+const TEXT_FILE_EXTENSIONS = [".md", ".txt"];
+
+/** 既知のファイル名（個別処理で扱うもの） */
+const KNOWN_FILES = new Set(["news.json", "youtube.json", "keyword.json", USER_PROPOSAL_FILE]);
+
+/** 任意のテキストファイルからテキスト要素を抽出 */
+export function extractTextFileTexts(dirName: string): ArticleText[] {
+  const dirPath = join(DATA_SOURCE_DIR, dirName);
+  if (!existsSync(dirPath)) return [];
+
+  const files = readdirSync(dirPath).filter((f) => {
+    if (KNOWN_FILES.has(f)) return false;
+    return TEXT_FILE_EXTENSIONS.some((ext) => f.endsWith(ext));
+  });
+
+  const texts: ArticleText[] = [];
+  for (const file of files) {
+    const filePath = join(dirPath, file);
+    if (file.endsWith(".md")) {
+      texts.push(...extractMarkdownTexts(filePath, file));
+    } else {
+      // .txt: ファイル全体を1エントリとして読み込み
+      const content = readFileSync(filePath, "utf-8").trim();
+      if (content) {
+        texts.push({ title: file, description: content });
+      }
+    }
+  }
+  return texts;
+}
+
+/** 指定ディレクトリ内にテキストファイル（.md, .txt、既知ファイル除く）が存在するか */
+export function hasTextFiles(dirName: string): boolean {
+  return extractTextFileTexts(dirName).length > 0;
 }
 
 /** 指定ディレクトリ内の全データソースからテキストを統合取得 */
@@ -184,6 +224,7 @@ export function loadAllTexts(dirName: string): ArticleText[] {
   if (youtube) texts.push(...extractYoutubeTexts(youtube));
 
   texts.push(...extractUserProposalTexts(dirName));
+  texts.push(...extractTextFileTexts(dirName));
 
   return texts;
 }
@@ -191,4 +232,14 @@ export function loadAllTexts(dirName: string): ArticleText[] {
 /** 指定ディレクトリに user_proposal.md が存在するか */
 export function hasUserProposal(dirName: string): boolean {
   return existsSync(join(DATA_SOURCE_DIR, dirName, USER_PROPOSAL_FILE));
+}
+
+/** テキストファイルの一覧を返す（.md, .txt、既知ファイル除く） */
+export function listTextFiles(dirName: string): string[] {
+  const dirPath = join(DATA_SOURCE_DIR, dirName);
+  if (!existsSync(dirPath)) return [];
+  return readdirSync(dirPath).filter((f) => {
+    if (KNOWN_FILES.has(f)) return false;
+    return TEXT_FILE_EXTENSIONS.some((ext) => f.endsWith(ext));
+  });
 }

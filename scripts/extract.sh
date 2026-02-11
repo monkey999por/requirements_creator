@@ -54,21 +54,18 @@ if [[ ! -d "$DATA_DIR" ]]; then
   exit 1
 fi
 
-# データファイルが1つ以上存在するか（*.json（keyword.json除く）または user_proposal.md）
+# データファイルが1つ以上存在するか（*.json（keyword.json除く）/ *.md / *.txt）
 JSON_COUNT=$(find "$DATA_DIR" -maxdepth 1 -name "*.json" ! -name "keyword.json" | wc -l | tr -d ' ')
-HAS_PROPOSAL=false
-if [[ -f "${DATA_DIR}/user_proposal.md" ]]; then
-  HAS_PROPOSAL=true
-fi
+TEXT_COUNT=$(find "$DATA_DIR" -maxdepth 1 \( -name "*.md" -o -name "*.txt" \) | wc -l | tr -d ' ')
 
-if [[ "$JSON_COUNT" -eq 0 ]] && ! $HAS_PROPOSAL; then
-  echo "エラー: ${DATA_DIR} にデータファイル（*.json / user_proposal.md）がありません。"
+if [[ "$JSON_COUNT" -eq 0 ]] && [[ "$TEXT_COUNT" -eq 0 ]]; then
+  echo "エラー: ${DATA_DIR} にデータファイル（*.json / *.md / *.txt）がありません。"
   exit 1
 fi
 
 FILE_DESC="${JSON_COUNT} JSONファイル"
-if $HAS_PROPOSAL; then
-  FILE_DESC="${FILE_DESC} + user_proposal.md"
+if [[ "$TEXT_COUNT" -gt 0 ]]; then
+  FILE_DESC="${FILE_DESC} + ${TEXT_COUNT} テキストファイル"
 fi
 
 echo "=== キーワード抽出 ==="

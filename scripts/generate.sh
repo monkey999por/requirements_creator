@@ -50,22 +50,25 @@ TARGET_DIR=""
 DATASET_SOURCE=""
 DATASET_NAME=""
 SKIP_AGENTS=false
+DIRECT_MODE=false
 while [[ $# -gt 0 ]]; do
   case $1 in
     --target) TARGET_DIR="$2"; shift 2 ;;
     --dataset-source) DATASET_SOURCE="$2"; shift 2 ;;
     --dataset-name) DATASET_NAME="$2"; shift 2 ;;
     --skip-agents) SKIP_AGENTS=true; shift ;;
+    --direct) DIRECT_MODE=true; shift ;;
     -h|--help)
-      echo "Usage: $0 [--target <data_source_subdir>] [--dataset-source <file> --dataset-name <name>] [--skip-agents]"
+      echo "Usage: $0 [--target <data_source_subdir>] [--dataset-source <file> --dataset-name <name>] [--skip-agents] [--direct]"
       echo ""
-      echo "keyword.jsonまたはデータセットソースを元にアプリ要件を生成します。"
+      echo "keyword.json、テキストデータ、またはデータセットソースを元にアプリ要件を生成します。"
       echo ""
       echo "Options:"
       echo "  --target          data_source配下のサブディレクトリ名（省略時は最新）"
       echo "  --dataset-source  データセットソースファイルパス"
       echo "  --dataset-name    データセット名"
       echo "  --skip-agents     外部エージェント（codex/gemini）をスキップ"
+      echo "  --direct          キーワード抽出をスキップし、テキストデータから直接要件生成"
       exit 0
       ;;
     --) shift ;;
@@ -126,7 +129,7 @@ tsx scripts/validate-requirements.ts <生成したapp_name>"
 fi
 
 # =============================================================================
-# 通常モード（keyword.jsonベース）
+# ダイレクトモード・通常モード共通: 対象ディレクトリ決定
 # =============================================================================
 # 1. --target オプション → 2. app.config.yaml の pipeline.default_source → 3. 対話選択（直近7件）
 if [[ -z "$TARGET_DIR" ]]; then
@@ -141,9 +144,89 @@ if [[ -z "$TARGET_DIR" ]]; then
   fi
 fi
 
+# =============================================================================
+# ダイレクトモード（テキストデータから直接要件生成、keyword.json不要）
+# =============================================================================
+if $DIRECT_MODE; then
+  DATA_DIR="${DATA_SOURCE_DIR}/${TARGET_DIR}"
+  if [[ ! -d "$DATA_DIR" ]]; then
+    echo "エラー: ${DATA_DIR} が存在しません。"
+    exit 1
+  fi
+
+  # テキストファイルの存在確認（*.json（keyword.json除く）/ *.md / *.txt）
+  TEXT_FILES=$(find "$DATA_DIR" -maxdepth 1 \( -name "*.md" -o -name "*.txt" -o \( -name "*.json" ! -name "keyword.json" \) \) | sort)
+  if [[ -z "$TEXT_FILES" ]]; then
+    echo "エラー: ${DATA_DIR} にデータファイルがありません。"
+    exit 1
+  fi
+
+  FILE_LIST=$(echo "$TEXT_FILES" | while read -r f; do basename "$f"; done | paste -sd ", " -)
+  echo "=== 要件生成（ダイレクトモード） ==="
+  echo "対象: ${DATA_DIR}"
+  echo "ファイル: ${FILE_LIST}"
+  echo ""
+
+  # 制約条件の表示
+  HAS_CONSTRAINTS=false
+  [[ -n "$CONSTRAINT_PLATFORM" || -n "$CONSTRAINT_BUDGET" || -n "$CONSTRAINT_DIFFICULTY" || -n "$CONSTRAINT_TEAM_SIZE" ]] && HAS_CONSTRAINTS=true
+  [[ -n "$CONSTRAINT_TS_FRONTEND" || -n "$CONSTRAINT_TS_BACKEND" || -n "$CONSTRAINT_TS_DATABASE" || -n "$CONSTRAINT_TS_HOSTING" || -n "$CONSTRAINT_TS_AUTH" || -n "$CONSTRAINT_TS_OTHER" ]] && HAS_CONSTRAINTS=true
+  if $HAS_CONSTRAINTS; then
+    echo "--- 制約条件 ---"
+    [[ -n "$CONSTRAINT_PLATFORM" ]] && echo "  platform: ${CONSTRAINT_PLATFORM}"
+    [[ -n "$CONSTRAINT_BUDGET" ]] && echo "  budget: ${CONSTRAINT_BUDGET}"
+    [[ -n "$CONSTRAINT_DIFFICULTY" ]] && echo "  difficulty: ${CONSTRAINT_DIFFICULTY}"
+    [[ -n "$CONSTRAINT_TEAM_SIZE" ]] && echo "  team_size: ${CONSTRAINT_TEAM_SIZE}"
+    echo ""
+  fi
+
+  CONSTRAINTS_CONTEXT=""
+  if [[ -n "$CONSTRAINTS_PROMPT" ]]; then
+    CONSTRAINTS_CONTEXT="
+## 制約条件
+以下の制約条件が設定されています。アプリ案の構想・技術スタック選定・機能スコープに反映してください。
+${CONSTRAINTS_PROMPT}"
+  fi
+
+  PERSPECTIVES_CONTEXT=""
+  if [[ -n "$PERSPECTIVES_PROMPT" ]]; then
+    PERSPECTIVES_CONTEXT="
+## 生成観点
+以下の生成観点が設定されています。アプリの体験設計・機能設計・マネタイズ戦略に深く反映してください。
+また、_source_info.json の perspectives フィールドに適用した観点を記録してください。
+${PERSPECTIVES_PROMPT}"
+  fi
+
+  PROMPT="以下のディレクトリ内のテキストデータを全て読み込み、上記の要件生成スキルの手順に従ってアプリの要件を生成してください。
+対象ディレクトリ: ${DATA_DIR}
+
+これはダイレクトモードです。keyword.jsonは使用しません。
+テキストデータの内容を直接読み込み、そこからアプリのアイデアを構想してください。
+ユーザーが書いた提案やメモがそのまま含まれている可能性があります。
+内容の意図を尊重し、キーワード抽出を介さずに直接要件を詳細化してください。
+
+_source_info.json の source.directory には「${TARGET_DIR}」を、
+keywords 配列は空配列 [] としてください。
+description にはテキストデータからどのようにアプリ案を導いたかの経緯を記載してください。
+${CONSTRAINTS_CONTEXT}
+${PERSPECTIVES_CONTEXT}
+
+生成完了後、以下のバリデーションスクリプトを実行して構造を検証してください:
+tsx scripts/validate-requirements.ts <生成したapp_name>"
+
+  run_interruptible claude -p "$PROMPT" \
+    --append-system-prompt-file "$PROMPT_FILE" \
+    --allowedTools "Read" "Write" "Glob" "Bash(mkdir:*)" "Bash(find:*)" "Bash(tsx:*)"
+
+  exit 0
+fi
+
+# =============================================================================
+# 通常モード（keyword.jsonベース）
+# =============================================================================
 KEYWORD_FILE="${DATA_SOURCE_DIR}/${TARGET_DIR}/keyword.json"
 if [[ ! -f "$KEYWORD_FILE" ]]; then
-  echo "エラー: ${KEYWORD_FILE} が見つかりません。先に /extract-keywords を実行してください。"
+  echo "エラー: ${KEYWORD_FILE} が見つかりません。先に /extract-keywords を実行するか、--direct オプションを使用してください。"
   exit 1
 fi
 
