@@ -47,7 +47,7 @@ run_interruptible() {
 STREAM_FILTER="${SCRIPT_DIR}/lib/claude-stream-filter.ts"
 
 run_claude_stream() {
-  "$@" --output-format stream-json --verbose 2>/dev/null | tsx "$STREAM_FILTER" &
+  "$@" --output-format stream-json --verbose 2>/dev/null > >(tsx "$STREAM_FILTER") &
   CHILD_PID=$!
   wait $CHILD_PID
   local status=$?

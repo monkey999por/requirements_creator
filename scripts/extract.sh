@@ -125,7 +125,7 @@ claude -p "$PROMPT" \
   --output-format stream-json --verbose \
   --append-system-prompt-file "$PROMPT_FILE" \
   --allowedTools "Read" "Write" "Glob" "Bash(ls:*)" "Bash(find:*)"  \
-  --dangerously-skip-permissions 2>/dev/null | tsx "$STREAM_FILTER" &
+  --dangerously-skip-permissions 2>/dev/null > >(tsx "$STREAM_FILTER") &
 CHILD_PID=$!
 wait $CHILD_PID
 CHILD_PID=""
