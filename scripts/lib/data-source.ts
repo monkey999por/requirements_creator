@@ -20,6 +20,93 @@ export function getLatestDataSource(): string | undefined {
   return listDataSources()[0];
 }
 
+/**
+ * 直近7件のdata_sourceをキー操作（↑↓/j/k + Enter）で対話選択させる。
+ * tmux互換: ANSI escape sequence を使用し、escape-time の遅延を考慮。
+ * 非TTY環境では最新を自動選択する。
+ */
+export async function selectDataSource(): Promise<string | undefined> {
+  const maxItems = 15;
+  const sources = listDataSources().slice(0, maxItems);
+
+  if (sources.length === 0) return undefined;
+  if (sources.length === 1) {
+    console.log(`データソース: ${sources[0]}`);
+    return sources[0];
+  }
+
+  // 非対話環境では最新を自動選択
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    console.log(`データソース: ${sources[0]}（自動選択）`);
+    return sources[0];
+  }
+
+  let selected = 0;
+  const count = sources.length;
+
+  const drawMenu = (firstTime: boolean) => {
+    if (!firstTime) {
+      process.stdout.write(`\x1b[${count}A`); // カーソルをメニュー先頭へ
+    }
+    for (let i = 0; i < count; i++) {
+      process.stdout.write("\x1b[2K"); // 行クリア
+      const latest = i === 0 ? "  <- 最新" : "";
+      if (i === selected) {
+        process.stdout.write(`  \x1b[7m> ${sources[i]}${latest}\x1b[0m\n`);
+      } else {
+        process.stdout.write(`    ${sources[i]}${latest}\n`);
+      }
+    }
+  };
+
+  console.log("データソースを選択してください（↑↓/j/k: 移動  Enter: 決定  q: キャンセル）:");
+  process.stdout.write("\x1b[?25l"); // カーソル非表示
+  drawMenu(true);
+
+  return new Promise<string | undefined>((resolve) => {
+    const { stdin } = process;
+    stdin.setRawMode(true);
+    stdin.resume();
+
+    const cleanup = () => {
+      stdin.removeListener("data", onData);
+      stdin.setRawMode(false);
+      stdin.pause();
+      process.stdout.write("\x1b[?25h"); // カーソル復帰
+    };
+
+    const onData = (data: Buffer) => {
+      const key = data.toString();
+
+      if (key === "\r" || key === "\n") {
+        cleanup();
+        console.log(`\n選択: ${sources[selected]}`);
+        resolve(sources[selected]);
+        return;
+      }
+
+      if (key === "\x1b[A" || key === "k") {
+        if (selected > 0) selected--;
+      } else if (key === "\x1b[B" || key === "j") {
+        if (selected < count - 1) selected++;
+      } else if (key === "q") {
+        cleanup();
+        console.log("\nキャンセルしました。");
+        resolve(undefined);
+        return;
+      } else if (key === "\x03") {
+        // Ctrl+C
+        cleanup();
+        process.exit(130);
+      }
+
+      drawMenu(false);
+    };
+
+    stdin.on("data", onData);
+  });
+}
+
 /** 指定ディレクトリのJSONファイルを読み込む */
 export function loadJson<T = unknown>(dirName: string, filename: string): T | undefined {
   const filePath = join(DATA_SOURCE_DIR, dirName, filename);
