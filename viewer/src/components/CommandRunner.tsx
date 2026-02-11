@@ -12,12 +12,16 @@ interface LogEntry {
 interface OptionDef {
   id: string;
   label: string;
-  type: "select" | "checkbox" | "text";
+  type: "select" | "checkbox" | "text" | "textarea";
   dynamicChoicesUrl?: string;
   argFlag?: string;
   positional?: boolean;
   placeholder?: string;
   required?: boolean;
+  linkedOptionId?: string;
+  fetchUrlPattern?: string;
+  saveUrlPattern?: string;
+  rows?: number;
 }
 
 interface CommandDef {
@@ -84,18 +88,11 @@ const COMMANDS: CommandDef[] = [
         argFlag: "--direct",
       },
       {
-        id: "datasetSource",
-        label: "データセットソースファイル（データセットモード）",
-        type: "text",
-        argFlag: "--dataset-source",
-        placeholder: "gen/datasets/my_dataset_source.md",
-      },
-      {
-        id: "datasetName",
-        label: "データセット名（データセットモード）",
-        type: "text",
-        argFlag: "--dataset-name",
-        placeholder: "my_dataset",
+        id: "dataset",
+        label: "データセット（データセットモード）",
+        type: "select",
+        dynamicChoicesUrl: "/api/commands/dataset-names",
+        argFlag: "--dataset",
       },
       {
         id: "skipAgents",
@@ -120,10 +117,13 @@ const COMMANDS: CommandDef[] = [
       },
       {
         id: "memo",
-        label: "メモ",
-        type: "text",
-        argFlag: "--memo",
-        placeholder: "改善指示を入力...",
+        label: "メモ（memo.md）",
+        type: "textarea",
+        linkedOptionId: "appName",
+        fetchUrlPattern: "/api/apps/{value}/memo",
+        saveUrlPattern: "/api/apps/{value}/memo",
+        rows: 8,
+        placeholder: "アプリを選択するとmemo.mdが読み込まれます...",
       },
       {
         id: "skipAgents",
@@ -209,10 +209,16 @@ function buildArgs(command: CommandDef, values: Record<string, string | boolean>
   const positional: string[] = [];
   const flags: string[] = [];
   for (const opt of command.options) {
+    // saveUrlPattern を持つオプションはファイル経由で渡すため args に含めない
+    if (opt.saveUrlPattern) continue;
     const val = values[opt.id];
     if (opt.type === "checkbox" && val === true && opt.argFlag) {
       flags.push(opt.argFlag);
-    } else if ((opt.type === "select" || opt.type === "text") && typeof val === "string" && val) {
+    } else if (
+      (opt.type === "select" || opt.type === "text" || opt.type === "textarea") &&
+      typeof val === "string" &&
+      val
+    ) {
       if (opt.positional) {
         positional.push(val);
       } else if (opt.argFlag) {
@@ -283,6 +289,62 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
     logsLenRef.current = logs.length;
   });
 
+  // textarea (memo) 用: ref ベースで管理し、リンク先変更時のみフェッチ
+  const textareaRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
+  const lastFetchedRef = useRef<Record<string, string>>({});
+  const [memoSaving, setMemoSaving] = useState(false);
+
+  useEffect(() => {
+    for (const opt of selectedCommand.options) {
+      if (!opt.linkedOptionId || !opt.fetchUrlPattern) continue;
+      const linkedValue = (optionValues[opt.linkedOptionId] as string) || "";
+      const cacheKey = `${opt.id}:${linkedValue}`;
+      if (lastFetchedRef.current[opt.id] === cacheKey) continue;
+      lastFetchedRef.current[opt.id] = cacheKey;
+      if (!linkedValue) {
+        const el = textareaRefs.current[opt.id];
+        if (el) el.value = "";
+        continue;
+      }
+      const url = opt.fetchUrlPattern.replace("{value}", linkedValue);
+      const optId = opt.id;
+      fetch(url)
+        .then((res) => res.json())
+        .then((data: { content?: string }) => {
+          const el = textareaRefs.current[optId];
+          if (el) el.value = data.content ?? "";
+        })
+        .catch(() => {});
+    }
+  }, [selectedCommand.options, optionValues]);
+
+  const handleSaveMemo = useCallback(
+    async (opt: OptionDef) => {
+      if (!opt.saveUrlPattern || !opt.linkedOptionId) return;
+      const linkedValue = optionValues[opt.linkedOptionId];
+      if (typeof linkedValue !== "string" || !linkedValue) return;
+      const el = textareaRefs.current[opt.id];
+      if (!el) return;
+      const url = opt.saveUrlPattern.replace("{value}", linkedValue);
+      setMemoSaving(true);
+      try {
+        await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: el.value }),
+        });
+      } catch {
+        setLogs((prev) => [
+          ...prev,
+          { id: logIdRef.current++, type: "error", text: "エラー: メモの保存に失敗しました。" },
+        ]);
+      } finally {
+        setMemoSaving(false);
+      }
+    },
+    [optionValues],
+  );
+
   const handleCommandChange = useCallback((cmdId: string) => {
     setSelectedCommandId(cmdId);
     setOptionValues({});
@@ -311,6 +373,35 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
     }
 
     setRunning(true);
+
+    // saveUrlPattern を持つオプション（textarea ref）を実行前に保存
+    for (const opt of selectedCommand.options) {
+      if (!opt.saveUrlPattern || !opt.linkedOptionId) continue;
+      const linkedValue = optionValues[opt.linkedOptionId];
+      const el = textareaRefs.current[opt.id];
+      if (typeof linkedValue === "string" && linkedValue && el) {
+        const url = opt.saveUrlPattern.replace("{value}", linkedValue);
+        try {
+          await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content: el.value }),
+          });
+        } catch {
+          setLogs((prev) => [
+            ...prev,
+            {
+              id: logIdRef.current++,
+              type: "error",
+              text: `エラー: メモの保存に失敗しました。`,
+            },
+          ]);
+          setRunning(false);
+          return;
+        }
+      }
+    }
+
     const args = buildArgs(selectedCommand, optionValues);
     const controller = new AbortController();
     abortRef.current = controller;
@@ -435,6 +526,31 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
                         ))}
                       </select>
                     </label>
+                  ) : opt.type === "textarea" ? (
+                    <div className="block">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-gray-500">{opt.label}</span>
+                        {opt.saveUrlPattern && (
+                          <button
+                            type="button"
+                            className="px-2 py-0.5 text-[10px] font-medium rounded bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-gray-200 transition-colors disabled:opacity-50"
+                            onClick={() => handleSaveMemo(opt)}
+                            disabled={memoSaving}
+                          >
+                            {memoSaving ? "保存中..." : "保存"}
+                          </button>
+                        )}
+                      </div>
+                      <textarea
+                        ref={(el) => {
+                          textareaRefs.current[opt.id] = el;
+                        }}
+                        defaultValue=""
+                        placeholder={opt.placeholder}
+                        rows={opt.rows ?? 6}
+                        className="w-full px-2 py-1.5 text-xs bg-gray-800 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 resize-y font-mono"
+                      />
+                    </div>
                   ) : (
                     <label className="block">
                       <span className="block text-xs text-gray-500 mb-1">{opt.label}</span>

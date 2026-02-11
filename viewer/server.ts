@@ -618,7 +618,59 @@ app.post("/api/commands/execute", async (c) => {
   const cmdDef = ALLOWED_COMMANDS[body.command];
   if (!cmdDef) return c.json({ error: "Unknown command" }, 400);
 
-  const allArgs = [...cmdDef.baseArgs, ...(body.args ?? [])];
+  // generate コマンドの --dataset 前処理: ソースファイル生成 + args 変換
+  let processedArgs = body.args ?? [];
+  if (body.command === "generate") {
+    const datasetIdx = processedArgs.indexOf("--dataset");
+    if (datasetIdx !== -1 && datasetIdx + 1 < processedArgs.length) {
+      const dsName = processedArgs[datasetIdx + 1];
+      const dsPath = join(DATASETS_DIR, `${dsName}.json`);
+      if (!existsSync(dsPath)) {
+        return c.json({ error: `データセット ${dsName} が見つかりません` }, 400);
+      }
+      const ds = JSON.parse(readFileSync(dsPath, "utf-8")) as Dataset;
+      if (ds.items.length === 0) {
+        return c.json({ error: "データセットにアイテムがありません" }, 400);
+      }
+      // buildDatasetSource 相当のロジック
+      const sections: string[] = [];
+      sections.push(`# データセットソース: ${ds.name}\n`);
+      sections.push("以下は複数のアプリ要件から選択されたOverviewとFeatureの組み合わせです。");
+      sections.push("これらをインスピレーションとして、新しいアプリ要件を生成してください。\n");
+      for (const item of ds.items) {
+        if (item.type === "overview") {
+          const fp = join(REQUIREMENTS_DIR, item.appName, "overview.md");
+          if (existsSync(fp)) {
+            const content = readFileSync(fp, "utf-8");
+            sections.push(`---\n## ${item.appName} - Overview\n\n${content}\n`);
+          }
+        } else if (item.type === "feature" && item.featureId) {
+          const fp = join(REQUIREMENTS_DIR, item.appName, "features", `${item.featureId}.md`);
+          if (existsSync(fp)) {
+            const content = readFileSync(fp, "utf-8");
+            sections.push(
+              `---\n## ${item.appName} - Feature: ${item.title ?? item.featureId}\n\n${content}\n`,
+            );
+          }
+        }
+      }
+      const sourceMd = sections.join("\n");
+      if (!existsSync(DATASETS_DIR)) mkdirSync(DATASETS_DIR, { recursive: true });
+      const sourceFilePath = join(DATASETS_DIR, `${dsName}_source.md`);
+      writeFileSync(sourceFilePath, sourceMd, "utf-8");
+      // args を変換: --dataset <name> → --dataset-source <path> --dataset-name <name>
+      processedArgs = [
+        ...processedArgs.slice(0, datasetIdx),
+        ...processedArgs.slice(datasetIdx + 2),
+        "--dataset-source",
+        sourceFilePath,
+        "--dataset-name",
+        dsName,
+      ];
+    }
+  }
+
+  const allArgs = [...cmdDef.baseArgs, ...processedArgs];
   const encoder = new TextEncoder();
 
   const child = spawn(cmdDef.bin, allArgs, {
