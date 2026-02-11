@@ -59,7 +59,7 @@ notifications:
     # Bot Tokenの環境変数名（.envに定義）
     # Slack Appの OAuth & Permissions で取得した xoxb- トークンを設定する
     # 詳細は SLACK_NOTIFICATION.md を参照
-    token_env: SLACK_BOT_TOKEN
+    token_env: SLACK_BOT_USER_OAUTH_TOKEN
 
 # --- パイプライン共通設定 ---
 pipeline:

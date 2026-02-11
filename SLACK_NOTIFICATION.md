@@ -27,7 +27,7 @@
 `.env` ファイルに以下を追加:
 
 ```env
-SLACK_BOT_TOKEN=xoxb-your-bot-token
+SLACK_BOT_USER_OAUTH_TOKEN=xoxb-your-bot-token
 ```
 
 ### 3. 設定ファイルの確認
@@ -38,7 +38,7 @@ SLACK_BOT_TOKEN=xoxb-your-bot-token
 notifications:
   slack:
     enabled: true
-    token_env: SLACK_BOT_TOKEN
+    token_env: SLACK_BOT_USER_OAUTH_TOKEN
 ```
 
 ## 設定項目
@@ -46,7 +46,7 @@ notifications:
 | 項目 | 説明 | デフォルト |
 |------|------|-----------|
 | `enabled` | Slack通知の有効/無効 | `true` |
-| `token_env` | Bot Tokenを格納する環境変数名 | `SLACK_BOT_TOKEN` |
+| `token_env` | Bot Tokenを格納する環境変数名 | `SLACK_BOT_USER_OAUTH_TOKEN` |
 
 ## 通知タイミング
 
@@ -88,7 +88,7 @@ notifications:
 
 ### 通知が届かない場合
 
-1. `.env` の `SLACK_BOT_TOKEN` が正しく設定されているか確認
+1. `.env` の `SLACK_BOT_USER_OAUTH_TOKEN` が正しく設定されているか確認
 2. `app.config.yaml` の `notifications.slack.enabled` が `true` か確認
 3. Appが `#requirements_notify` チャンネルに招待されているか確認
 4. Bot Token Scopesに `chat:write` が含まれているか確認
@@ -99,7 +99,7 @@ notifications:
 
 ```bash
 curl -X POST 'https://slack.com/api/chat.postMessage' \
-  -d "token=$SLACK_BOT_TOKEN" \
+  -d "token=$SLACK_BOT_USER_OAUTH_TOKEN" \
   -d 'channel=#requirements_notify' \
   -d 'text=テスト通知'
 ```

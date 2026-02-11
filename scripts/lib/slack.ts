@@ -13,7 +13,7 @@ function getToken(): string | undefined {
   const config = loadAppConfig();
   const slackConfig = config.notifications?.slack;
   if (!slackConfig?.enabled) return undefined;
-  const envKey = slackConfig.token_env ?? "SLACK_BOT_TOKEN";
+  const envKey = slackConfig.token_env ?? "SLACK_BOT_USER_OAUTH_TOKEN";
   return process.env[envKey];
 }
 
