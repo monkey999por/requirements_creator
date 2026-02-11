@@ -24,7 +24,6 @@ interface CommandDef {
   id: string;
   label: string;
   description: string;
-  category: "pipeline" | "quality";
   options: OptionDef[];
 }
 
@@ -35,7 +34,6 @@ const COMMANDS: CommandDef[] = [
     id: "collect",
     label: "collect",
     description: "外部API（NewsAPI等）からトレンド情報を取得し、data_sourceに保存する。",
-    category: "pipeline",
     options: [
       {
         id: "only",
@@ -56,7 +54,6 @@ const COMMANDS: CommandDef[] = [
     id: "extract",
     label: "extract",
     description: "収集データからキーワードを抽出し、keyword.jsonを生成する。",
-    category: "pipeline",
     options: [
       {
         id: "target",
@@ -70,15 +67,35 @@ const COMMANDS: CommandDef[] = [
   {
     id: "generate",
     label: "generate",
-    description: "キーワードからアプリ案を構想し、要件定義を自動生成する。",
-    category: "pipeline",
+    description:
+      "キーワードからアプリ案を構想し、要件定義を自動生成する。データセットモードでは既存要件の組み合わせから新アプリを生成。",
     options: [
       {
         id: "target",
-        label: "データソース",
+        label: "データソース（通常モード）",
         type: "select",
         dynamicChoicesUrl: "/api/commands/data-sources",
         argFlag: "--target",
+      },
+      {
+        id: "datasetSource",
+        label: "データセットソースファイル（データセットモード）",
+        type: "text",
+        argFlag: "--dataset-source",
+        placeholder: "gen/datasets/my_dataset_source.md",
+      },
+      {
+        id: "datasetName",
+        label: "データセット名（データセットモード）",
+        type: "text",
+        argFlag: "--dataset-name",
+        placeholder: "my_dataset",
+      },
+      {
+        id: "skipAgents",
+        label: "外部エージェントをスキップ",
+        type: "checkbox",
+        argFlag: "--skip-agents",
       },
     ],
   },
@@ -86,7 +103,6 @@ const COMMANDS: CommandDef[] = [
     id: "regenerate",
     label: "regenerate",
     description: "既存アプリ要件をmemo.mdの内容を最優先指示として再生成する。",
-    category: "pipeline",
     options: [
       {
         id: "appName",
@@ -115,7 +131,6 @@ const COMMANDS: CommandDef[] = [
     id: "validate",
     label: "validate",
     description: "生成された要件の構造・内容を自動検証する。未指定時は全アプリを検証。",
-    category: "pipeline",
     options: [
       {
         id: "appName",
@@ -130,7 +145,6 @@ const COMMANDS: CommandDef[] = [
     id: "pipeline",
     label: "pipeline",
     description: "collect → extract → generate → validate を一括実行する。",
-    category: "pipeline",
     options: [
       {
         id: "skipCollect",
@@ -173,27 +187,6 @@ const COMMANDS: CommandDef[] = [
         placeholder: "改善指示を入力...",
       },
     ],
-  },
-  {
-    id: "format",
-    label: "format",
-    description: "Biomeでコードフォーマットを実行する。",
-    category: "quality",
-    options: [],
-  },
-  {
-    id: "lint",
-    label: "lint",
-    description: "Biomeでリントチェックを実行する。",
-    category: "quality",
-    options: [],
-  },
-  {
-    id: "check",
-    label: "check",
-    description: "Biomeでフォーマット＋リントの一括チェック・修正を行う。",
-    category: "quality",
-    options: [],
   },
 ];
 
@@ -356,9 +349,6 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
     );
   }
 
-  const pipelineCommands = COMMANDS.filter((c) => c.category === "pipeline");
-  const qualityCommands = COMMANDS.filter((c) => c.category === "quality");
-
   return (
     <div className={`flex h-full ${isMobile ? "flex-col" : "flex-row"}`}>
       {/* Left Pane */}
@@ -368,50 +358,22 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
         } border-gray-800 flex flex-col overflow-hidden`}
       >
         <div className="flex-1 overflow-y-auto p-4 space-y-4 dark-scrollbar">
-          {/* Pipeline commands */}
-          <div>
-            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-gray-600 mb-2">
-              パイプライン
-            </h3>
-            <div className="grid grid-cols-3 gap-1.5">
-              {pipelineCommands.map((cmd) => (
-                <button
-                  key={cmd.id}
-                  type="button"
-                  className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    selectedCommandId === cmd.id
-                      ? "bg-indigo-500/20 text-indigo-300 ring-1 ring-indigo-500/40"
-                      : "bg-gray-800/50 text-gray-400 hover:bg-gray-800 hover:text-gray-300"
-                  }`}
-                  onClick={() => handleCommandChange(cmd.id)}
-                >
-                  {cmd.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Quality commands */}
-          <div>
-            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-gray-600 mb-2">
-              コード品質
-            </h3>
-            <div className="grid grid-cols-3 gap-1.5">
-              {qualityCommands.map((cmd) => (
-                <button
-                  key={cmd.id}
-                  type="button"
-                  className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    selectedCommandId === cmd.id
-                      ? "bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40"
-                      : "bg-gray-800/50 text-gray-400 hover:bg-gray-800 hover:text-gray-300"
-                  }`}
-                  onClick={() => handleCommandChange(cmd.id)}
-                >
-                  {cmd.label}
-                </button>
-              ))}
-            </div>
+          {/* Command selector */}
+          <div className="flex flex-wrap gap-1.5">
+            {COMMANDS.map((cmd) => (
+              <button
+                key={cmd.id}
+                type="button"
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  selectedCommandId === cmd.id
+                    ? "bg-indigo-500/20 text-indigo-300 ring-1 ring-indigo-500/40"
+                    : "bg-gray-800/50 text-gray-400 hover:bg-gray-800 hover:text-gray-300"
+                }`}
+                onClick={() => handleCommandChange(cmd.id)}
+              >
+                {cmd.label}
+              </button>
+            ))}
           </div>
 
           {/* Description */}

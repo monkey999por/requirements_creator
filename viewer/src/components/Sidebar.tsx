@@ -292,6 +292,31 @@ export function Sidebar({
                       />
                     </svg>
                   </button>
+                  <button
+                    type="button"
+                    className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                      viewMode === "commands"
+                        ? "text-cyan-400 bg-cyan-400/10"
+                        : "text-gray-500 hover:text-cyan-400 hover:bg-cyan-400/10"
+                    }`}
+                    onClick={onSelectCommands}
+                    title="コマンド実行"
+                  >
+                    <svg
+                      className="size-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z"
+                      />
+                    </svg>
+                  </button>
                   <div>
                     <h1 className="text-sm font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent whitespace-nowrap">
                       Requirements
@@ -432,39 +457,6 @@ export function Sidebar({
                   </svg>
                   データセット管理
                 </button>
-
-                {/* Commands */}
-                <p className="px-3 mt-6 mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-600 whitespace-nowrap">
-                  Commands
-                </p>
-                <button
-                  type="button"
-                  className={`
-                    w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] whitespace-nowrap
-                    ${
-                      viewMode === "commands"
-                        ? "bg-cyan-500/15 text-cyan-400 font-semibold shadow-lg shadow-cyan-500/5"
-                        : "text-gray-400 hover:bg-white/[0.04] hover:text-gray-200"
-                    }
-                  `}
-                  onClick={onSelectCommands}
-                >
-                  <svg
-                    aria-hidden="true"
-                    className={`size-4 shrink-0 ${viewMode === "commands" ? "text-cyan-400" : "text-gray-600"}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z"
-                    />
-                  </svg>
-                  コマンド実行
-                </button>
               </nav>
 
               {/* Footer */}
@@ -518,6 +510,33 @@ export function Sidebar({
                   strokeLinejoin="round"
                   strokeWidth={2}
                   d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                />
+              </svg>
+            </motion.button>
+            <motion.button
+              type="button"
+              className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                viewMode === "commands"
+                  ? "text-cyan-400 bg-cyan-400/10"
+                  : "text-gray-500 hover:text-cyan-400 hover:bg-cyan-400/10"
+              }`}
+              onClick={onSelectCommands}
+              title="コマンド実行"
+              animate={{ opacity: expanded ? 1 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <svg
+                className="size-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z"
                 />
               </svg>
             </motion.button>
@@ -694,44 +713,6 @@ export function Sidebar({
               />
             </svg>
             データセット管理
-          </motion.button>
-
-          {/* Commands */}
-          <motion.p
-            className="px-3 mt-6 mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-600 whitespace-nowrap"
-            animate={{ opacity: expanded ? 1 : 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            Commands
-          </motion.p>
-          <motion.button
-            type="button"
-            whileHover={{ x: 2 }}
-            className={`
-              group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] whitespace-nowrap
-              ${
-                viewMode === "commands"
-                  ? "bg-cyan-500/15 text-cyan-400 font-semibold shadow-lg shadow-cyan-500/5"
-                  : "text-gray-400 hover:bg-white/[0.04] hover:text-gray-200"
-              }
-            `}
-            onClick={onSelectCommands}
-          >
-            <svg
-              aria-hidden="true"
-              className={`size-4 shrink-0 ${viewMode === "commands" ? "text-cyan-400" : "text-gray-600 group-hover:text-gray-500"}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z"
-              />
-            </svg>
-            コマンド実行
           </motion.button>
         </nav>
 

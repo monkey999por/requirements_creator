@@ -563,9 +563,6 @@ const ALLOWED_COMMANDS: Record<string, { bin: string; baseArgs: string[] }> = {
   regenerate: { bin: "bash", baseArgs: ["scripts/regenerate.sh"] },
   validate: { bin: "tsx", baseArgs: ["scripts/validate-requirements.ts"] },
   pipeline: { bin: "tsx", baseArgs: ["scripts/pipeline.ts"] },
-  format: { bin: "pnpm", baseArgs: ["run", "format"] },
-  lint: { bin: "pnpm", baseArgs: ["run", "lint"] },
-  check: { bin: "pnpm", baseArgs: ["run", "check"] },
 };
 
 let activeCommandProcess: ChildProcess | null = null;
