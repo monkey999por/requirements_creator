@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { parse } from "yaml";
+import { parse, stringify } from "yaml";
 
 const execAsync = promisify(exec);
 
@@ -455,6 +455,23 @@ app.get("/api/search", async (c) => {
   } catch {
     return c.json({ results: [], resultType: "grep" });
   }
+});
+
+// --- Config API ---
+app.get("/api/config", (c) => {
+  const configPath = resolve(projectRoot, "app.config.yaml");
+  if (!existsSync(configPath)) return c.json({ error: "Not found" }, 404);
+  const raw = readFileSync(configPath, "utf-8");
+  return c.json(parse(raw));
+});
+
+app.put("/api/config", async (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  const configPath = resolve(projectRoot, "app.config.yaml");
+  const body = await c.req.json();
+  const yaml = stringify(body, { lineWidth: 120 });
+  writeFileSync(configPath, yaml, "utf-8");
+  return c.json({ success: true });
 });
 
 // --- Favorites API ---
