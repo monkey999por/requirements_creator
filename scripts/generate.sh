@@ -15,7 +15,32 @@ REQUIREMENTS_DIR="${OUTPUT_BASE}/requirements"
 
 # --- 一時ファイル管理 ---
 TMPDIR_AGENTS=$(mktemp -d)
+CHILD_PID=""
+
+cleanup() {
+  echo "" >&2
+  echo "中断シグナルを受信しました。スクリプトを終了しています..." >&2
+  if [[ -n "$CHILD_PID" ]]; then
+    kill "$CHILD_PID" 2>/dev/null || true
+    wait "$CHILD_PID" 2>/dev/null || true
+  fi
+  rm -rf "$TMPDIR_AGENTS" "${PROMPT_FILE:-}"
+  exit 130
+}
+
+trap cleanup SIGINT SIGTERM
 trap 'rm -rf "$TMPDIR_AGENTS"' EXIT
+
+# シグナル割り込み可能な外部コマンド実行ヘルパー
+# バックグラウンド実行 + wait により、trapがコマンド実行中でも発火可能になる
+run_interruptible() {
+  "$@" &
+  CHILD_PID=$!
+  wait $CHILD_PID
+  local status=$?
+  CHILD_PID=""
+  return $status
+}
 RESEARCH_CONTEXT="${TMPDIR_AGENTS}/research_context.md"
 DESIGN_CONTEXT="${TMPDIR_AGENTS}/design_context.md"
 REVIEW_RESULT="${TMPDIR_AGENTS}/review_result.md"
@@ -61,7 +86,6 @@ CONSTRAINTS_PROMPT=$(format_constraints_prompt)
 # スキル内容とテンプレートを結合してシステムプロンプトファイルを作成
 # =============================================================================
 PROMPT_FILE=$(mktemp)
-# TMPDIR_AGENTS のtrapに追加
 trap 'rm -rf "$TMPDIR_AGENTS" "$PROMPT_FILE"' EXIT
 
 create_prompt_file "$PROMPT_FILE"
@@ -91,7 +115,7 @@ if [[ -n "$DATASET_SOURCE" ]]; then
 - 生成完了後、以下のバリデーションスクリプトを実行して構造を検証してください:
 tsx scripts/validate-requirements.ts <生成したapp_name>"
 
-  claude -p "$PROMPT" \
+  run_interruptible claude -p "$PROMPT" \
     --append-system-prompt-file "$PROMPT_FILE" \
     --allowedTools "Read" "Write" "Glob" "Bash(mkdir:*)" "Bash(find:*)" "Bash(tsx:*)"
 
@@ -225,7 +249,7 @@ ${CONSTRAINTS_CONTEXT}
 生成完了後、以下のバリデーションスクリプトを実行して構造を検証してください:
 tsx scripts/validate-requirements.ts <生成したapp_name>"
 
-claude -p "$PROMPT" \
+run_interruptible claude -p "$PROMPT" \
   --append-system-prompt-file "$PROMPT_FILE" \
   --allowedTools "Read" "Write" "Glob" "Bash(mkdir:*)" "Bash(find:*)" "Bash(tsx:*)"
 
