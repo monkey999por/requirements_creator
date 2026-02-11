@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { parse } from "yaml";
+import { type Document, isMap, parse, parseDocument } from "yaml";
 
 const execAsync = promisify(exec);
 
@@ -455,6 +455,71 @@ app.get("/api/search", async (c) => {
   } catch {
     return c.json({ results: [], resultType: "grep" });
   }
+});
+
+// --- Config API ---
+app.get("/api/config", (c) => {
+  const configPath = resolve(projectRoot, "app.config.yaml");
+  if (!existsSync(configPath)) return c.json({ error: "Not found" }, 404);
+  const raw = readFileSync(configPath, "utf-8");
+  return c.json(parse(raw));
+});
+
+// Document APIでコメントを保持したまま値を差分更新する
+function applyToDocument(
+  doc: Document,
+  incoming: Record<string, unknown>,
+  path: (string | number)[] = [],
+) {
+  const node = path.length === 0 ? doc.contents : doc.getIn(path, true);
+
+  for (const [key, value] of Object.entries(incoming)) {
+    const childPath = [...path, key];
+    if (value === null || value === undefined) {
+      // null/undefined → キーごと削除ではなく null をセット（コメント付きキーを残す）
+      doc.setIn(childPath, null);
+    } else if (Array.isArray(value)) {
+      doc.setIn(childPath, value);
+    } else if (typeof value === "object") {
+      // 既存ノードがマップなら再帰、なければ丸ごとセット
+      const existing = doc.getIn(childPath, true);
+      if (isMap(existing)) {
+        applyToDocument(doc, value as Record<string, unknown>, childPath);
+        // incoming に無いキーを削除
+        for (const item of existing.items) {
+          const k = typeof item.key === "object" && "value" in item.key ? item.key.value : item.key;
+          if (!(String(k) in (value as Record<string, unknown>))) {
+            doc.deleteIn([...childPath, String(k)]);
+          }
+        }
+      } else {
+        doc.setIn(childPath, value);
+      }
+    } else {
+      doc.setIn(childPath, value);
+    }
+  }
+
+  // トップレベルで incoming に無いキーを削除
+  if (isMap(node)) {
+    for (const item of node.items) {
+      const k = typeof item.key === "object" && "value" in item.key ? item.key.value : item.key;
+      if (!(String(k) in incoming)) {
+        doc.deleteIn([...path, String(k)]);
+      }
+    }
+  }
+}
+
+app.put("/api/config", async (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  const configPath = resolve(projectRoot, "app.config.yaml");
+  const raw = readFileSync(configPath, "utf-8");
+  const doc = parseDocument(raw);
+  const body = await c.req.json();
+  applyToDocument(doc, body);
+  writeFileSync(configPath, doc.toString(), "utf-8");
+  return c.json({ success: true });
 });
 
 // --- Favorites API ---

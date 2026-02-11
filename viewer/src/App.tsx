@@ -13,6 +13,7 @@ import {
 } from "./api";
 import { type AppTab, AppView } from "./components/AppView";
 import { CommandRunner } from "./components/CommandRunner";
+import { ConfigEditor } from "./components/ConfigEditor";
 import { DatasetManager } from "./components/DatasetManager";
 import { FavoritePage } from "./components/FavoritePage";
 import { SearchView } from "./components/SearchView";
@@ -20,7 +21,7 @@ import { Sidebar } from "./components/Sidebar";
 import { ToastProvider } from "./components/Toast";
 import { useIsMobile } from "./hooks/useIsMobile";
 
-type ViewMode = "apps" | "datasets" | "favorites" | "commands";
+type ViewMode = "apps" | "datasets" | "favorites" | "commands" | "config";
 
 function buildUrl(state: {
   viewMode: ViewMode;
@@ -42,6 +43,8 @@ function buildUrl(state: {
     url.searchParams.set("view", "favorites");
   } else if (state.viewMode === "commands") {
     url.searchParams.set("view", "commands");
+  } else if (state.viewMode === "config") {
+    url.searchParams.set("view", "config");
   } else {
     if (state.app) url.searchParams.set("app", state.app);
     if (state.feature) url.searchParams.set("feature", state.feature);
@@ -105,8 +108,11 @@ export function App() {
     const isDatasetView = viewParam === "datasets";
     const isFavoritesView = viewParam === "favorites";
     const isCommandsView = viewParam === "commands";
-    // URL から datasets/favorites/commands ビュー復元
-    if (isCommandsView) {
+    const isConfigView = viewParam === "config";
+    // URL から datasets/favorites/commands/config ビュー復元
+    if (isConfigView) {
+      setViewMode("config");
+    } else if (isCommandsView) {
       setViewMode("commands");
     } else if (isFavoritesView) {
       setViewMode("favorites");
@@ -142,13 +148,15 @@ export function App() {
         tabParam && ["overview", "source-info", "diagrams", "features", "memo"].includes(tabParam)
           ? tabParam
           : undefined;
-      const currentViewMode = isCommandsView
-        ? "commands"
-        : isFavoritesView
-          ? "favorites"
-          : isDatasetView
-            ? "datasets"
-            : "apps";
+      const currentViewMode = isConfigView
+        ? "config"
+        : isCommandsView
+          ? "commands"
+          : isFavoritesView
+            ? "favorites"
+            : isDatasetView
+              ? "datasets"
+              : "apps";
       window.history.replaceState(
         {},
         "",
@@ -168,7 +176,11 @@ export function App() {
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
       const viewParam = params.get("view");
-      if (viewParam === "commands") {
+      if (viewParam === "config") {
+        setViewMode("config");
+        setSelectedFeature(null);
+        setSelectedTab("overview");
+      } else if (viewParam === "commands") {
         setViewMode("commands");
         setSelectedFeature(null);
         setSelectedTab("overview");
@@ -229,6 +241,14 @@ export function App() {
     setSearchActive(false);
     if (isMobile) setMobileSidebarOpen(false);
     window.history.pushState({}, "", buildUrl({ viewMode: "commands" }));
+  };
+
+  const handleSelectConfig = () => {
+    setViewMode("config");
+    setSelectedFeature(null);
+    setSearchActive(false);
+    if (isMobile) setMobileSidebarOpen(false);
+    window.history.pushState({}, "", buildUrl({ viewMode: "config" }));
   };
 
   const handleSelectFavorites = () => {
@@ -434,13 +454,15 @@ export function App() {
               </svg>
             </button>
             <span className="text-sm font-semibold text-gray-200 truncate">
-              {viewMode === "commands"
-                ? "コマンド実行"
-                : viewMode === "favorites"
-                  ? "お気に入り"
-                  : viewMode === "datasets"
-                    ? "データセット"
-                    : (selectedApp ?? "Requirements Viewer")}
+              {viewMode === "config"
+                ? "設定"
+                : viewMode === "commands"
+                  ? "コマンド実行"
+                  : viewMode === "favorites"
+                    ? "お気に入り"
+                    : viewMode === "datasets"
+                      ? "データセット"
+                      : (selectedApp ?? "Requirements Viewer")}
             </span>
           </div>
         )}
@@ -458,6 +480,7 @@ export function App() {
           onSelectDatasets={handleSelectDatasets}
           onSelectFavorites={handleSelectFavorites}
           onSelectCommands={handleSelectCommands}
+          onSelectConfig={handleSelectConfig}
           onSearch={handleSearch}
           onClearSearch={handleClearSearch}
           isSearchActive={searchActive}
@@ -471,7 +494,9 @@ export function App() {
               : "mb-3 mr-3 rounded-2xl bg-gray-900 shadow-2xl shadow-black/50 ring-1 ring-gray-800"
           }`}
         >
-          {viewMode === "commands" ? (
+          {viewMode === "config" ? (
+            <ConfigEditor isMobile={isMobile} isDev={isDev} />
+          ) : viewMode === "commands" ? (
             <CommandRunner isMobile={isMobile} isDev={isDev} />
           ) : viewMode === "favorites" ? (
             <FavoritePage

@@ -249,6 +249,57 @@ export async function removeFavorite(item: FavoriteItem): Promise<{ success: boo
   return res.json();
 }
 
+// --- Config API ---
+
+export interface AppConfig {
+  output_base_dir?: string;
+  collect?: {
+    sources?: Record<
+      string,
+      {
+        enabled?: boolean;
+        api_key_env?: string;
+        endpoint?: string;
+        params?: Record<string, string | number>;
+        output_file?: string;
+      }
+    >;
+  };
+  pipeline?: {
+    default_source?: string;
+  };
+  generate?: {
+    constraints?: Record<string, string>;
+    perspectives?: {
+      mode?: string;
+      items?: string[];
+    };
+    agents?: Record<
+      string,
+      {
+        enabled?: boolean;
+        model?: string;
+        sandbox?: string;
+        roles?: string[];
+      }
+    >;
+  };
+}
+
+export async function fetchConfig(): Promise<AppConfig> {
+  const res = await fetch(`${BASE}/config`);
+  return res.json();
+}
+
+export async function saveConfig(config: AppConfig): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE}/config`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(config),
+  });
+  return res.json();
+}
+
 // --- Commands API ---
 
 export async function fetchDataSources(): Promise<string[]> {
