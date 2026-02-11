@@ -527,6 +527,7 @@ export function AppView({
                   >
                     <SourceInfoView
                       info={sourceInfo}
+                      configYaml={configYaml}
                       onNavigateToDataset={onNavigateToDataset}
                       onNavigateToApp={onNavigateToApp}
                     />
