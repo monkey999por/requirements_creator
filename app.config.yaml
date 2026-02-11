@@ -52,6 +52,12 @@ collect:
 #       url: https://techcrunch.com/feed/
 #   output_file: rss.json
 
+# --- パイプライン共通設定 ---
+pipeline:
+  # デフォルトで使用する data_source サブディレクトリ名
+  # 省略時は最新ディレクトリを自動検出。CLIの --target / --source で上書き可能
+  # default_source: 2026_02_10_01_54_10
+
 # --- extract フェーズ設定（将来の拡張用） ---
 # extract:
 

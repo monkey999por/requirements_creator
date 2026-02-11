@@ -18,6 +18,10 @@ export interface AgentConfig {
   roles: string[];
 }
 
+export interface PipelineConfig {
+  default_source?: string;
+}
+
 export type Platform =
   | "frontend-only"
   | "fullstack"
@@ -47,6 +51,7 @@ export interface GenerateConstraints {
 
 export interface AppConfig {
   output_base_dir?: string;
+  pipeline?: PipelineConfig;
   collect: {
     sources: Record<string, SourceConfig>;
   };

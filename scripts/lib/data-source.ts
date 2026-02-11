@@ -2,6 +2,9 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { DATA_SOURCE_DIR } from "./paths.js";
 
+/** user_proposal.md のファイル名 */
+export const USER_PROPOSAL_FILE = "user_proposal.md";
+
 /** data_source配下のサブディレクトリ一覧を新しい順で返す */
 export function listDataSources(): string[] {
   if (!existsSync(DATA_SOURCE_DIR)) return [];
@@ -62,6 +65,27 @@ export function extractYoutubeTexts(data: unknown): ArticleText[] {
     }));
 }
 
+/** user_proposal.md からテキスト要素を抽出 */
+export function extractUserProposalTexts(dirName: string): ArticleText[] {
+  const filePath = join(DATA_SOURCE_DIR, dirName, USER_PROPOSAL_FILE);
+  if (!existsSync(filePath)) return [];
+  const content = readFileSync(filePath, "utf-8").trim();
+  if (!content) return [];
+
+  // Markdownの見出し(##)単位でセクションに分割
+  const sections = content.split(/^## /m).filter(Boolean);
+  if (sections.length <= 1) {
+    // 見出しがないか1セクションのみの場合はそのまま1エントリとして返す
+    return [{ title: "ユーザー提案", description: content }];
+  }
+  return sections.map((section) => {
+    const lines = section.split("\n");
+    const title = lines[0]?.trim() || "ユーザー提案";
+    const description = lines.slice(1).join("\n").trim();
+    return { title, description };
+  });
+}
+
 /** 指定ディレクトリ内の全データソースからテキストを統合取得 */
 export function loadAllTexts(dirName: string): ArticleText[] {
   const texts: ArticleText[] = [];
@@ -72,5 +96,12 @@ export function loadAllTexts(dirName: string): ArticleText[] {
   const youtube = loadJson(dirName, "youtube.json");
   if (youtube) texts.push(...extractYoutubeTexts(youtube));
 
+  texts.push(...extractUserProposalTexts(dirName));
+
   return texts;
+}
+
+/** 指定ディレクトリに user_proposal.md が存在するか */
+export function hasUserProposal(dirName: string): boolean {
+  return existsSync(join(DATA_SOURCE_DIR, dirName, USER_PROPOSAL_FILE));
 }

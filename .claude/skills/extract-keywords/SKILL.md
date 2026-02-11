@@ -25,11 +25,12 @@ allowed-tools: Read, Write, Glob, Bash
 
 ### 1. データ読み込み
 
-対象ディレクトリ内の全JSONファイル（`news.json`, `youtube.json` 等）を読み込む。
+対象ディレクトリ内の全データファイル（`news.json`, `youtube.json`, `user_proposal.md` 等）を読み込む。
 
 各データソースから以下のテキスト要素を抽出する:
 - **NewsAPI** (`news.json`): `data.articles[].title` と `data.articles[].description`
 - **YouTube** (`youtube.json`): `data.items[].snippet.title` と `data.items[].snippet.description`
+- **ユーザー提案** (`user_proposal.md`): Markdownテキスト全体。`##` 見出し単位でセクション分割して読み込む
 
 ### 2. キーワード・トレンド抽出
 

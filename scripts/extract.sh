@@ -32,8 +32,14 @@ while [[ $# -gt 0 ]]; do
 done
 
 # --- 対象ディレクトリの決定 ---
+# 1. --target オプション → 2. app.config.yaml の pipeline.default_source → 3. 最新ディレクトリ自動検出
 if [[ -z "$TARGET_DIR" ]]; then
-  TARGET_DIR=$(ls -1d "${DATA_SOURCE_DIR}"/*/ 2>/dev/null | xargs -n1 basename | sort | tail -1)
+  CONFIG_SOURCE=$(grep '^  default_source:' app.config.yaml 2>/dev/null | sed 's/^  default_source:[[:space:]]*//' | tr -d ' "'"'" || true)
+  if [[ -n "$CONFIG_SOURCE" ]]; then
+    TARGET_DIR="$CONFIG_SOURCE"
+  else
+    TARGET_DIR=$(ls -1d "${DATA_SOURCE_DIR}"/*/ 2>/dev/null | xargs -n1 basename | sort | tail -1)
+  fi
   if [[ -z "$TARGET_DIR" ]]; then
     echo "エラー: ${DATA_SOURCE_DIR}/ にデータがありません。先に pnpm collect を実行してください。"
     exit 1
@@ -46,15 +52,25 @@ if [[ ! -d "$DATA_DIR" ]]; then
   exit 1
 fi
 
-# JSONデータファイルが1つ以上存在するか
+# データファイルが1つ以上存在するか（*.json（keyword.json除く）または user_proposal.md）
 JSON_COUNT=$(find "$DATA_DIR" -maxdepth 1 -name "*.json" ! -name "keyword.json" | wc -l | tr -d ' ')
-if [[ "$JSON_COUNT" -eq 0 ]]; then
-  echo "エラー: ${DATA_DIR} にデータファイル（*.json）がありません。"
+HAS_PROPOSAL=false
+if [[ -f "${DATA_DIR}/user_proposal.md" ]]; then
+  HAS_PROPOSAL=true
+fi
+
+if [[ "$JSON_COUNT" -eq 0 ]] && ! $HAS_PROPOSAL; then
+  echo "エラー: ${DATA_DIR} にデータファイル（*.json / user_proposal.md）がありません。"
   exit 1
 fi
 
+FILE_DESC="${JSON_COUNT} JSONファイル"
+if $HAS_PROPOSAL; then
+  FILE_DESC="${FILE_DESC} + user_proposal.md"
+fi
+
 echo "=== キーワード抽出 ==="
-echo "対象: ${DATA_DIR} (${JSON_COUNT} ファイル)"
+echo "対象: ${DATA_DIR} (${FILE_DESC})"
 echo ""
 
 # --- スキル内容からシステムプロンプトファイルを作成 ---
