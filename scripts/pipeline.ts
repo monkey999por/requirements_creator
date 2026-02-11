@@ -11,6 +11,8 @@ interface PipelineOptions {
   skipExtract: boolean;
   source?: string;
   dataset?: string;
+  regenerate?: string;
+  memo?: string;
 }
 
 type StepStatus = "success" | "skipped" | "failed";
@@ -63,6 +65,22 @@ function parseArgs(argv: string[]): PipelineOptions {
         }
         i += 2;
         break;
+      case "--regenerate":
+        opts.regenerate = argv[i + 1];
+        if (!opts.regenerate) {
+          console.error("エラー: --regenerate にはアプリ名を指定してください。");
+          process.exit(1);
+        }
+        i += 2;
+        break;
+      case "--memo":
+        opts.memo = argv[i + 1];
+        if (!opts.memo) {
+          console.error("エラー: --memo にはテキストを指定してください。");
+          process.exit(1);
+        }
+        i += 2;
+        break;
       case "-h":
       case "--help":
         printHelp();
@@ -82,11 +100,13 @@ function printHelp(): void {
 データ収集 → キーワード抽出 → 要件生成 を一括実行します。
 
 Options:
-  --skip-collect   既存データを使いキーワード抽出から開始
-  --skip-extract   既存キーワードを使い要件生成のみ実行
-  --source <dir>   使用する data_source サブディレクトリを指定
-  --dataset <name> データセットをソースとして要件生成（collect/extractスキップ）
-  -h, --help       ヘルプ表示`);
+  --skip-collect        既存データを使いキーワード抽出から開始
+  --skip-extract        既存キーワードを使い要件生成のみ実行
+  --source <dir>        使用する data_source サブディレクトリを指定
+  --dataset <name>      データセットをソースとして要件生成（collect/extractスキップ）
+  --regenerate <app>    既存アプリ要件をmemo.mdベースで再生成
+  --memo "text"         再生成時にmemo.mdに書き込むテキスト（--regenerateと併用）
+  -h, --help            ヘルプ表示`);
 }
 
 // --- 子プロセス実行ヘルパー ---
@@ -157,6 +177,54 @@ function buildDatasetSource(datasetName: string): string {
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
   const results: StepResult[] = [];
+
+  // 再生成モード
+  if (opts.regenerate) {
+    const appName = opts.regenerate;
+    const appDir = join(REQUIREMENTS_DIR, appName);
+
+    if (!existsSync(appDir)) {
+      console.error(`エラー: ${appDir} が見つかりません。`);
+      process.exit(1);
+    }
+
+    console.log(`=== パイプライン（再生成モード）===\n`);
+    console.log(`対象アプリ: ${appName}\n`);
+
+    results.push({ name: "collect", status: "skipped" });
+    results.push({ name: "extract", status: "skipped" });
+
+    // regenerate
+    console.log("[regenerate] 要件再生成を開始...\n");
+    try {
+      const args = ["scripts/regenerate.sh", appName];
+      if (opts.memo) {
+        args.push("--memo", opts.memo);
+      }
+      await runStep("bash", args);
+      console.log("");
+      results.push({ name: "regenerate", status: "success" });
+    } catch (err) {
+      console.error(`\nregenerate 失敗: ${err instanceof Error ? err.message : err}`);
+      results.push({ name: "regenerate", status: "failed" });
+      printSummary(results);
+      process.exit(1);
+    }
+
+    // validate
+    console.log(`[validate] ${appName} を検証...\n`);
+    try {
+      await runStep("tsx", ["scripts/validate-requirements.ts", appName]);
+      console.log("");
+      results.push({ name: "validate", status: "success" });
+    } catch (err) {
+      console.error(`\nvalidate 失敗: ${err instanceof Error ? err.message : err}`);
+      results.push({ name: "validate", status: "failed" });
+    }
+
+    printSummary(results, undefined, [appName]);
+    return;
+  }
 
   // データセットモード
   if (opts.dataset) {
