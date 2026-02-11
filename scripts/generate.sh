@@ -82,6 +82,9 @@ source "${SCRIPT_DIR}/lib/generate-helpers.sh"
 read_constraints
 CONSTRAINTS_PROMPT=$(format_constraints_prompt)
 
+read_perspectives
+PERSPECTIVES_PROMPT=$(format_perspectives_prompt)
+
 # =============================================================================
 # スキル内容とテンプレートを結合してシステムプロンプトファイルを作成
 # =============================================================================
@@ -185,6 +188,18 @@ if $HAS_CONSTRAINTS; then
   echo ""
 fi
 
+# --- 生成観点の表示 ---
+if [[ -n "$PERSPECTIVE_MODE" ]]; then
+  echo "--- 生成観点 ---"
+  echo "  mode: ${PERSPECTIVE_MODE}"
+  if [[ -n "${RESOLVED_PERSPECTIVES:-}" ]]; then
+    echo "  items: ${RESOLVED_PERSPECTIVES}"
+  elif [[ -n "$PERSPECTIVE_ITEMS" ]]; then
+    echo "  items: ${PERSPECTIVE_ITEMS}"
+  fi
+  echo ""
+fi
+
 # --- 生成前のアプリ一覧を記録（新規アプリ検出用） ---
 APPS_BEFORE=$(ls -1 "${REQUIREMENTS_DIR}" 2>/dev/null || true)
 
@@ -240,11 +255,23 @@ if [[ -n "$CONSTRAINTS_PROMPT" ]]; then
 ${CONSTRAINTS_PROMPT}"
 fi
 
+# 生成観点をプロンプトに追加
+PERSPECTIVES_CONTEXT=""
+if [[ -n "$PERSPECTIVES_PROMPT" ]]; then
+  PERSPECTIVES_CONTEXT="
+
+## 生成観点
+以下の生成観点が設定されています。アプリの体験設計・機能設計・マネタイズ戦略に深く反映してください。
+また、_source_info.json の perspectives フィールドに適用した観点を記録してください。
+${PERSPECTIVES_PROMPT}"
+fi
+
 PROMPT="以下のkeyword.jsonを読み込み、上記の要件生成スキルの手順に従ってアプリの要件を生成してください。
 対象ディレクトリ: ${TARGET_DIR}
 keyword.jsonパス: ${KEYWORD_FILE}
 ${EXTRA_CONTEXT}
 ${CONSTRAINTS_CONTEXT}
+${PERSPECTIVES_CONTEXT}
 
 生成完了後、以下のバリデーションスクリプトを実行して構造を検証してください:
 tsx scripts/validate-requirements.ts <生成したapp_name>"

@@ -49,6 +49,14 @@ export interface GenerateConstraints {
   tech_stack?: TechStackConstraints;
 }
 
+export type Perspective = "kindness" | "cunning" | "frustration" | "dopamine" | "target-focus";
+export type PerspectiveMode = "single" | "combine" | "random";
+
+export interface PerspectivesConfig {
+  mode: PerspectiveMode;
+  items?: Perspective[];
+}
+
 export interface AppConfig {
   output_base_dir?: string;
   pipeline?: PipelineConfig;
@@ -57,6 +65,7 @@ export interface AppConfig {
   };
   generate?: {
     constraints?: GenerateConstraints;
+    perspectives?: PerspectivesConfig;
     agents?: Record<string, AgentConfig>;
   };
 }
