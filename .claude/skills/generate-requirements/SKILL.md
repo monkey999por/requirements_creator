@@ -85,7 +85,7 @@ Bashで `mkdir -p gen/requirements/{app_name}/features` を実行する。
 - `source`: 使用した data_source ディレクトリ名と収集日時
 - `keywords`: 採用したキーワードと関連度スコア
 - `tags`: `gen/tags.json` に定義されたタグ値から **最低3つ** 選択（該当するタグがない場合は新しいタグを `gen/tags.json` に追加してから使用すること）
-- `constraints`（オプション）: 制約条件が指定されている場合、適用した制約を記録する（`platform`, `budget`, `difficulty`, `team_size`）
+- `constraints`（オプション）: 制約条件が指定されている場合、適用した制約を記録する（`platform`, `budget`, `difficulty`, `team_size`, `tech_stack`）
 - `description`: このアプリ案に至った思考の経緯
 
 **データセットモードの場合**: `dataset` フィールドを追加し、`source.directory` を `dataset://{データセット名}` 形式にする。`dataset.sourceApps` にはデータセットに含まれる全アイテム（appName, type, featureId, title）を列挙する。詳細は[テンプレート参照](templates.md)の「データセットモード用」セクションを参照。
@@ -100,7 +100,8 @@ Bashで `mkdir -p gen/requirements/{app_name}/features` を実行する。
 - ターゲットユーザー
 - 機能一覧テーブル（5〜8機能。ID・機能名・概要・優先度）
 - マネタイズ（具体的な収益モデル）
-- 技術スタック提案
+- コスト分析（初期開発コスト、月額運用コスト、収支シミュレーション。具体的な金額を日本円で記載する）
+- 技術スタック提案（制約条件で `tech_stack` が指定されている場合、指定技術を必ずベースとして採用し、不足分のみ補完する。指定技術を別の技術に置き換えてはならない）
 - 運用方針
 
 **出力先**: `gen/requirements/{app_name}/overview.md`
@@ -154,7 +155,7 @@ tsx scripts/validate-requirements.ts {app_name}
 - `app_name` がkebab-case、featureファイル名が `{nn}_{snake_case}.md` であること
 - 連番が01から連続していること
 - overview.mdの機能一覧テーブルの機能数とfeatureファイル数の一致
-- 各ファイルの必須セクションの存在（overview: コンセプト/ターゲットユーザー/機能一覧/マネタイズ/技術スタック/運用方針、feature: 概要/画面構成/ユーザーフロー/データモデル/API設計/非機能要件）
+- 各ファイルの必須セクションの存在（overview: コンセプト/ターゲットユーザー/機能一覧/マネタイズ/コスト分析/技術スタック/運用方針、feature: 概要/画面構成/ユーザーフロー/データモデル/API設計/非機能要件）
 
 **エラーが出た場合は、該当ファイルを修正して再度バリデーションを実行すること。全チェック通過するまで繰り返す。**
 

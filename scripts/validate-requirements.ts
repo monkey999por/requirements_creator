@@ -9,6 +9,7 @@ const OVERVIEW_REQUIRED_SECTIONS = [
   "ターゲットユーザー",
   "機能一覧",
   "マネタイズ",
+  "コスト分析",
   "技術スタック",
   "運用方針",
 ];
@@ -31,11 +32,21 @@ interface DatasetSourceApp {
   title?: string;
 }
 
+interface TechStackJson {
+  frontend?: string;
+  backend?: string;
+  database?: string;
+  hosting?: string;
+  auth?: string;
+  other?: string[];
+}
+
 interface ConstraintsJson {
   platform?: string;
   budget?: string;
   difficulty?: string;
   team_size?: string;
+  tech_stack?: TechStackJson;
 }
 
 interface SourceInfoJson {
@@ -193,6 +204,24 @@ function validate(appName: string): ValidationError[] {
             file: "_source_info.json",
             message: `constraints.team_sizeの値が不正です: "${data.constraints.team_size}"（有効値: ${validTeamSizes.join(", ")}）`,
           });
+        }
+        if (data.constraints.tech_stack) {
+          const ts = data.constraints.tech_stack;
+          const validKeys = ["frontend", "backend", "database", "hosting", "auth", "other"];
+          for (const key of Object.keys(ts)) {
+            if (!validKeys.includes(key)) {
+              errors.push({
+                file: "_source_info.json",
+                message: `constraints.tech_stackに未知のキーがあります: "${key}"（有効キー: ${validKeys.join(", ")}）`,
+              });
+            }
+          }
+          if (ts.other && !Array.isArray(ts.other)) {
+            errors.push({
+              file: "_source_info.json",
+              message: "constraints.tech_stack.otherは文字列の配列である必要があります",
+            });
+          }
         }
       }
 

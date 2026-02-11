@@ -62,6 +62,15 @@ read_constraints() {
   CONSTRAINT_BUDGET=$(echo "$block" | awk '/constraints:/{c=1} c && /budget:/{print $2; exit}' | tr -d ' "'"'" || true)
   CONSTRAINT_DIFFICULTY=$(echo "$block" | awk '/constraints:/{c=1} c && /difficulty:/{print $2; exit}' | tr -d ' "'"'" || true)
   CONSTRAINT_TEAM_SIZE=$(echo "$block" | awk '/constraints:/{c=1} c && /team_size:/{print $2; exit}' | tr -d ' "'"'" || true)
+
+  # tech_stack の読み込み
+  CONSTRAINT_TS_FRONTEND=$(echo "$block" | awk '/tech_stack:/{c=1} c && /frontend:/{gsub(/^[^:]+:[[:space:]]*/, ""); print; exit}' | tr -d '"'"'" || true)
+  CONSTRAINT_TS_BACKEND=$(echo "$block" | awk '/tech_stack:/{c=1} c && /backend:/{gsub(/^[^:]+:[[:space:]]*/, ""); print; exit}' | tr -d '"'"'" || true)
+  CONSTRAINT_TS_DATABASE=$(echo "$block" | awk '/tech_stack:/{c=1} c && /database:/{gsub(/^[^:]+:[[:space:]]*/, ""); print; exit}' | tr -d '"'"'" || true)
+  CONSTRAINT_TS_HOSTING=$(echo "$block" | awk '/tech_stack:/{c=1} c && /hosting:/{gsub(/^[^:]+:[[:space:]]*/, ""); print; exit}' | tr -d '"'"'" || true)
+  CONSTRAINT_TS_AUTH=$(echo "$block" | awk '/tech_stack:/{c=1} c && /auth:/{gsub(/^[^:]+:[[:space:]]*/, ""); print; exit}' | tr -d '"'"'" || true)
+  # other: リスト（"- value" 形式）を読み取り
+  CONSTRAINT_TS_OTHER=$(echo "$block" | awk '/tech_stack:/{ts=1} ts && /other:/{o=1; next} o && /^[[:space:]]*- /{gsub(/^[[:space:]]*- */, ""); items=items sep $0; sep=", "; next} o && !/^[[:space:]]*-/{o=0} END{print items}' | tr -d '"'"'" || true)
 }
 
 # 制約条件をプロンプト用テキストに変換
@@ -80,7 +89,16 @@ format_constraints_prompt() {
     parts+=("Team size: ${CONSTRAINT_TEAM_SIZE} (solo=1, small=2-3, medium=4-8, large=9+)")
   fi
 
-  if [[ ${#parts[@]} -eq 0 ]]; then
+  # tech_stack の組み立て
+  local ts_parts=()
+  [[ -n "$CONSTRAINT_TS_FRONTEND" ]] && ts_parts+=("Frontend: ${CONSTRAINT_TS_FRONTEND}")
+  [[ -n "$CONSTRAINT_TS_BACKEND" ]] && ts_parts+=("Backend: ${CONSTRAINT_TS_BACKEND}")
+  [[ -n "$CONSTRAINT_TS_DATABASE" ]] && ts_parts+=("Database: ${CONSTRAINT_TS_DATABASE}")
+  [[ -n "$CONSTRAINT_TS_HOSTING" ]] && ts_parts+=("Hosting: ${CONSTRAINT_TS_HOSTING}")
+  [[ -n "$CONSTRAINT_TS_AUTH" ]] && ts_parts+=("Auth: ${CONSTRAINT_TS_AUTH}")
+  [[ -n "$CONSTRAINT_TS_OTHER" ]] && ts_parts+=("Other services/libraries: ${CONSTRAINT_TS_OTHER}")
+
+  if [[ ${#parts[@]} -eq 0 && ${#ts_parts[@]} -eq 0 ]]; then
     echo ""
     return
   fi
@@ -93,6 +111,17 @@ CONSTRAINTS (the app concept MUST fit within these constraints):
     result="${result}- ${p}
 "
   done
+
+  if [[ ${#ts_parts[@]} -gt 0 ]]; then
+    result="${result}
+REQUIRED TECHNOLOGY STACK (these technologies MUST be used as the base. You may add supplementary tools/libraries but MUST NOT replace these):
+"
+    for tp in "${ts_parts[@]}"; do
+      result="${result}- ${tp}
+"
+    done
+  fi
+
   result="${result}
 Design the app so that it can realistically be built and operated within these constraints. Choose appropriate technology stack and scope accordingly."
   echo "$result"
@@ -506,12 +535,25 @@ if ! $SKIP_AGENTS; then
 fi
 
 # --- 制約条件の表示 ---
-if [[ -n "$CONSTRAINT_PLATFORM" || -n "$CONSTRAINT_BUDGET" || -n "$CONSTRAINT_DIFFICULTY" || -n "$CONSTRAINT_TEAM_SIZE" ]]; then
+HAS_CONSTRAINTS=false
+[[ -n "$CONSTRAINT_PLATFORM" || -n "$CONSTRAINT_BUDGET" || -n "$CONSTRAINT_DIFFICULTY" || -n "$CONSTRAINT_TEAM_SIZE" ]] && HAS_CONSTRAINTS=true
+[[ -n "$CONSTRAINT_TS_FRONTEND" || -n "$CONSTRAINT_TS_BACKEND" || -n "$CONSTRAINT_TS_DATABASE" || -n "$CONSTRAINT_TS_HOSTING" || -n "$CONSTRAINT_TS_AUTH" || -n "$CONSTRAINT_TS_OTHER" ]] && HAS_CONSTRAINTS=true
+
+if $HAS_CONSTRAINTS; then
   echo "--- 制約条件 ---"
   [[ -n "$CONSTRAINT_PLATFORM" ]] && echo "  platform: ${CONSTRAINT_PLATFORM}"
   [[ -n "$CONSTRAINT_BUDGET" ]] && echo "  budget: ${CONSTRAINT_BUDGET}"
   [[ -n "$CONSTRAINT_DIFFICULTY" ]] && echo "  difficulty: ${CONSTRAINT_DIFFICULTY}"
   [[ -n "$CONSTRAINT_TEAM_SIZE" ]] && echo "  team_size: ${CONSTRAINT_TEAM_SIZE}"
+  if [[ -n "$CONSTRAINT_TS_FRONTEND" || -n "$CONSTRAINT_TS_BACKEND" || -n "$CONSTRAINT_TS_DATABASE" || -n "$CONSTRAINT_TS_HOSTING" || -n "$CONSTRAINT_TS_AUTH" || -n "$CONSTRAINT_TS_OTHER" ]]; then
+    echo "  tech_stack:"
+    [[ -n "$CONSTRAINT_TS_FRONTEND" ]] && echo "    frontend: ${CONSTRAINT_TS_FRONTEND}"
+    [[ -n "$CONSTRAINT_TS_BACKEND" ]] && echo "    backend: ${CONSTRAINT_TS_BACKEND}"
+    [[ -n "$CONSTRAINT_TS_DATABASE" ]] && echo "    database: ${CONSTRAINT_TS_DATABASE}"
+    [[ -n "$CONSTRAINT_TS_HOSTING" ]] && echo "    hosting: ${CONSTRAINT_TS_HOSTING}"
+    [[ -n "$CONSTRAINT_TS_AUTH" ]] && echo "    auth: ${CONSTRAINT_TS_AUTH}"
+    [[ -n "$CONSTRAINT_TS_OTHER" ]] && echo "    other: ${CONSTRAINT_TS_OTHER}"
+  fi
   echo ""
 fi
 
