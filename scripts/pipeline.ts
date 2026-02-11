@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { getLatestDataSource, loadAllTexts, loadJson } from "./lib/data-source.js";
@@ -88,12 +88,32 @@ Options:
   -h, --help       ヘルプ表示`);
 }
 
+// --- 子プロセス管理 ---
+let activeChild: ChildProcess | null = null;
+
+function cleanup() {
+  if (activeChild) {
+    console.log("\n中断シグナルを受信しました。子プロセスを終了しています...");
+    activeChild.kill("SIGTERM");
+    activeChild = null;
+  }
+  process.exit(130);
+}
+
+process.on("SIGINT", cleanup);
+process.on("SIGTERM", cleanup);
+
 // --- 子プロセス実行ヘルパー ---
 function runStep(cmd: string, args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn(cmd, args, { stdio: "inherit" });
-    child.on("error", (err) => reject(new Error(`コマンド起動失敗: ${err.message}`)));
+    activeChild = child;
+    child.on("error", (err) => {
+      activeChild = null;
+      reject(new Error(`コマンド起動失敗: ${err.message}`));
+    });
     child.on("close", (code) => {
+      activeChild = null;
       if (code !== 0) {
         reject(new Error(`コマンドが終了コード ${code} で失敗しました`));
       } else {

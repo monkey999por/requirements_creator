@@ -59,6 +59,15 @@ echo ""
 
 # --- スキル内容からシステムプロンプトファイルを作成 ---
 PROMPT_FILE=$(mktemp)
+
+cleanup() {
+  echo "" >&2
+  echo "中断シグナルを受信しました。スクリプトを終了しています..." >&2
+  rm -f "$PROMPT_FILE"
+  exit 130
+}
+
+trap cleanup SIGINT SIGTERM
 trap 'rm -f "$PROMPT_FILE"' EXIT
 
 # フロントマターを除去してスキル本文を抽出

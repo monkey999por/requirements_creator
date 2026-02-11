@@ -17,6 +17,15 @@ REQUIREMENTS_DIR="${OUTPUT_BASE}/requirements"
 
 # --- 一時ファイル管理 ---
 TMPDIR_AGENTS=$(mktemp -d)
+
+cleanup() {
+  echo "" >&2
+  echo "中断シグナルを受信しました。スクリプトを終了しています..." >&2
+  rm -rf "$TMPDIR_AGENTS"
+  exit 130
+}
+
+trap cleanup SIGINT SIGTERM
 trap 'rm -rf "$TMPDIR_AGENTS"' EXIT
 RESEARCH_CONTEXT="${TMPDIR_AGENTS}/research_context.md"
 DESIGN_CONTEXT="${TMPDIR_AGENTS}/design_context.md"
@@ -455,7 +464,14 @@ Output format:
 # スキル内容とテンプレートを結合してシステムプロンプトファイルを作成
 # =============================================================================
 PROMPT_FILE=$(mktemp)
-# TMPDIR_AGENTS のtrapに追加
+# cleanup関数を更新してPROMPT_FILEも含める
+cleanup() {
+  echo "" >&2
+  echo "中断シグナルを受信しました。スクリプトを終了しています..." >&2
+  rm -rf "$TMPDIR_AGENTS" "$PROMPT_FILE"
+  exit 130
+}
+trap cleanup SIGINT SIGTERM
 trap 'rm -rf "$TMPDIR_AGENTS" "$PROMPT_FILE"' EXIT
 
 # フロントマターを除去してスキル本文を抽出
