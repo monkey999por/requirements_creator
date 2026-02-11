@@ -14,6 +14,7 @@ import { DATA_SOURCE_DIR, DATASETS_DIR, REQUIREMENTS_DIR } from "./lib/paths.js"
 interface PipelineOptions {
   skipCollect: boolean;
   skipExtract: boolean;
+  direct: boolean;
   source?: string;
   dataset?: string;
   regenerate?: string;
@@ -42,7 +43,7 @@ interface Dataset {
 
 // --- 引数パース ---
 function parseArgs(argv: string[]): PipelineOptions {
-  const opts: PipelineOptions = { skipCollect: false, skipExtract: false };
+  const opts: PipelineOptions = { skipCollect: false, skipExtract: false, direct: false };
   let i = 0;
   while (i < argv.length) {
     switch (argv[i]) {
@@ -51,6 +52,11 @@ function parseArgs(argv: string[]): PipelineOptions {
         i++;
         break;
       case "--skip-extract":
+        opts.skipExtract = true;
+        i++;
+        break;
+      case "--direct":
+        opts.direct = true;
         opts.skipExtract = true;
         i++;
         break;
@@ -107,6 +113,7 @@ function printHelp(): void {
 Options:
   --skip-collect        既存データを使いキーワード抽出から開始
   --skip-extract        既存キーワードを使い要件生成のみ実行
+  --direct              キーワード抽出をスキップし、テキストデータから直接要件生成
   --source <dir>        使用する data_source サブディレクトリを指定
   --dataset <name>      データセットをソースとして要件生成（collect/extractスキップ）
   --regenerate <app>    既存アプリ要件をmemo.mdベースで再生成
@@ -382,7 +389,10 @@ async function main() {
   console.log(`対象ディレクトリ: ${DATA_SOURCE_DIR}/${targetDir}\n`);
 
   // Step 2: extract
-  if (opts.skipExtract) {
+  if (opts.direct) {
+    console.log("[Step 2] extract: スキップ（ダイレクトモード）\n");
+    results.push({ name: "extract", status: "skipped" });
+  } else if (opts.skipExtract) {
     console.log("[Step 2] extract: スキップ\n");
     const keywordPath = resolve(DATA_SOURCE_DIR, targetDir, "keyword.json");
     if (!existsSync(keywordPath)) {
@@ -412,9 +422,14 @@ async function main() {
 
   // Step 3: generate
   const appsBefore = new Set(listRequirementApps());
-  console.log("[Step 3] generate: 要件生成を開始...\n");
+  const generateLabel = opts.direct ? "要件生成（ダイレクトモード）" : "要件生成";
+  console.log(`[Step 3] generate: ${generateLabel}を開始...\n`);
   try {
-    await runStep("bash", ["scripts/generate.sh", "--target", targetDir]);
+    const generateArgs = ["scripts/generate.sh", "--target", targetDir];
+    if (opts.direct) {
+      generateArgs.push("--direct");
+    }
+    await runStep("bash", generateArgs);
     console.log("");
     results.push({ name: "generate", status: "success" });
   } catch (err) {

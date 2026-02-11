@@ -89,11 +89,23 @@ pnpm extract -- --target 2025_02_09_14_30_00
 | 過去の特定データから再抽出 | `pnpm extract -- --target 2025_01_15_10_00_00` |
 | どのデータがあるか確認してから実行 | `ls gen/data_source/` → `pnpm extract -- --target <選んだディレクトリ>` |
 
+#### 対応データソース
+
+以下のファイル形式をデータソースとして自動認識する:
+
+- `*.json`（`keyword.json` を除く）: APIから取得した構造化データ（news.json, youtube.json等）
+- `*.md`: Markdownテキスト（`##` 見出し単位でセクション分割して読み込み）
+- `*.txt`: プレーンテキスト（ファイル全体を1エントリとして読み込み）
+
 #### 入出力
 
 ```
-# 入力
-gen/data_source/2025_02_09_14_30_00/news.json
+# 入力（対応する全ファイルが自動読み込みされる）
+gen/data_source/2025_02_09_14_30_00/
+├── news.json           # APIデータ
+├── user_proposal.md    # ユーザー提案（任意）
+├── ideas.txt           # テキストメモ（任意）
+└── research_notes.md   # 調査メモ（任意）
 
 # 出力（同じディレクトリに追加される）
 gen/data_source/2025_02_09_14_30_00/keyword.json
@@ -103,7 +115,7 @@ gen/data_source/2025_02_09_14_30_00/keyword.json
 
 ### `pnpm generate` - 要件生成
 
-キーワードからアプリ案を構想し、要件定義（overview + diagrams + features）を自動生成する。
+キーワードまたはテキストデータからアプリ案を構想し、要件定義（overview + diagrams + features）を自動生成する。
 
 #### 基本パターン
 
@@ -113,6 +125,12 @@ pnpm generate
 
 # 特定のdata_sourceを指定
 pnpm generate -- --target 2025_02_09_14_30_00
+
+# ダイレクトモード（キーワード抽出をスキップし、テキストデータから直接生成）
+pnpm generate -- --direct
+
+# ダイレクトモード + 特定のdata_sourceを指定
+pnpm generate -- --direct --target 2025_02_09_14_30_00
 
 # データセットモード（既存要件の組み合わせから新アプリを生成）
 pnpm generate -- --dataset-source gen/datasets/my_dataset.md --dataset-name my_dataset
@@ -124,7 +142,24 @@ pnpm generate -- --dataset-source gen/datasets/my_dataset.md --dataset-name my_d
 |---------|---------|
 | 新しいアプリ案を生成 | `pnpm generate` |
 | 過去のキーワードからやり直し | `pnpm generate -- --target 2025_01_15_10_00_00` |
+| ユーザーの思いつきメモから直接生成 | `pnpm generate -- --direct` |
 | 既存アプリの組み合わせで新アプリ | `pnpm generate -- --dataset-source <file> --dataset-name <name>` |
+
+#### ダイレクトモード（`--direct`）
+
+キーワード抽出を介さず、テキストデータの内容を直接読み込んで要件を生成するモード。以下のようなケースで有用:
+
+- ユーザーが書いたアプリ案メモ（`user_proposal.md`等）をそのまま詳細化したい
+- キーワード化するとユーザーとAIの解釈不一致が生じる場合
+- 構造化されていないテキストデータを入力にしたい
+
+```bash
+# data_source/ にテキストファイルを配置
+echo "SNSの投稿を自動分類するアプリ" > gen/data_source/2025_02_09_14_30_00/idea.txt
+
+# ダイレクトモードで生成（keyword.json不要）
+pnpm generate -- --direct --target 2025_02_09_14_30_00
+```
 
 #### 出力構造
 
@@ -132,7 +167,10 @@ pnpm generate -- --dataset-source gen/datasets/my_dataset.md --dataset-name my_d
 gen/requirements/{app_name}/
 ├── _source_info.json    # メタデータ（ソース情報、キーワード、タグ）
 ├── overview.md          # アプリ概要（コンセプト、機能一覧、技術スタック等）
-├── diagrams.md          # 設計図（画面遷移図、ユーザーフロー、システム構成図）
+├── memo.md              # メモ（Viewerから編集可能、dev modeのみ）
+├── diagrams/            # 設計図（Mermaid記法）
+│   ├── 01_screen_transition.md   # 画面遷移図（必須）
+│   └── 02_user_flow.md           # ユーザーフロー等
 └── features/
     ├── 01_feature_name.md   # 各機能の詳細仕様
     ├── 02_feature_name.md
@@ -217,13 +255,13 @@ tsx scripts/validate-requirements.ts trust-lens
 
 #### 検証項目
 
-- ディレクトリ・ファイルの存在（overview.md, diagrams.md, features/, _source_info.json）
+- ディレクトリ・ファイルの存在（overview.md, diagrams/, features/, _source_info.json）
 - 命名規則（app_name: kebab-case、feature: nn_snake_case.md）
-- overview.mdの必須セクション（コンセプト、ターゲットユーザー、機能一覧、マネタイズ、技術スタック、運用方針）
-- diagrams.mdのD2コードブロック・シーケンス図の存在
+- overview.mdの必須セクション（コンセプト、ターゲットユーザー、機能一覧、マネタイズ、コスト分析、技術スタック、運用方針）
+- diagrams/配下のMermaid記法の図解ファイル
 - 各featureの必須セクション（概要、画面構成、ユーザーフロー、データモデル、API設計、非機能要件）
 - overview.mdの機能数とfeatureファイル数の一致
-- _source_info.jsonのスキーマ検証（tags、keywords等）
+- _source_info.jsonのスキーマ検証（tags、keywords等。keywordsは空配列も許可）
 
 ---
 
@@ -242,6 +280,12 @@ pnpm pipeline -- --skip-collect
 
 # 収集＋抽出をスキップ（既にkeyword.jsonがある場合）
 pnpm pipeline -- --skip-collect --skip-extract
+
+# ダイレクトモード（テキストデータから直接要件生成、キーワード抽出スキップ）
+pnpm pipeline -- --skip-collect --direct
+
+# ダイレクトモード + 特定のdata_sourceを指定
+pnpm pipeline -- --skip-collect --direct --source 2025_02_09_14_30_00
 
 # 特定のdata_sourceを使ってパイプライン実行
 pnpm pipeline -- --source 2025_02_09_14_30_00
@@ -263,6 +307,7 @@ pnpm pipeline -- --regenerate trust-lens --memo "技術スタックをNext.jsに
 | 初めて実行 / 最新トレンドで全自動 | `pnpm pipeline` |
 | APIクォータ節約（既存データ再利用） | `pnpm pipeline -- --skip-collect` |
 | キーワードを手動調整した後に再生成 | `pnpm pipeline -- --skip-collect --skip-extract` |
+| テキストメモから直接アプリ案を生成 | `pnpm pipeline -- --skip-collect --direct` |
 | 過去の特定データで再実行 | `pnpm pipeline -- --source 2025_01_15_10_00_00` |
 | Viewerで作ったデータセットから生成 | `pnpm pipeline -- --dataset my_dataset` |
 | 既存アプリをmemoベースで再生成 | `pnpm pipeline -- --regenerate <app_name>` |
@@ -276,11 +321,19 @@ pnpm pipeline
   │
   ├─ [1] collect    ← --skip-collect で省略可
   │     ↓
-  ├─ [2] extract    ← --skip-extract で省略可
+  ├─ [2] extract    ← --skip-extract で省略可 / --direct で自動スキップ
   │     ↓
-  ├─ [3] generate
+  ├─ [3] generate   ← --direct でダイレクトモード（テキスト直接入力）
   │     ↓
   └─ [4] validate   ← 新規生成アプリのみ自動検証
+
+pnpm pipeline --direct   ← ダイレクトモード（キーワード抽出スキップ）
+  │
+  ├─ [1] collect    ← --skip-collect で省略可
+  ├─ [2] extract    → 自動スキップ
+  ├─ [3] generate   ← テキストデータから直接要件生成
+  │     ↓
+  └─ [4] validate   ← 新規生成アプリを検証
 
 pnpm pipeline --regenerate <app>   ← 再生成モード（collect/extractスキップ）
   │
@@ -308,7 +361,8 @@ pnpm viewer
 
 - アプリ一覧の閲覧・検索（全文検索 / タグ検索）
 - Overview / Source Info / Diagrams / Features / Memo タブ切り替え
-- D2図解のSVGレンダリング表示
+- Mermaid図解のレンダリング表示
+- お気に入り管理
 - データセットの作成・管理
 - Commit & Push（devモードのみ）
 
@@ -408,12 +462,32 @@ pnpm regenerate trust-lens -- --memo "ターゲットを個人投資家に絞り
 pnpm viewer
 ```
 
-### 6. 手動でdiagrams.mdを編集した後の検証
+### 6. ユーザーの思いつきメモから直接アプリ案を生成
+
+```bash
+# data_source/ にテキストファイルを手動配置
+mkdir -p gen/data_source/my_idea
+cat > gen/data_source/my_idea/proposal.md << 'EOF'
+## ペットの健康管理アプリ
+毎日の食事・運動・体重を記録し、獣医との共有もできる
+## 特徴
+- 写真で食事記録
+- 散歩のGPSトラッキング
+EOF
+
+# ダイレクトモードで直接要件生成（キーワード抽出をスキップ）
+pnpm pipeline -- --skip-collect --direct --source my_idea
+
+# ビューワーで確認
+pnpm viewer
+```
+
+### 7. 手動でdiagramsを編集した後の検証
 
 ```bash
 # 編集後にバリデーション
 pnpm generate:validate my-app
 
-# ビューワーでD2図解の表示確認
+# ビューワーでMermaid図解の表示確認
 pnpm viewer
 ```

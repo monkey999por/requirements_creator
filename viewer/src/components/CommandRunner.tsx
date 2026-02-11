@@ -68,14 +68,20 @@ const COMMANDS: CommandDef[] = [
     id: "generate",
     label: "generate",
     description:
-      "キーワードからアプリ案を構想し、要件定義を自動生成する。データセットモードでは既存要件の組み合わせから新アプリを生成。",
+      "キーワードまたはテキストデータからアプリ案を構想し、要件定義を自動生成する。ダイレクトモードではキーワード抽出をスキップして直接生成。データセットモードでは既存要件の組み合わせから新アプリを生成。",
     options: [
       {
         id: "target",
-        label: "データソース（通常モード）",
+        label: "データソース",
         type: "select",
         dynamicChoicesUrl: "/api/commands/data-sources",
         argFlag: "--target",
+      },
+      {
+        id: "direct",
+        label: "ダイレクトモード（キーワード抽出スキップ、テキストから直接生成）",
+        type: "checkbox",
+        argFlag: "--direct",
       },
       {
         id: "datasetSource",
@@ -144,7 +150,8 @@ const COMMANDS: CommandDef[] = [
   {
     id: "pipeline",
     label: "pipeline",
-    description: "collect → extract → generate → validate を一括実行する。",
+    description:
+      "collect → extract → generate → validate を一括実行する。ダイレクトモードではextractをスキップしてテキストから直接生成。",
     options: [
       {
         id: "skipCollect",
@@ -157,6 +164,12 @@ const COMMANDS: CommandDef[] = [
         label: "extractをスキップ",
         type: "checkbox",
         argFlag: "--skip-extract",
+      },
+      {
+        id: "direct",
+        label: "ダイレクトモード（extractスキップ、テキストから直接生成）",
+        type: "checkbox",
+        argFlag: "--direct",
       },
       {
         id: "source",

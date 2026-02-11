@@ -12,8 +12,14 @@ allowed-tools: Read, Write, Glob, Bash
 
 ## 対象の決定
 
+### 通常モード（keyword.jsonベース）
 - `$ARGUMENTS` が指定されている場合: `gen/data_source/$ARGUMENTS/keyword.json` を使用
 - 指定がない場合: `gen/data_source/` 配下で最新のサブディレクトリ内の `keyword.json` を使用
+
+### ダイレクトモード（`--direct` オプション使用時）
+- キーワード抽出をスキップし、テキストデータから直接要件を生成する
+- `keyword.json` は不要。ディレクトリ内の全テキストファイル（`.json`, `.md`, `.txt`）を直接読み込む
+- ユーザーが書いた提案やメモの意図を尊重し、キーワード抽出を介さずに要件を詳細化する
 
 現在のdata_source:
 
@@ -57,13 +63,16 @@ mkdir -p gen/requirements/{app_name}/{features,diagrams}
 
 ## 手順
 
-### ステップ1: keyword.json 読み込み
+### ステップ1: データ読み込み
 
-対象ディレクトリの `keyword.json` を読み込み、キーワードとトレンドを把握する。
+**通常モード**: 対象ディレクトリの `keyword.json` を読み込み、キーワードとトレンドを把握する。
+
+**ダイレクトモード**: 対象ディレクトリ内の全テキストファイル（`*.json`（`keyword.json`除く）, `*.md`, `*.txt`）を読み込み、内容を把握する。
 
 ### ステップ2: アプリ案の構想
 
-keyword.jsonの内容を元に、以下を思考する:
+**通常モード**: keyword.jsonの内容を元に、以下を思考する。
+**ダイレクトモード**: テキストデータの内容を直接読み込み、ユーザーの意図を尊重しながら以下を思考する:
 
 - どのキーワード・トレンドの組み合わせが有望か
 - ターゲットユーザーは誰か、どんな課題を抱えているか
@@ -92,6 +101,8 @@ Bashで `mkdir -p gen/requirements/{app_name}/features` を実行する。
 - `description`: このアプリ案に至った思考の経緯
 
 **データセットモードの場合**: `dataset` フィールドを追加し、`source.directory` を `dataset://{データセット名}` 形式にする。`dataset.sourceApps` にはデータセットに含まれる全アイテム（appName, type, featureId, title）を列挙する。詳細は[テンプレート参照](templates.md)の「データセットモード用」セクションを参照。
+
+**ダイレクトモードの場合**: `keywords` 配列は空配列 `[]` とし、`description` にはテキストデータからどのようにアプリ案を導いたかの経緯を記載する。
 
 **出力先**: `gen/requirements/{app_name}/_source_info.json`
 
