@@ -72,8 +72,9 @@ select_data_source() {
 
     case "$key" in
       $'\033')
-        # エスケープシーケンス読み取り（tmux escape-time 考慮で 0.5s タイムアウト）
-        IFS= read -rsn2 -t 0.5 seq
+        # エスケープシーケンス読み取り（bash 3.2互換: 整数タイムアウト、tmux escape-time 考慮）
+        local seq=""
+        IFS= read -rsn2 -t 1 seq || true
         case "$seq" in
           '[A') ((selected > 0)) && ((selected--)) ;;          # ↑
           '[B') ((selected < count - 1)) && ((selected++)) ;;  # ↓
