@@ -58,8 +58,18 @@ pipeline:
   # 省略時は最新ディレクトリを自動検出。CLIの --target / --source で上書き可能
   # default_source: 2026_02_10_01_54_10
 
-# --- extract フェーズ設定（将来の拡張用） ---
-# extract:
+# --- extract フェーズ設定 ---
+extract:
+  # 連想ゲーム方式の設定
+  # enabled: true の場合、収集データに直接書かれていない関連キーワードも連想で抽出する
+  # enabled: false の場合、収集データから直接読み取れるキーワードのみ抽出する
+  association:
+    enabled: true
+    # 連想の深さ:
+    #   shallow  — 元データから1段階の連想（直接的な関連語・類義語）
+    #   moderate — 2段階の連想（関連分野・応用領域まで）（デフォルト）
+    #   deep     — 3段階以上の連想（異分野の組み合わせ・創造的な飛躍まで）
+    depth: moderate
 
 # --- generate フェーズ設定 ---
 generate:

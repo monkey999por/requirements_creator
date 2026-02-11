@@ -68,8 +68,17 @@ if [[ "$TEXT_COUNT" -gt 0 ]]; then
   FILE_DESC="${FILE_DESC} + ${TEXT_COUNT} テキストファイル"
 fi
 
+# --- 連想モード設定の読み込み ---
+ASSOCIATION_ENABLED=$(awk '/^extract:/{found=1} found && /association:/{in_assoc=1} in_assoc && /enabled:/{print $2; exit}' app.config.yaml 2>/dev/null || true)
+ASSOCIATION_DEPTH=$(awk '/^extract:/{found=1} found && /association:/{in_assoc=1} in_assoc && /depth:/{print $2; exit}' app.config.yaml 2>/dev/null || true)
+
+# デフォルト値
+if [[ -z "$ASSOCIATION_ENABLED" ]]; then ASSOCIATION_ENABLED="true"; fi
+if [[ -z "$ASSOCIATION_DEPTH" ]]; then ASSOCIATION_DEPTH="moderate"; fi
+
 echo "=== キーワード抽出 ==="
 echo "対象: ${DATA_DIR} (${FILE_DESC})"
+echo "連想モード: ${ASSOCIATION_ENABLED} (深さ: ${ASSOCIATION_DEPTH})"
 echo ""
 
 # --- スキル内容からシステムプロンプトファイルを作成 ---
@@ -94,9 +103,21 @@ trap 'rm -f "$PROMPT_FILE"' EXIT
 awk 'BEGIN{n=0} /^---/{n++; next} n>=2{print}' "$SKILL_FILE" > "$PROMPT_FILE"
 
 # --- Claude Code CLI で実行 ---
+ASSOCIATION_INSTRUCTION=""
+if [[ "$ASSOCIATION_ENABLED" == "true" ]]; then
+  ASSOCIATION_INSTRUCTION="
+連想モード: 有効（深さ: ${ASSOCIATION_DEPTH}）
+連想ゲーム方式でキーワードを抽出してください。直接抽出に加え、${ASSOCIATION_DEPTH}レベルの連想キーワードも含めてください。"
+else
+  ASSOCIATION_INSTRUCTION="
+連想モード: 無効
+収集データに直接記載されているキーワードのみを抽出してください。連想・推測による追加は行わないでください。"
+fi
+
 PROMPT="${DATA_SOURCE_DIR}/${TARGET_DIR}/ 配下の収集データを読み込み、上記のキーワード抽出スキルの手順に従ってキーワードとトレンドを抽出してください。
 対象ディレクトリ: ${TARGET_DIR}
-出力先: ${DATA_SOURCE_DIR}/${TARGET_DIR}/keyword.json"
+出力先: ${DATA_SOURCE_DIR}/${TARGET_DIR}/keyword.json
+${ASSOCIATION_INSTRUCTION}"
 
 claude -p "$PROMPT" \
   --append-system-prompt-file "$PROMPT_FILE" \
