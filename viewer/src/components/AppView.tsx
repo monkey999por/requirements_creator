@@ -6,6 +6,7 @@ import {
   type DiagramFile,
   type FavoriteItem,
   type Feature,
+  fetchAppGenerationConfig,
   fetchDiagrams,
   fetchFavorites,
   fetchFeatureDetail,
@@ -59,6 +60,7 @@ export function AppView({
 }) {
   const [overview, setOverview] = useState("");
   const [sourceInfo, setSourceInfo] = useState<SourceInfo | null>(null);
+  const [configYaml, setConfigYaml] = useState<string | null>(null);
   const [diagrams, setDiagrams] = useState<DiagramFile[]>([]);
   const [features, setFeatures] = useState<Feature[]>([]);
   const [featureContent, setFeatureContent] = useState("");
@@ -124,6 +126,9 @@ export function AppView({
       fetchSourceInfo(appName)
         .then((r) => setSourceInfo(r))
         .catch(() => setSourceInfo(null)),
+      fetchAppGenerationConfig(appName)
+        .then((r) => setConfigYaml(r?.content ?? null))
+        .catch(() => setConfigYaml(null)),
       fetchDiagrams(appName)
         .then(setDiagrams)
         .catch(() => setDiagrams([])),
@@ -366,6 +371,7 @@ export function AppView({
                 >
                   <SourceInfoView
                     info={sourceInfo}
+                    configYaml={configYaml}
                     onNavigateToDataset={onNavigateToDataset}
                     onNavigateToApp={onNavigateToApp}
                   />
@@ -521,6 +527,7 @@ export function AppView({
                   >
                     <SourceInfoView
                       info={sourceInfo}
+                      configYaml={configYaml}
                       onNavigateToDataset={onNavigateToDataset}
                       onNavigateToApp={onNavigateToApp}
                     />
@@ -762,10 +769,12 @@ export function AppView({
 
 function SourceInfoView({
   info,
+  configYaml,
   onNavigateToDataset,
   onNavigateToApp,
 }: {
   info: SourceInfo | null;
+  configYaml?: string | null;
   onNavigateToDataset?: (datasetName: string) => void;
   onNavigateToApp?: (appName: string) => void;
 }) {
@@ -920,6 +929,18 @@ function SourceInfoView({
             生成の経緯
           </h3>
           <p className="text-sm text-gray-300 leading-relaxed">{info.description}</p>
+        </section>
+      )}
+
+      {/* Config */}
+      {configYaml && (
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+            生成時の設定
+          </h3>
+          <pre className="p-3 rounded-lg bg-gray-800/50 border border-gray-700/30 text-xs text-gray-300 overflow-x-auto whitespace-pre leading-relaxed">
+            {configYaml}
+          </pre>
         </section>
       )}
     </div>

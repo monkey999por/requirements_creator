@@ -59,6 +59,12 @@ export async function fetchSourceInfo(appName: string): Promise<SourceInfo> {
   return res.json();
 }
 
+export async function fetchAppGenerationConfig(appName: string): Promise<MarkdownContent | null> {
+  const res = await fetch(`${BASE}/apps/${appName}/config`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
 export async function fetchTags(): Promise<string[]> {
   const res = await fetch(`${BASE}/tags`);
   return res.json();
