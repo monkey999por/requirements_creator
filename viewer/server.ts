@@ -213,6 +213,13 @@ app.get("/api/apps/:name/source-info", (c) => {
   return c.json(info);
 });
 
+app.get("/api/apps/:name/config", (c) => {
+  const name = c.req.param("name");
+  const configPath = join(REQUIREMENTS_DIR, name, "_config.yaml");
+  if (!existsSync(configPath)) return c.json({ error: "Not found" }, 404);
+  return c.json({ content: readFileSync(configPath, "utf-8") });
+});
+
 app.get("/api/tags", (c) => {
   const tagsPath = resolve(projectRoot, "gen", "tags.json");
   if (!existsSync(tagsPath)) return c.json([]);

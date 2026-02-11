@@ -45,6 +45,21 @@ RESEARCH_CONTEXT="${TMPDIR_AGENTS}/research_context.md"
 DESIGN_CONTEXT="${TMPDIR_AGENTS}/design_context.md"
 REVIEW_RESULT="${TMPDIR_AGENTS}/review_result.md"
 
+# 新規生成されたアプリにapp.config.yamlをコピー
+copy_config_to_new_apps() {
+  local apps_after
+  apps_after=$(ls -1 "${REQUIREMENTS_DIR}" 2>/dev/null || true)
+  local new_apps
+  new_apps=$(comm -13 <(echo "$APPS_BEFORE" | sort) <(echo "$apps_after" | sort) 2>/dev/null || true)
+
+  if [[ -n "$new_apps" ]]; then
+    for app_name in $new_apps; do
+      cp "$CONFIG_FILE" "${REQUIREMENTS_DIR}/${app_name}/_config.yaml"
+      echo "  設定ファイルをコピー: ${app_name}/_config.yaml"
+    done
+  fi
+}
+
 # --- 引数処理 ---
 TARGET_DIR=""
 DATASET_SOURCE=""
@@ -96,6 +111,9 @@ trap 'rm -rf "$TMPDIR_AGENTS" "$PROMPT_FILE"' EXIT
 
 create_prompt_file "$PROMPT_FILE"
 
+# --- 生成前のアプリ一覧を記録（新規アプリ検出用、全モード共通） ---
+APPS_BEFORE=$(ls -1 "${REQUIREMENTS_DIR}" 2>/dev/null || true)
+
 # =============================================================================
 # データセットモード
 # =============================================================================
@@ -125,6 +143,7 @@ tsx scripts/validate-requirements.ts <生成したapp_name>"
     --append-system-prompt-file "$PROMPT_FILE" \
     --allowedTools "Read" "Write" "Glob" "Bash(mkdir:*)" "Bash(find:*)" "Bash(tsx:*)"
 
+  copy_config_to_new_apps
   exit 0
 fi
 
@@ -218,6 +237,7 @@ tsx scripts/validate-requirements.ts <生成したapp_name>"
     --append-system-prompt-file "$PROMPT_FILE" \
     --allowedTools "Read" "Write" "Glob" "Bash(mkdir:*)" "Bash(find:*)" "Bash(tsx:*)"
 
+  copy_config_to_new_apps
   exit 0
 fi
 
@@ -363,6 +383,7 @@ run_interruptible claude -p "$PROMPT" \
   --append-system-prompt-file "$PROMPT_FILE" \
   --allowedTools "Read" "Write" "Glob" "Bash(mkdir:*)" "Bash(find:*)" "Bash(tsx:*)"
 
+copy_config_to_new_apps
 echo ""
 
 # =============================================================================
