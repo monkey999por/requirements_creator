@@ -76,6 +76,7 @@ done
 # =============================================================================
 # 共通関数の読み込み
 # =============================================================================
+source "${SCRIPT_DIR}/lib/select-source.sh"
 source "${SCRIPT_DIR}/lib/generate-helpers.sh"
 
 read_constraints
@@ -127,17 +128,16 @@ fi
 # =============================================================================
 # 通常モード（keyword.jsonベース）
 # =============================================================================
-# 1. --target オプション → 2. app.config.yaml の pipeline.default_source → 3. 最新ディレクトリ自動検出
+# 1. --target オプション → 2. app.config.yaml の pipeline.default_source → 3. 対話選択（直近7件）
 if [[ -z "$TARGET_DIR" ]]; then
   CONFIG_SOURCE=$(grep '^  default_source:' "$CONFIG_FILE" 2>/dev/null | sed 's/^  default_source:[[:space:]]*//' | tr -d ' "'"'" || true)
   if [[ -n "$CONFIG_SOURCE" ]]; then
     TARGET_DIR="$CONFIG_SOURCE"
   else
-    TARGET_DIR=$(ls -1d "${DATA_SOURCE_DIR}"/*/ 2>/dev/null | xargs -n1 basename | sort | tail -1)
-  fi
-  if [[ -z "$TARGET_DIR" ]]; then
-    echo "エラー: ${DATA_SOURCE_DIR}/ にデータがありません。先に pnpm collect を実行してください。"
-    exit 1
+    if ! select_data_source "$DATA_SOURCE_DIR"; then
+      exit 1
+    fi
+    TARGET_DIR="$SELECTED_SOURCE"
   fi
 fi
 

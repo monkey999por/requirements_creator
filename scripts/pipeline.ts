@@ -2,7 +2,12 @@ import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { loadAppConfig } from "./lib/config.js";
-import { getLatestDataSource, loadAllTexts, loadJson } from "./lib/data-source.js";
+import {
+  getLatestDataSource,
+  loadAllTexts,
+  loadJson,
+  selectDataSource,
+} from "./lib/data-source.js";
 import { DATA_SOURCE_DIR, DATASETS_DIR, REQUIREMENTS_DIR } from "./lib/paths.js";
 
 // --- 型定義 ---
@@ -353,6 +358,16 @@ async function main() {
         process.exit(1);
       }
       targetDir = configSource;
+    } else if (opts.skipCollect) {
+      // collectスキップ時のみ対話選択（collectを実行した場合は最新を自動使用）
+      const selected = await selectDataSource();
+      if (!selected) {
+        console.error(
+          `エラー: ${DATA_SOURCE_DIR}/ にデータがありません。先に pnpm collect を実行してください。`,
+        );
+        process.exit(1);
+      }
+      targetDir = selected;
     } else {
       const latest = getLatestDataSource();
       if (!latest) {
