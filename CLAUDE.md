@@ -177,11 +177,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## アプリケーション設定（`app.config.yaml`）
 
-フェーズごとの設定を階層管理する設定ファイル。`collect.sources` 配下にデータソースごとの有効/無効、APIエンドポイント、パラメータ、出力ファイル名を定義。対応ソース:
+フェーズごとの設定を階層管理する設定ファイル。
+
+### データ収集（`collect`）
+
+`collect.sources` 配下にデータソースごとの有効/無効、APIエンドポイント、パラメータ、出力ファイル名を定義。対応ソース:
 
 - **NewsAPI**: 有効（デフォルト）。USビジネスニュースのトップヘッドライン取得
 - **YouTube Data API**: 無効（デフォルト）。人気動画ランキング取得
 - TikTok、RSSフィード: 今後追加予定（設定テンプレートのみ）
+
+### キーワード抽出（`extract`）
+
+`extract.association` で連想ゲーム方式の有効/無効と連想の深さを制御。
+
+- **`association.enabled`**: 連想モードの有効/無効（デフォルト: `true`）
+  - `true`: 収集データから直接抽出したキーワードに加え、連想で関連キーワードも抽出
+  - `false`: 収集データに直接記載されているキーワードのみ抽出
+- **`association.depth`**: 連想の深さ（デフォルト: `moderate`）
+  - `shallow`: 1段階の連想（直接的な関連語・類義語）
+  - `moderate`: 2段階の連想（関連分野・応用領域まで）
+  - `deep`: 3段階以上の連想（異分野の組み合わせ・創造的な飛躍まで）
+
+連想モード設定は `scripts/extract.sh` がClaude Code CLIに渡し、生成された `keyword.json` に記録される。各キーワードには `"source": "direct"` または `"source": "association"` が付与される。
 
 ## タグシステム
 
@@ -200,7 +218,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## カスタムスキル
 
-- `extract-keywords` - data_source配下の収集データからキーワードとトレンドを抽出し`keyword.json`を生成
+- `extract-keywords` - data_source配下の収集データからキーワードとトレンドを抽出し`keyword.json`を生成。連想モード有効時は直接抽出に加え、関連キーワードを連想ゲーム方式で追加（`app.config.yaml`の`extract.association`設定に従う）
 - `generate-requirements` - keyword.jsonを元にアプリ案を構想し、`requirements/`配下に所定構造で要件定義を出力。バリデーションまで実行
 - `fix-issue` - GitHub Issueの内容確認→対応方針合意→Issueコメント→コード修正→PR作成のワークフロー
 - `create-agent` - 会話内容をClaude Codeサブエージェント（`.claude/agents/*.md`）として永続化

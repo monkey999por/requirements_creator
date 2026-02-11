@@ -265,6 +265,12 @@ export interface AppConfig {
       }
     >;
   };
+  extract?: {
+    association?: {
+      enabled?: boolean;
+      depth?: string;
+    };
+  };
   pipeline?: {
     default_source?: string;
   };

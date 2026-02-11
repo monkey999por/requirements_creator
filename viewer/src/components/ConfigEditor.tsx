@@ -100,6 +100,12 @@ const AGENT_ROLE_OPTIONS = [
   { value: "enhancer", desc: "レビュー結果に基づく要件の修正" },
 ];
 
+const ASSOCIATION_DEPTH_OPTIONS = [
+  { value: "shallow", label: "shallow (1段階 - 直接的な関連語・類義語)" },
+  { value: "moderate", label: "moderate (2段階 - 関連分野・応用領域まで)" },
+  { value: "deep", label: "deep (3段階以上 - 異分野の組み合わせ・創造的な飛躍)" },
+];
+
 // --- UI部品 ---
 
 function SectionHeader({ title, description }: { title: string; description: string }) {
@@ -641,6 +647,60 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
                 id="youtube-apikey"
                 value={youtube?.api_key_env ?? "YOUTUBE_API_KEY"}
                 onChange={(v) => updateSource("youtube", (s) => ({ ...s, api_key_env: v }))}
+                disabled={disabled}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* --- Extract フェーズ --- */}
+        <section className="rounded-xl border border-gray-800 bg-gray-900/50 p-5 space-y-6">
+          <SectionHeader
+            title="Extract フェーズ"
+            description="収集データからキーワードを抽出する際の設定"
+          />
+
+          <div className="rounded-lg border border-gray-800/50 bg-gray-800/30 p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-200">連想ゲーム方式</h3>
+                <p className="text-[11px] text-gray-500">
+                  収集データに直接記載されていない関連キーワードも連想で抽出
+                </p>
+              </div>
+              <Toggle
+                checked={config.extract?.association?.enabled ?? true}
+                onChange={(v) =>
+                  persistConfig({
+                    ...config,
+                    extract: {
+                      ...config.extract,
+                      association: { ...config.extract?.association, enabled: v },
+                    },
+                  })
+                }
+                disabled={disabled}
+              />
+            </div>
+            <div>
+              <FieldLabel
+                label="depth"
+                description="連想キーワード生成の段階数"
+                htmlFor="extract-depth"
+              />
+              <SelectField
+                id="extract-depth"
+                value={config.extract?.association?.depth ?? "moderate"}
+                options={ASSOCIATION_DEPTH_OPTIONS}
+                onChange={(v) =>
+                  persistConfig({
+                    ...config,
+                    extract: {
+                      ...config.extract,
+                      association: { ...config.extract?.association, depth: v },
+                    },
+                  })
+                }
                 disabled={disabled}
               />
             </div>
