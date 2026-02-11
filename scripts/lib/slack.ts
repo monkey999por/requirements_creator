@@ -9,12 +9,24 @@ export interface SlackNotificationResult {
   error?: string;
 }
 
-function getToken(): string | undefined {
+interface SlackContext {
+  token: string;
+  viewerHost?: string;
+}
+
+function getSlackContext(): SlackContext | undefined {
   const config = loadAppConfig();
   const slackConfig = config.notifications?.slack;
   if (!slackConfig?.enabled) return undefined;
   const envKey = slackConfig.token_env ?? "SLACK_BOT_USER_OAUTH_TOKEN";
-  return process.env[envKey];
+  const token = process.env[envKey];
+  if (!token) return undefined;
+  return { token, viewerHost: slackConfig.viewer_host };
+}
+
+function appLink(viewerHost: string | undefined, appName: string): string {
+  if (!viewerHost) return appName;
+  return `<${viewerHost}?app=${encodeURIComponent(appName)}|${appName}>`;
 }
 
 async function postToSlack(token: string, text: string): Promise<SlackNotificationResult> {
@@ -57,8 +69,8 @@ export async function notifyPipelineResult(
     mode?: string;
   },
 ): Promise<SlackNotificationResult> {
-  const token = getToken();
-  if (!token) return { success: false, error: "Slack通知が無効または未設定です" };
+  const ctx = getSlackContext();
+  if (!ctx) return { success: false, error: "Slack通知が無効または未設定です" };
 
   const hasFailed = steps.some((s) => s.status === "failed");
   const emoji = hasFailed ? ":warning:" : ":white_check_mark:";
@@ -82,20 +94,25 @@ export async function notifyPipelineResult(
     lines.push(`キーワード数: ${opts.keywordCount}`);
   }
   if (opts?.newApps && opts.newApps.length > 0) {
-    lines.push(`生成アプリ: ${opts.newApps.join(", ")}`);
+    const appLinks = opts.newApps.map((a) => appLink(ctx.viewerHost, a)).join(", ");
+    lines.push(`生成アプリ: ${appLinks}`);
   }
 
-  return postToSlack(token, lines.join("\n"));
+  return postToSlack(ctx.token, lines.join("\n"));
 }
 
 export async function notifyGenerateResult(newApps?: string[]): Promise<SlackNotificationResult> {
-  const token = getToken();
-  if (!token) return { success: false, error: "Slack通知が無効または未設定です" };
+  const ctx = getSlackContext();
+  if (!ctx) return { success: false, error: "Slack通知が無効または未設定です" };
 
-  const appList = newApps && newApps.length > 0 ? newApps.join(", ") : "（新規アプリなし）";
-  const text = `:white_check_mark: *要件生成完了*\n生成アプリ: ${appList}`;
+  if (newApps && newApps.length > 0) {
+    const appLinks = newApps.map((a) => appLink(ctx.viewerHost, a)).join(", ");
+    const text = `:white_check_mark: *要件生成完了*\n生成アプリ: ${appLinks}`;
+    return postToSlack(ctx.token, text);
+  }
 
-  return postToSlack(token, text);
+  const text = `:white_check_mark: *要件生成完了*\n生成アプリ: （新規アプリなし）`;
+  return postToSlack(ctx.token, text);
 }
 
 // CLI用エントリーポイント: generate.sh から呼び出し

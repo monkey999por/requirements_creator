@@ -60,6 +60,7 @@ export interface PerspectivesConfig {
 export interface SlackConfig {
   enabled: boolean;
   token_env?: string;
+  viewer_host?: string;
 }
 
 export interface NotificationsConfig {

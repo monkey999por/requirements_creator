@@ -17,7 +17,8 @@
     "pipeline": "tsx scripts/pipeline.ts",
     "format": "biome format --write .",
     "lint": "biome lint .",
-    "check": "biome check --write ."
+    "check": "biome check --write .",
+    "test:slack": "tsx scripts/test-slack-notify.ts"
   },
   "packageManager": "pnpm@10.28.0",
   "devDependencies": {
