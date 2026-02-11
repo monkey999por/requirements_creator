@@ -284,11 +284,23 @@ erDiagram
     { "word": "{採用キーワード2}", "relevance": 0.85 }
   ],
   "tags": ["{タグ1}", "{タグ2}", "{タグ3}"],
+  "constraints": {
+    "platform": "{frontend-only | fullstack | mobile-android | mobile-ios | mobile-cross}",
+    "budget": "{free | low | moderate | high}",
+    "difficulty": "{easy | medium | hard}",
+    "team_size": "{solo | small | medium | large}"
+  },
   "description": "{なぜこのアプリ案が生まれたか。どのキーワード/トレンドの組み合わせから着想したかを人間が理解できるように簡潔に}"
 }
 ```
 
 **タグ値**: `gen/tags.json` に定義されたタグから最低3つ選択すること。該当するタグがない場合は `gen/tags.json` に新しいタグを追加してから使用する
+
+**制約条件**: `constraints` フィールドはオプション。制約条件が指定されている場合のみ記録する。指定されていないフィールドは省略可。有効な値:
+- `platform`: `frontend-only`（フロントエンドのみ）/ `fullstack`（フルスタック）/ `mobile-android` / `mobile-ios` / `mobile-cross`（クロスプラットフォームモバイル）
+- `budget`: `free`（無料枠のみ）/ `low`（〜$50/月）/ `moderate`（〜$500/月）/ `high`（上限なし）
+- `difficulty`: `easy`（初心者向け）/ `medium`（中級者向け）/ `hard`（上級者向け）
+- `team_size`: `solo`（1人）/ `small`（2-3人）/ `medium`（4-8人）/ `large`（9人以上）
 
 ## _source_info.json（データセットモード用）
 

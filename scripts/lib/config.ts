@@ -18,12 +18,30 @@ export interface AgentConfig {
   roles: string[];
 }
 
+export type Platform =
+  | "frontend-only"
+  | "fullstack"
+  | "mobile-android"
+  | "mobile-ios"
+  | "mobile-cross";
+export type Budget = "free" | "low" | "moderate" | "high";
+export type Difficulty = "easy" | "medium" | "hard";
+export type TeamSize = "solo" | "small" | "medium" | "large";
+
+export interface GenerateConstraints {
+  platform?: Platform;
+  budget?: Budget;
+  difficulty?: Difficulty;
+  team_size?: TeamSize;
+}
+
 export interface AppConfig {
   output_base_dir?: string;
   collect: {
     sources: Record<string, SourceConfig>;
   };
   generate?: {
+    constraints?: GenerateConstraints;
     agents?: Record<string, AgentConfig>;
   };
 }

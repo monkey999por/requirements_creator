@@ -51,6 +51,57 @@ while [[ $# -gt 0 ]]; do
 done
 
 # =============================================================================
+# 制約条件の読み込み
+# =============================================================================
+
+read_constraints() {
+  local block
+  block=$(awk '/^generate:/{found=1} found && /^[^ ]/ && !/^generate:/{found=0} found{print}' "$CONFIG_FILE" 2>/dev/null || true)
+
+  CONSTRAINT_PLATFORM=$(echo "$block" | awk '/constraints:/{c=1} c && /platform:/{print $2; exit}' | tr -d ' "'"'" || true)
+  CONSTRAINT_BUDGET=$(echo "$block" | awk '/constraints:/{c=1} c && /budget:/{print $2; exit}' | tr -d ' "'"'" || true)
+  CONSTRAINT_DIFFICULTY=$(echo "$block" | awk '/constraints:/{c=1} c && /difficulty:/{print $2; exit}' | tr -d ' "'"'" || true)
+  CONSTRAINT_TEAM_SIZE=$(echo "$block" | awk '/constraints:/{c=1} c && /team_size:/{print $2; exit}' | tr -d ' "'"'" || true)
+}
+
+# 制約条件をプロンプト用テキストに変換
+format_constraints_prompt() {
+  local parts=()
+  if [[ -n "$CONSTRAINT_PLATFORM" ]]; then
+    parts+=("Platform: ${CONSTRAINT_PLATFORM}")
+  fi
+  if [[ -n "$CONSTRAINT_BUDGET" ]]; then
+    parts+=("Budget: ${CONSTRAINT_BUDGET} (free=\$0, low=~\$50/mo, moderate=~\$500/mo, high=unlimited)")
+  fi
+  if [[ -n "$CONSTRAINT_DIFFICULTY" ]]; then
+    parts+=("Difficulty: ${CONSTRAINT_DIFFICULTY}")
+  fi
+  if [[ -n "$CONSTRAINT_TEAM_SIZE" ]]; then
+    parts+=("Team size: ${CONSTRAINT_TEAM_SIZE} (solo=1, small=2-3, medium=4-8, large=9+)")
+  fi
+
+  if [[ ${#parts[@]} -eq 0 ]]; then
+    echo ""
+    return
+  fi
+
+  local result="
+
+CONSTRAINTS (the app concept MUST fit within these constraints):
+"
+  for p in "${parts[@]}"; do
+    result="${result}- ${p}
+"
+  done
+  result="${result}
+Design the app so that it can realistically be built and operated within these constraints. Choose appropriate technology stack and scope accordingly."
+  echo "$result"
+}
+
+read_constraints
+CONSTRAINTS_PROMPT=$(format_constraints_prompt)
+
+# =============================================================================
 # エージェント設定読み込み
 # =============================================================================
 
@@ -228,6 +279,7 @@ You are an innovative app designer. Given these keywords from trend analysis, br
 Keywords data:
 ${keywords}
 ${research_input}
+${CONSTRAINTS_PROMPT}
 
 IMPORTANT: Don't suggest obvious apps. Use association thinking - jump 1-2 conceptual levels from the keywords to find innovative ideas.
 
@@ -249,6 +301,7 @@ You are an innovative app designer. Given these keywords from trend analysis, br
 Keywords data:
 ${keywords}
 ${research_input}
+${CONSTRAINTS_PROMPT}
 
 IMPORTANT: Don't suggest obvious apps. Use association thinking - jump 1-2 conceptual levels from the keywords to find innovative ideas.
 
@@ -452,6 +505,16 @@ if ! $SKIP_AGENTS; then
   echo ""
 fi
 
+# --- 制約条件の表示 ---
+if [[ -n "$CONSTRAINT_PLATFORM" || -n "$CONSTRAINT_BUDGET" || -n "$CONSTRAINT_DIFFICULTY" || -n "$CONSTRAINT_TEAM_SIZE" ]]; then
+  echo "--- 制約条件 ---"
+  [[ -n "$CONSTRAINT_PLATFORM" ]] && echo "  platform: ${CONSTRAINT_PLATFORM}"
+  [[ -n "$CONSTRAINT_BUDGET" ]] && echo "  budget: ${CONSTRAINT_BUDGET}"
+  [[ -n "$CONSTRAINT_DIFFICULTY" ]] && echo "  difficulty: ${CONSTRAINT_DIFFICULTY}"
+  [[ -n "$CONSTRAINT_TEAM_SIZE" ]] && echo "  team_size: ${CONSTRAINT_TEAM_SIZE}"
+  echo ""
+fi
+
 # --- 生成前のアプリ一覧を記録（新規アプリ検出用） ---
 APPS_BEFORE=$(ls -1 "${REQUIREMENTS_DIR}" 2>/dev/null || true)
 
@@ -497,10 +560,21 @@ if [[ -f "$DESIGN_CONTEXT" ]]; then
 $(cat "$DESIGN_CONTEXT")"
 fi
 
+# 制約条件をプロンプトに追加
+CONSTRAINTS_CONTEXT=""
+if [[ -n "$CONSTRAINTS_PROMPT" ]]; then
+  CONSTRAINTS_CONTEXT="
+
+## 制約条件
+以下の制約条件が設定されています。アプリ案の構想・技術スタック選定・機能スコープに反映してください。
+${CONSTRAINTS_PROMPT}"
+fi
+
 PROMPT="以下のkeyword.jsonを読み込み、上記の要件生成スキルの手順に従ってアプリの要件を生成してください。
 対象ディレクトリ: ${TARGET_DIR}
 keyword.jsonパス: ${KEYWORD_FILE}
 ${EXTRA_CONTEXT}
+${CONSTRAINTS_CONTEXT}
 
 生成完了後、以下のバリデーションスクリプトを実行して構造を検証してください:
 tsx scripts/validate-requirements.ts <生成したapp_name>"
