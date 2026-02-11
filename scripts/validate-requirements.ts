@@ -49,12 +49,18 @@ interface ConstraintsJson {
   tech_stack?: TechStackJson;
 }
 
+interface PerspectivesJson {
+  mode?: string;
+  items?: string[];
+}
+
 interface SourceInfoJson {
   source?: { directory?: string; collected_at?: string };
   dataset?: { name?: string; sourceApps?: DatasetSourceApp[] };
   keywords?: { word?: string; relevance?: number }[];
   tags?: string[];
   constraints?: ConstraintsJson;
+  perspectives?: PerspectivesJson;
   description?: string;
 }
 
@@ -220,6 +226,53 @@ function validate(appName: string): ValidationError[] {
             errors.push({
               file: "_source_info.json",
               message: "constraints.tech_stack.otherは文字列の配列である必要があります",
+            });
+          }
+        }
+      }
+
+      // perspectives フィールドのオプショナル検証
+      if (data.perspectives) {
+        const validModes = ["single", "combine", "random"];
+        const validPerspectives = [
+          "kindness",
+          "cunning",
+          "frustration",
+          "dopamine",
+          "target-focus",
+        ];
+
+        if (!data.perspectives.mode) {
+          errors.push({
+            file: "_source_info.json",
+            message: "perspectives.modeが未設定です",
+          });
+        } else if (!validModes.includes(data.perspectives.mode)) {
+          errors.push({
+            file: "_source_info.json",
+            message: `perspectives.modeの値が不正です: "${data.perspectives.mode}"（有効値: ${validModes.join(", ")}）`,
+          });
+        }
+
+        if (!Array.isArray(data.perspectives.items) || data.perspectives.items.length === 0) {
+          errors.push({
+            file: "_source_info.json",
+            message: "perspectives.itemsが空または未設定です",
+          });
+        } else {
+          for (const item of data.perspectives.items) {
+            if (!validPerspectives.includes(item)) {
+              errors.push({
+                file: "_source_info.json",
+                message: `perspectives.itemsに不正な値があります: "${item}"（有効値: ${validPerspectives.join(", ")}）`,
+              });
+            }
+          }
+
+          if (data.perspectives.mode === "single" && data.perspectives.items.length !== 1) {
+            errors.push({
+              file: "_source_info.json",
+              message: `perspectives.mode が "single" の場合、items は1つである必要があります（現在: ${data.perspectives.items.length}個）`,
             });
           }
         }

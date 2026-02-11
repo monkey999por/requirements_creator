@@ -74,6 +74,8 @@ keyword.jsonの内容を元に、以下を思考する:
 
 **制約条件**: `app.config.yaml` の `generate.constraints` に設定がある場合、またはプロンプト内で制約条件が指定されている場合は、その制約を尊重してアプリ案を構想する。制約条件は `_source_info.json` にも記録する。
 
+**生成観点**: `app.config.yaml` の `generate.perspectives` に設定がある場合、またはプロンプト内で生成観点が指定されている場合は、その観点をアプリの体験設計・機能設計・マネタイズ戦略に深く反映する。定義済み観点: `kindness`（優しいUX）, `cunning`（巧妙なビジネス設計）, `frustration`（フラストレーション駆動）, `dopamine`（中毒性設計）, `target-focus`（ニッチ特化）。適用した観点は `_source_info.json` の `perspectives` フィールドに記録する。
+
 ### ステップ3: ディレクトリ作成
 
 Bashで `mkdir -p gen/requirements/{app_name}/features` を実行する。
@@ -86,6 +88,7 @@ Bashで `mkdir -p gen/requirements/{app_name}/features` を実行する。
 - `keywords`: 採用したキーワードと関連度スコア
 - `tags`: `gen/tags.json` に定義されたタグ値から **最低3つ** 選択（該当するタグがない場合は新しいタグを `gen/tags.json` に追加してから使用すること）
 - `constraints`（オプション）: 制約条件が指定されている場合、適用した制約を記録する（`platform`, `budget`, `difficulty`, `team_size`, `tech_stack`）
+- `perspectives`（オプション）: 生成観点が指定されている場合、適用した観点を記録する（`mode`, `items`）
 - `description`: このアプリ案に至った思考の経緯
 
 **データセットモードの場合**: `dataset` フィールドを追加し、`source.directory` を `dataset://{データセット名}` 形式にする。`dataset.sourceApps` にはデータセットに含まれる全アイテム（appName, type, featureId, title）を列挙する。詳細は[テンプレート参照](templates.md)の「データセットモード用」セクションを参照。

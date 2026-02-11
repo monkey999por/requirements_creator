@@ -91,6 +91,113 @@ Design the app so that it can realistically be built and operated within these c
 }
 
 # =============================================================================
+# 生成観点（perspectives）の読み込み
+# =============================================================================
+
+VALID_PERSPECTIVES="kindness cunning frustration dopamine target-focus"
+
+# 観点の説明マップ（プロンプト生成用）
+perspective_description() {
+  case "$1" in
+    kindness)     echo "User-friendly & empathetic UX design: prioritize accessibility, gentle onboarding, forgiving error handling, and inclusive design. The app should feel warm, supportive, and easy to use for everyone." ;;
+    cunning)      echo "Clever monetization & behavioral design: smart business model, strategic feature gating, viral loops, and network effects. Not dark patterns, but ingeniously designed value capture." ;;
+    frustration)  echo "Frustration-driven design: use free-tier limitations, wait times, and restricted features to drive upgrades. Create moments of friction that make the premium experience feel essential." ;;
+    dopamine)     echo "Addictive experience design: gamification, reward loops, streaks, progress bars, social validation, surprise rewards, and variable-ratio reinforcement. Maximize engagement and retention." ;;
+    target-focus) echo "Hyper-targeted niche optimization: deeply understand a specific user segment's workflows, pain points, and language. Build features that feel tailor-made for this audience." ;;
+    *)            echo "Unknown perspective: $1" ;;
+  esac
+}
+
+read_perspectives() {
+  local block
+  block=$(awk '/^generate:/{found=1} found && /^[^ ]/ && !/^generate:/{found=0} found{print}' "$CONFIG_FILE" 2>/dev/null || true)
+
+  PERSPECTIVE_MODE=$(echo "$block" | awk '/perspectives:/{p=1} p && /mode:/{print $2; exit}' | tr -d ' "'"'" || true)
+  PERSPECTIVE_ITEMS=""
+  if [[ -n "$PERSPECTIVE_MODE" ]]; then
+    PERSPECTIVE_ITEMS=$(echo "$block" | awk '
+      /perspectives:/{p=1; next}
+      p && /items:/{i=1; next}
+      i && /^[[:space:]]*- /{gsub(/^[[:space:]]*- */, ""); items=items sep $0; sep=" "; next}
+      i && !/^[[:space:]]*-/{i=0}
+      p && /^[[:space:]]{4}[a-z]/ && !/items:/ && !/mode:/{p=0}
+    ' | tr -d '"'"'" || true)
+  fi
+}
+
+# 観点をプロンプト用テキストに変換
+# randomモードの場合、ここでランダム選択を行う
+format_perspectives_prompt() {
+  if [[ -z "$PERSPECTIVE_MODE" ]]; then
+    echo ""
+    return
+  fi
+
+  local selected_items=""
+
+  case "$PERSPECTIVE_MODE" in
+    single)
+      # items の先頭1つだけ
+      selected_items=$(echo "$PERSPECTIVE_ITEMS" | awk '{print $1}')
+      ;;
+    combine)
+      # items をそのまま使用
+      selected_items="$PERSPECTIVE_ITEMS"
+      ;;
+    random)
+      # 定義済み観点からランダムに1〜3個選択
+      local count=$(( (RANDOM % 3) + 1 ))
+      local all_perspectives=($VALID_PERSPECTIVES)
+      local shuffled=()
+      # Fisher-Yates シャッフル
+      local n=${#all_perspectives[@]}
+      for (( i = n - 1; i > 0; i-- )); do
+        local j=$(( RANDOM % (i + 1) ))
+        local tmp="${all_perspectives[$i]}"
+        all_perspectives[$i]="${all_perspectives[$j]}"
+        all_perspectives[$j]="$tmp"
+      done
+      for (( i = 0; i < count; i++ )); do
+        shuffled+=("${all_perspectives[$i]}")
+      done
+      selected_items="${shuffled[*]}"
+      ;;
+    *)
+      echo ""
+      return
+      ;;
+  esac
+
+  if [[ -z "$selected_items" ]]; then
+    echo ""
+    return
+  fi
+
+  # グローバル変数にセット（_source_info.json 記録用）
+  RESOLVED_PERSPECTIVES="$selected_items"
+  RESOLVED_PERSPECTIVE_MODE="$PERSPECTIVE_MODE"
+
+  local result="
+
+DESIGN PERSPECTIVES (these perspectives MUST shape the app's UX, features, and monetization strategy):
+Mode: ${PERSPECTIVE_MODE}
+Applied perspectives:
+"
+  for item in $selected_items; do
+    local desc
+    desc=$(perspective_description "$item")
+    result="${result}
+- **${item}**: ${desc}
+"
+  done
+
+  result="${result}
+Integrate these perspectives deeply into the app concept, feature design, user flows, and monetization model. They should be reflected in the overview, feature specs, and diagrams."
+
+  echo "$result"
+}
+
+# =============================================================================
 # エージェント設定読み込み
 # =============================================================================
 

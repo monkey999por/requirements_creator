@@ -71,6 +71,12 @@ fi
 # =============================================================================
 source "${SCRIPT_DIR}/lib/generate-helpers.sh"
 
+read_constraints
+CONSTRAINTS_PROMPT=$(format_constraints_prompt)
+
+read_perspectives
+PERSPECTIVES_PROMPT=$(format_perspectives_prompt)
+
 # =============================================================================
 # memo.md の書き込み（--memo 指定時）
 # =============================================================================
@@ -249,6 +255,14 @@ ${EXISTING_FEATURES}
 ${EXISTING_DIAGRAMS}
 ${KEYWORD_CONTEXT}
 ${EXTRA_CONTEXT}
+$(if [[ -n "$CONSTRAINTS_PROMPT" ]]; then echo "
+## 制約条件
+${CONSTRAINTS_PROMPT}"; fi)
+$(if [[ -n "$PERSPECTIVES_PROMPT" ]]; then echo "
+## 生成観点
+以下の生成観点が設定されています。再生成時も体験設計・機能設計・マネタイズ戦略に反映してください。
+また、_source_info.json の perspectives フィールドを更新してください。
+${PERSPECTIVES_PROMPT}"; fi)
 
 ## 再生成の手順
 
