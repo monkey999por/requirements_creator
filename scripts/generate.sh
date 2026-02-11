@@ -53,6 +53,9 @@ done
 # =============================================================================
 source "${SCRIPT_DIR}/lib/generate-helpers.sh"
 
+read_constraints
+CONSTRAINTS_PROMPT=$(format_constraints_prompt)
+
 # =============================================================================
 # スキル内容とテンプレートを結合してシステムプロンプトファイルを作成
 # =============================================================================
@@ -135,6 +138,29 @@ if ! $SKIP_AGENTS; then
   echo ""
 fi
 
+# --- 制約条件の表示 ---
+HAS_CONSTRAINTS=false
+[[ -n "$CONSTRAINT_PLATFORM" || -n "$CONSTRAINT_BUDGET" || -n "$CONSTRAINT_DIFFICULTY" || -n "$CONSTRAINT_TEAM_SIZE" ]] && HAS_CONSTRAINTS=true
+[[ -n "$CONSTRAINT_TS_FRONTEND" || -n "$CONSTRAINT_TS_BACKEND" || -n "$CONSTRAINT_TS_DATABASE" || -n "$CONSTRAINT_TS_HOSTING" || -n "$CONSTRAINT_TS_AUTH" || -n "$CONSTRAINT_TS_OTHER" ]] && HAS_CONSTRAINTS=true
+
+if $HAS_CONSTRAINTS; then
+  echo "--- 制約条件 ---"
+  [[ -n "$CONSTRAINT_PLATFORM" ]] && echo "  platform: ${CONSTRAINT_PLATFORM}"
+  [[ -n "$CONSTRAINT_BUDGET" ]] && echo "  budget: ${CONSTRAINT_BUDGET}"
+  [[ -n "$CONSTRAINT_DIFFICULTY" ]] && echo "  difficulty: ${CONSTRAINT_DIFFICULTY}"
+  [[ -n "$CONSTRAINT_TEAM_SIZE" ]] && echo "  team_size: ${CONSTRAINT_TEAM_SIZE}"
+  if [[ -n "$CONSTRAINT_TS_FRONTEND" || -n "$CONSTRAINT_TS_BACKEND" || -n "$CONSTRAINT_TS_DATABASE" || -n "$CONSTRAINT_TS_HOSTING" || -n "$CONSTRAINT_TS_AUTH" || -n "$CONSTRAINT_TS_OTHER" ]]; then
+    echo "  tech_stack:"
+    [[ -n "$CONSTRAINT_TS_FRONTEND" ]] && echo "    frontend: ${CONSTRAINT_TS_FRONTEND}"
+    [[ -n "$CONSTRAINT_TS_BACKEND" ]] && echo "    backend: ${CONSTRAINT_TS_BACKEND}"
+    [[ -n "$CONSTRAINT_TS_DATABASE" ]] && echo "    database: ${CONSTRAINT_TS_DATABASE}"
+    [[ -n "$CONSTRAINT_TS_HOSTING" ]] && echo "    hosting: ${CONSTRAINT_TS_HOSTING}"
+    [[ -n "$CONSTRAINT_TS_AUTH" ]] && echo "    auth: ${CONSTRAINT_TS_AUTH}"
+    [[ -n "$CONSTRAINT_TS_OTHER" ]] && echo "    other: ${CONSTRAINT_TS_OTHER}"
+  fi
+  echo ""
+fi
+
 # --- 生成前のアプリ一覧を記録（新規アプリ検出用） ---
 APPS_BEFORE=$(ls -1 "${REQUIREMENTS_DIR}" 2>/dev/null || true)
 
@@ -180,10 +206,21 @@ if [[ -f "$DESIGN_CONTEXT" ]]; then
 $(cat "$DESIGN_CONTEXT")"
 fi
 
+# 制約条件をプロンプトに追加
+CONSTRAINTS_CONTEXT=""
+if [[ -n "$CONSTRAINTS_PROMPT" ]]; then
+  CONSTRAINTS_CONTEXT="
+
+## 制約条件
+以下の制約条件が設定されています。アプリ案の構想・技術スタック選定・機能スコープに反映してください。
+${CONSTRAINTS_PROMPT}"
+fi
+
 PROMPT="以下のkeyword.jsonを読み込み、上記の要件生成スキルの手順に従ってアプリの要件を生成してください。
 対象ディレクトリ: ${TARGET_DIR}
 keyword.jsonパス: ${KEYWORD_FILE}
 ${EXTRA_CONTEXT}
+${CONSTRAINTS_CONTEXT}
 
 生成完了後、以下のバリデーションスクリプトを実行して構造を検証してください:
 tsx scripts/validate-requirements.ts <生成したapp_name>"

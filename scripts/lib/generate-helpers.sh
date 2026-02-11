@@ -14,6 +14,83 @@
 # =============================================================================
 
 # =============================================================================
+# 制約条件の読み込み
+# =============================================================================
+
+read_constraints() {
+  local block
+  block=$(awk '/^generate:/{found=1} found && /^[^ ]/ && !/^generate:/{found=0} found{print}' "$CONFIG_FILE" 2>/dev/null || true)
+
+  CONSTRAINT_PLATFORM=$(echo "$block" | awk '/constraints:/{c=1} c && /platform:/{print $2; exit}' | tr -d ' "'"'" || true)
+  CONSTRAINT_BUDGET=$(echo "$block" | awk '/constraints:/{c=1} c && /budget:/{print $2; exit}' | tr -d ' "'"'" || true)
+  CONSTRAINT_DIFFICULTY=$(echo "$block" | awk '/constraints:/{c=1} c && /difficulty:/{print $2; exit}' | tr -d ' "'"'" || true)
+  CONSTRAINT_TEAM_SIZE=$(echo "$block" | awk '/constraints:/{c=1} c && /team_size:/{print $2; exit}' | tr -d ' "'"'" || true)
+
+  # tech_stack の読み込み
+  CONSTRAINT_TS_FRONTEND=$(echo "$block" | awk '/tech_stack:/{c=1} c && /frontend:/{gsub(/^[^:]+:[[:space:]]*/, ""); print; exit}' | tr -d '"'"'" || true)
+  CONSTRAINT_TS_BACKEND=$(echo "$block" | awk '/tech_stack:/{c=1} c && /backend:/{gsub(/^[^:]+:[[:space:]]*/, ""); print; exit}' | tr -d '"'"'" || true)
+  CONSTRAINT_TS_DATABASE=$(echo "$block" | awk '/tech_stack:/{c=1} c && /database:/{gsub(/^[^:]+:[[:space:]]*/, ""); print; exit}' | tr -d '"'"'" || true)
+  CONSTRAINT_TS_HOSTING=$(echo "$block" | awk '/tech_stack:/{c=1} c && /hosting:/{gsub(/^[^:]+:[[:space:]]*/, ""); print; exit}' | tr -d '"'"'" || true)
+  CONSTRAINT_TS_AUTH=$(echo "$block" | awk '/tech_stack:/{c=1} c && /auth:/{gsub(/^[^:]+:[[:space:]]*/, ""); print; exit}' | tr -d '"'"'" || true)
+  # other: リスト（"- value" 形式）を読み取り
+  CONSTRAINT_TS_OTHER=$(echo "$block" | awk '/tech_stack:/{ts=1} ts && /other:/{o=1; next} o && /^[[:space:]]*- /{gsub(/^[[:space:]]*- */, ""); items=items sep $0; sep=", "; next} o && !/^[[:space:]]*-/{o=0} END{print items}' | tr -d '"'"'" || true)
+}
+
+# 制約条件をプロンプト用テキストに変換
+format_constraints_prompt() {
+  local parts=()
+  if [[ -n "$CONSTRAINT_PLATFORM" ]]; then
+    parts+=("Platform: ${CONSTRAINT_PLATFORM}")
+  fi
+  if [[ -n "$CONSTRAINT_BUDGET" ]]; then
+    parts+=("Budget: ${CONSTRAINT_BUDGET} (free=\$0, low=~\$50/mo, moderate=~\$500/mo, high=unlimited)")
+  fi
+  if [[ -n "$CONSTRAINT_DIFFICULTY" ]]; then
+    parts+=("Difficulty: ${CONSTRAINT_DIFFICULTY}")
+  fi
+  if [[ -n "$CONSTRAINT_TEAM_SIZE" ]]; then
+    parts+=("Team size: ${CONSTRAINT_TEAM_SIZE} (solo=1, small=2-3, medium=4-8, large=9+)")
+  fi
+
+  # tech_stack の組み立て
+  local ts_parts=()
+  [[ -n "$CONSTRAINT_TS_FRONTEND" ]] && ts_parts+=("Frontend: ${CONSTRAINT_TS_FRONTEND}")
+  [[ -n "$CONSTRAINT_TS_BACKEND" ]] && ts_parts+=("Backend: ${CONSTRAINT_TS_BACKEND}")
+  [[ -n "$CONSTRAINT_TS_DATABASE" ]] && ts_parts+=("Database: ${CONSTRAINT_TS_DATABASE}")
+  [[ -n "$CONSTRAINT_TS_HOSTING" ]] && ts_parts+=("Hosting: ${CONSTRAINT_TS_HOSTING}")
+  [[ -n "$CONSTRAINT_TS_AUTH" ]] && ts_parts+=("Auth: ${CONSTRAINT_TS_AUTH}")
+  [[ -n "$CONSTRAINT_TS_OTHER" ]] && ts_parts+=("Other services/libraries: ${CONSTRAINT_TS_OTHER}")
+
+  if [[ ${#parts[@]} -eq 0 && ${#ts_parts[@]} -eq 0 ]]; then
+    echo ""
+    return
+  fi
+
+  local result="
+
+CONSTRAINTS (the app concept MUST fit within these constraints):
+"
+  for p in "${parts[@]}"; do
+    result="${result}- ${p}
+"
+  done
+
+  if [[ ${#ts_parts[@]} -gt 0 ]]; then
+    result="${result}
+REQUIRED TECHNOLOGY STACK (these technologies MUST be used as the base. You may add supplementary tools/libraries but MUST NOT replace these):
+"
+    for tp in "${ts_parts[@]}"; do
+      result="${result}- ${tp}
+"
+    done
+  fi
+
+  result="${result}
+Design the app so that it can realistically be built and operated within these constraints. Choose appropriate technology stack and scope accordingly."
+  echo "$result"
+}
+
+# =============================================================================
 # エージェント設定読み込み
 # =============================================================================
 
@@ -185,6 +262,7 @@ You are an innovative app designer. Given these keywords from trend analysis, br
 Keywords data:
 ${keywords}
 ${research_input}
+${CONSTRAINTS_PROMPT}
 
 IMPORTANT: Don't suggest obvious apps. Use association thinking - jump 1-2 conceptual levels from the keywords to find innovative ideas.
 
@@ -206,6 +284,7 @@ You are an innovative app designer. Given these keywords from trend analysis, br
 Keywords data:
 ${keywords}
 ${research_input}
+${CONSTRAINTS_PROMPT}
 
 IMPORTANT: Don't suggest obvious apps. Use association thinking - jump 1-2 conceptual levels from the keywords to find innovative ideas.
 

@@ -63,6 +63,19 @@ pipeline:
 
 # --- generate フェーズ設定 ---
 generate:
+  # 制約条件（オプション）
+  # 生成されるアプリ案の技術構成・規模を制御する。未指定の項目はAIが自由に判断する。
+  # 有効値:
+  #   platform: frontend-only / fullstack / mobile-android / mobile-ios / mobile-cross
+  #   budget: free / low / moderate / high（月額目安: free=0円, low=〜5千円, moderate=〜5万円, high=上限なし）
+  #   difficulty: easy / medium / hard
+  #   team_size: solo / small(2-3人) / medium(4-8人) / large(9人以上)
+  #   tech_stack: 使用する技術スタック（指定した技術がベース。AIは必要に応じて追加可能だが、指定技術は必ず採用する）
+  #     frontend / backend / database / hosting / auth / other（リスト）
+  constraints:
+    platform: frontend-only
+    budget: free
+
   # マルチエージェント設定
   # 各エージェントに役割（role）を割り当て、要件生成の各フェーズで活用する
   # 定義済みロール:

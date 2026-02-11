@@ -22,6 +22,33 @@ export interface PipelineConfig {
   default_source?: string;
 }
 
+export type Platform =
+  | "frontend-only"
+  | "fullstack"
+  | "mobile-android"
+  | "mobile-ios"
+  | "mobile-cross";
+export type Budget = "free" | "low" | "moderate" | "high";
+export type Difficulty = "easy" | "medium" | "hard";
+export type TeamSize = "solo" | "small" | "medium" | "large";
+
+export interface TechStackConstraints {
+  frontend?: string;
+  backend?: string;
+  database?: string;
+  hosting?: string;
+  auth?: string;
+  other?: string[];
+}
+
+export interface GenerateConstraints {
+  platform?: Platform;
+  budget?: Budget;
+  difficulty?: Difficulty;
+  team_size?: TeamSize;
+  tech_stack?: TechStackConstraints;
+}
+
 export interface AppConfig {
   output_base_dir?: string;
   pipeline?: PipelineConfig;
@@ -29,6 +56,7 @@ export interface AppConfig {
     sources: Record<string, SourceConfig>;
   };
   generate?: {
+    constraints?: GenerateConstraints;
     agents?: Record<string, AgentConfig>;
   };
 }
