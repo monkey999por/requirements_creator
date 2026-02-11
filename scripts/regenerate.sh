@@ -278,9 +278,13 @@ ${PERSPECTIVES_PROMPT}"; fi)
 生成完了後、以下のバリデーションスクリプトを実行して構造を検証してください:
 tsx scripts/validate-requirements.ts ${APP_NAME}"
 
+STREAM_FILTER="${SCRIPT_DIR}/lib/claude-stream-filter.ts"
+
 claude -p "$PROMPT" \
+  --output-format stream-json \
   --append-system-prompt-file "$PROMPT_FILE" \
-  --allowedTools "Read" "Write" "Glob" "Bash(mkdir:*)" "Bash(find:*)" "Bash(tsx:*)" "Bash(rm:*)"
+  --allowedTools "Read" "Write" "Glob" "Bash(mkdir:*)" "Bash(find:*)" "Bash(tsx:*)" "Bash(rm:*)" \
+  2>/dev/null | tsx "$STREAM_FILTER"
 
 echo ""
 
