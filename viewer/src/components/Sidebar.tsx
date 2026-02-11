@@ -11,9 +11,10 @@ interface SidebarProps {
   isMobile: boolean;
   mobileOpen: boolean;
   onMobileClose: () => void;
-  viewMode: "apps" | "datasets" | "favorites";
+  viewMode: "apps" | "datasets" | "favorites" | "commands";
   onSelectDatasets: () => void;
   onSelectFavorites: () => void;
+  onSelectCommands: () => void;
   onSearch: (query: string, tags: string[]) => void;
   onClearSearch: () => void;
   isSearchActive: boolean;
@@ -228,6 +229,7 @@ export function Sidebar({
   viewMode,
   onSelectDatasets,
   onSelectFavorites,
+  onSelectCommands,
   onSearch,
   onClearSearch,
   isSearchActive,
@@ -287,6 +289,31 @@ export function Sidebar({
                         strokeLinejoin="round"
                         strokeWidth={2}
                         d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                      viewMode === "commands"
+                        ? "text-cyan-400 bg-cyan-400/10"
+                        : "text-gray-500 hover:text-cyan-400 hover:bg-cyan-400/10"
+                    }`}
+                    onClick={onSelectCommands}
+                    title="コマンド実行"
+                  >
+                    <svg
+                      className="size-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z"
                       />
                     </svg>
                   </button>
@@ -483,6 +510,33 @@ export function Sidebar({
                   strokeLinejoin="round"
                   strokeWidth={2}
                   d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                />
+              </svg>
+            </motion.button>
+            <motion.button
+              type="button"
+              className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                viewMode === "commands"
+                  ? "text-cyan-400 bg-cyan-400/10"
+                  : "text-gray-500 hover:text-cyan-400 hover:bg-cyan-400/10"
+              }`}
+              onClick={onSelectCommands}
+              title="コマンド実行"
+              animate={{ opacity: expanded ? 1 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <svg
+                className="size-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z"
                 />
               </svg>
             </motion.button>

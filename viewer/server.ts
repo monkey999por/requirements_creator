@@ -1,4 +1,4 @@
-import { exec, spawn } from "node:child_process";
+import { type ChildProcess, exec, spawn } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -48,6 +48,20 @@ function loadDatasetsDir(): string {
 }
 
 const DATASETS_DIR = loadDatasetsDir();
+
+function loadDataSourceDir(): string {
+  try {
+    const configPath = resolve(projectRoot, "app.config.yaml");
+    const raw = readFileSync(configPath, "utf-8");
+    const config = parse(raw) as { output_base_dir?: string };
+    const base = config.output_base_dir ?? "gen";
+    return resolve(projectRoot, base, "data_source");
+  } catch {
+    return resolve(projectRoot, "gen", "data_source");
+  }
+}
+
+const DATA_SOURCE_DIR = loadDataSourceDir();
 
 interface DatasetItem {
   appName: string;
@@ -538,6 +552,138 @@ app.post("/api/git/commit-push", async (c) => {
   }
 
   return c.json({ success: true, output: logs.join("\n") });
+});
+
+// --- Commands API (dev mode only) ---
+
+const ALLOWED_COMMANDS: Record<string, { bin: string; baseArgs: string[] }> = {
+  collect: { bin: "tsx", baseArgs: ["scripts/collect.ts"] },
+  extract: { bin: "bash", baseArgs: ["scripts/extract.sh"] },
+  generate: { bin: "bash", baseArgs: ["scripts/generate.sh"] },
+  regenerate: { bin: "bash", baseArgs: ["scripts/regenerate.sh"] },
+  validate: { bin: "tsx", baseArgs: ["scripts/validate-requirements.ts"] },
+  pipeline: { bin: "tsx", baseArgs: ["scripts/pipeline.ts"] },
+};
+
+let activeCommandProcess: ChildProcess | null = null;
+
+app.get("/api/commands/data-sources", (c) => {
+  if (!existsSync(DATA_SOURCE_DIR)) return c.json([]);
+  return c.json(
+    readdirSync(DATA_SOURCE_DIR, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name)
+      .sort()
+      .reverse(),
+  );
+});
+
+app.get("/api/commands/apps", (c) => {
+  if (!existsSync(REQUIREMENTS_DIR)) return c.json([]);
+  return c.json(
+    readdirSync(REQUIREMENTS_DIR, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name)
+      .sort(),
+  );
+});
+
+app.get("/api/commands/collect-sources", (c) => {
+  try {
+    const configPath = resolve(projectRoot, "app.config.yaml");
+    const raw = readFileSync(configPath, "utf-8");
+    const config = parse(raw) as {
+      collect?: { sources?: Record<string, { enabled?: boolean }> };
+    };
+    return c.json(Object.keys(config.collect?.sources ?? {}));
+  } catch {
+    return c.json([]);
+  }
+});
+
+app.get("/api/commands/dataset-names", (c) => {
+  if (!existsSync(DATASETS_DIR)) return c.json([]);
+  return c.json(
+    readdirSync(DATASETS_DIR)
+      .filter((f) => f.endsWith(".json"))
+      .map((f) => f.replace(".json", ""))
+      .sort(),
+  );
+});
+
+app.post("/api/commands/execute", async (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+
+  const body = await c.req.json<{ command: string; args: string[] }>();
+  const cmdDef = ALLOWED_COMMANDS[body.command];
+  if (!cmdDef) return c.json({ error: "Unknown command" }, 400);
+
+  const allArgs = [...cmdDef.baseArgs, ...(body.args ?? [])];
+  const encoder = new TextEncoder();
+
+  const child = spawn(cmdDef.bin, allArgs, {
+    cwd: projectRoot,
+    env: { ...process.env, FORCE_COLOR: "0" },
+  });
+  activeCommandProcess = child;
+
+  const readable = new ReadableStream({
+    start(controller) {
+      const send = (type: string, data: string) => {
+        try {
+          controller.enqueue(encoder.encode(`${JSON.stringify({ type, data })}\n`));
+        } catch {}
+      };
+
+      send("start", `$ ${body.command}${body.args?.length ? ` ${body.args.join(" ")}` : ""}`);
+
+      child.stdout?.on("data", (chunk: Buffer) => send("stdout", chunk.toString()));
+      child.stderr?.on("data", (chunk: Buffer) => send("stderr", chunk.toString()));
+
+      child.on("close", (code) => {
+        send("exit", String(code ?? 1));
+        activeCommandProcess = null;
+        try {
+          controller.close();
+        } catch {}
+      });
+      child.on("error", (err) => {
+        send("error", err.message);
+        activeCommandProcess = null;
+        try {
+          controller.close();
+        } catch {}
+      });
+    },
+    cancel() {
+      if (child.pid) {
+        try {
+          process.kill(child.pid, "SIGTERM");
+        } catch {}
+      }
+      activeCommandProcess = null;
+    },
+  });
+
+  return new Response(readable, {
+    headers: {
+      "Content-Type": "application/x-ndjson",
+      "Cache-Control": "no-cache",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
+});
+
+app.post("/api/commands/abort", (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  if (activeCommandProcess?.pid) {
+    try {
+      process.kill(activeCommandProcess.pid, "SIGTERM");
+    } catch {}
+    activeCommandProcess = null;
+    return c.json({ success: true });
+  }
+  return c.json({ success: false, message: "No active command" });
 });
 
 // --- Server ---
