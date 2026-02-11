@@ -10,6 +10,7 @@
   - [pnpm collect](#pnpm-collect---データ収集)
   - [pnpm extract](#pnpm-extract---キーワード抽出)
   - [pnpm generate](#pnpm-generate---要件生成)
+  - [pnpm regenerate](#pnpm-regenerate---要件再生成)
   - [pnpm generate:validate](#pnpm-generatevalidate---バリデーション)
   - [pnpm pipeline](#pnpm-pipeline---一括実行)
 - [Viewer系コマンド](#viewer系コマンド)
@@ -140,6 +141,54 @@ gen/requirements/{app_name}/
 
 ---
 
+### `pnpm regenerate` - 要件再生成
+
+既存アプリ要件をmemo.mdのフィードバックを最優先指示として再生成する。Viewerやエディタでmemo.mdに改善点を書き込んだ後に実行する。
+
+#### 基本パターン
+
+```bash
+# memo.mdの内容をもとに再生成（最も一般的）
+pnpm regenerate trust-lens
+
+# CLIからmemoを指定して再生成（memo.mdに上書き保存される）
+pnpm regenerate trust-lens -- --memo "ターゲットを個人投資家に絞る"
+
+# 外部エージェントをスキップして再生成
+pnpm regenerate trust-lens -- --skip-agents
+```
+
+#### よくあるシナリオ
+
+| シナリオ | コマンド |
+|---------|---------|
+| Viewerでmemoを書いた後に再生成 | `pnpm regenerate <app_name>` |
+| CLIから改善指示を直接渡して再生成 | `pnpm regenerate <app_name> -- --memo "改善内容"` |
+| pipeline経由で再生成 | `pnpm pipeline -- --regenerate <app_name>` |
+| pipeline経由でmemo付き再生成 | `pnpm pipeline -- --regenerate <app_name> --memo "改善内容"` |
+| 外部エージェントなしで素早く再生成 | `pnpm regenerate <app_name> -- --skip-agents` |
+
+#### 再生成フロー
+
+```
+pnpm regenerate <app_name>
+  │
+  ├─ memo.md の読み込み（--memo 指定時は上書き後に読み込み）
+  ├─ 既存データ読み込み（overview.md, features/, diagrams/, _source_info.json）
+  ├─ [optional] Phase 1-2: 外部エージェント（元のkeyword.jsonがある場合のみ）
+  ├─ Phase 3: Claude Code CLI で再生成（memo最優先プロンプト）
+  ├─ [optional] Phase 4: 外部エージェントレビュー
+  └─ バリデーション実行
+```
+
+#### 注意事項
+
+- memo.md は再生成後も保持される（変更されない）
+- 既存の features/ と diagrams/ は再生成時に上書きされる
+- _source_info.json の source.directory から元のkeyword.jsonを自動検出する
+
+---
+
 ### `pnpm generate:validate` - バリデーション
 
 生成された要件の構造・内容を自動検証する。
@@ -199,6 +248,12 @@ pnpm pipeline -- --source 2025_02_09_14_30_00
 
 # データセットから要件生成（collect/extractはスキップされる）
 pnpm pipeline -- --dataset my_dataset
+
+# 既存アプリを再生成（collect/extractはスキップされる）
+pnpm pipeline -- --regenerate trust-lens
+
+# memo付きで再生成
+pnpm pipeline -- --regenerate trust-lens --memo "技術スタックをNext.jsに変更"
 ```
 
 #### よくあるシナリオ
@@ -210,6 +265,8 @@ pnpm pipeline -- --dataset my_dataset
 | キーワードを手動調整した後に再生成 | `pnpm pipeline -- --skip-collect --skip-extract` |
 | 過去の特定データで再実行 | `pnpm pipeline -- --source 2025_01_15_10_00_00` |
 | Viewerで作ったデータセットから生成 | `pnpm pipeline -- --dataset my_dataset` |
+| 既存アプリをmemoベースで再生成 | `pnpm pipeline -- --regenerate <app_name>` |
+| memo指定付きで再生成 | `pnpm pipeline -- --regenerate <app_name> --memo "改善内容"` |
 | generate結果が不満で再トライ | `pnpm pipeline -- --skip-collect --skip-extract` |
 
 #### フロー図
@@ -224,6 +281,14 @@ pnpm pipeline
   ├─ [3] generate
   │     ↓
   └─ [4] validate   ← 新規生成アプリのみ自動検証
+
+pnpm pipeline --regenerate <app>   ← 再生成モード（collect/extractスキップ）
+  │
+  ├─ [1] collect    → スキップ
+  ├─ [2] extract    → スキップ
+  ├─ [3] regenerate ← memo.md最優先で再生成
+  │     ↓
+  └─ [4] validate   ← 対象アプリを検証
 ```
 
 ---
@@ -327,7 +392,23 @@ pnpm pipeline -- --dataset my_dataset
 pnpm viewer              # 新アプリを確認
 ```
 
-### 5. 手動でdiagrams.mdを編集した後の検証
+### 5. 生成済みアプリにフィードバックして再生成
+
+```bash
+# ビューワーを起動してmemoタブからフィードバックを記入
+pnpm viewer
+
+# memo.mdの内容をもとに再生成
+pnpm regenerate trust-lens
+
+# または、CLIから直接フィードバックを渡して再生成
+pnpm regenerate trust-lens -- --memo "ターゲットを個人投資家に絞り、技術スタックをNext.jsに変更"
+
+# 再生成結果をビューワーで確認
+pnpm viewer
+```
+
+### 6. 手動でdiagrams.mdを編集した後の検証
 
 ```bash
 # 編集後にバリデーション

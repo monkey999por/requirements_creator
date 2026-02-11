@@ -8,6 +8,7 @@
     "collect": "tsx scripts/collect.ts",
     "extract": "bash scripts/extract.sh",
     "generate": "bash scripts/generate.sh",
+    "regenerate": "bash scripts/regenerate.sh",
     "generate:validate": "tsx scripts/validate-requirements.ts",
     "viewer": "pnpm --filter viewer dev",
     "viewer:build": "pnpm --filter viewer build",
