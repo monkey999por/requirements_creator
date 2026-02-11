@@ -57,9 +57,19 @@ export interface PerspectivesConfig {
   items?: Perspective[];
 }
 
+export interface SlackConfig {
+  enabled: boolean;
+  webhook_url_env?: string;
+}
+
+export interface NotificationsConfig {
+  slack?: SlackConfig;
+}
+
 export interface AppConfig {
   output_base_dir?: string;
   pipeline?: PipelineConfig;
+  notifications?: NotificationsConfig;
   collect: {
     sources: Record<string, SourceConfig>;
   };

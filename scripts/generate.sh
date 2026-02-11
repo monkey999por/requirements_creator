@@ -385,3 +385,14 @@ if can_run_role "reviewer"; then
 fi
 
 echo "=== 要件生成完了 ==="
+
+# --- Slack通知 ---
+# pipeline.ts 経由の場合はそちらで通知するため、ここでは generate 単体実行時のみ通知
+if [[ -z "${PIPELINE_MODE:-}" ]]; then
+  # 新規アプリを検出（reviewer実行済みの場合は再利用、未実行の場合は検出）
+  if [[ -z "${NEW_APPS:-}" ]]; then
+    APPS_AFTER_NOTIFY=$(ls -1 "${REQUIREMENTS_DIR}" 2>/dev/null || true)
+    NEW_APPS=$(comm -13 <(echo "$APPS_BEFORE" | sort) <(echo "$APPS_AFTER_NOTIFY" | sort) 2>/dev/null || true)
+  fi
+  tsx scripts/lib/slack.ts generate $NEW_APPS 2>/dev/null || true
+fi

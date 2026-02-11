@@ -52,6 +52,15 @@ collect:
 #       url: https://techcrunch.com/feed/
 #   output_file: rss.json
 
+# --- 通知設定 ---
+notifications:
+  slack:
+    enabled: false
+    # Webhook URLの環境変数名（.envに定義）
+    # Slack Appの Incoming Webhooks で取得したURLを設定する
+    # 詳細は SLACK_NOTIFICATION.md を参照
+    webhook_url_env: SLACK_WEBHOOK_URL
+
 # --- パイプライン共通設定 ---
 pipeline:
   # デフォルトで使用する data_source サブディレクトリ名
