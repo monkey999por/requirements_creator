@@ -9,6 +9,7 @@ const OVERVIEW_REQUIRED_SECTIONS = [
   "ターゲットユーザー",
   "機能一覧",
   "マネタイズ",
+  "コスト分析",
   "技術スタック",
   "運用方針",
 ];
@@ -31,11 +32,29 @@ interface DatasetSourceApp {
   title?: string;
 }
 
+interface TechStackJson {
+  frontend?: string;
+  backend?: string;
+  database?: string;
+  hosting?: string;
+  auth?: string;
+  other?: string[];
+}
+
+interface ConstraintsJson {
+  platform?: string;
+  budget?: string;
+  difficulty?: string;
+  team_size?: string;
+  tech_stack?: TechStackJson;
+}
+
 interface SourceInfoJson {
   source?: { directory?: string; collected_at?: string };
   dataset?: { name?: string; sourceApps?: DatasetSourceApp[] };
   keywords?: { word?: string; relevance?: number }[];
   tags?: string[];
+  constraints?: ConstraintsJson;
   description?: string;
 }
 
@@ -144,6 +163,66 @@ function validate(appName: string): ValidationError[] {
       const tagErrors = validateTags(data.tags);
       for (const te of tagErrors) {
         errors.push({ file: "_source_info.json", message: te });
+      }
+
+      // constraints フィールドのオプショナル検証
+      if (data.constraints) {
+        const validPlatforms = [
+          "frontend-only",
+          "fullstack",
+          "mobile-android",
+          "mobile-ios",
+          "mobile-cross",
+        ];
+        const validBudgets = ["free", "low", "moderate", "high"];
+        const validDifficulties = ["easy", "medium", "hard"];
+        const validTeamSizes = ["solo", "small", "medium", "large"];
+
+        if (data.constraints.platform && !validPlatforms.includes(data.constraints.platform)) {
+          errors.push({
+            file: "_source_info.json",
+            message: `constraints.platformの値が不正です: "${data.constraints.platform}"（有効値: ${validPlatforms.join(", ")}）`,
+          });
+        }
+        if (data.constraints.budget && !validBudgets.includes(data.constraints.budget)) {
+          errors.push({
+            file: "_source_info.json",
+            message: `constraints.budgetの値が不正です: "${data.constraints.budget}"（有効値: ${validBudgets.join(", ")}）`,
+          });
+        }
+        if (
+          data.constraints.difficulty &&
+          !validDifficulties.includes(data.constraints.difficulty)
+        ) {
+          errors.push({
+            file: "_source_info.json",
+            message: `constraints.difficultyの値が不正です: "${data.constraints.difficulty}"（有効値: ${validDifficulties.join(", ")}）`,
+          });
+        }
+        if (data.constraints.team_size && !validTeamSizes.includes(data.constraints.team_size)) {
+          errors.push({
+            file: "_source_info.json",
+            message: `constraints.team_sizeの値が不正です: "${data.constraints.team_size}"（有効値: ${validTeamSizes.join(", ")}）`,
+          });
+        }
+        if (data.constraints.tech_stack) {
+          const ts = data.constraints.tech_stack;
+          const validKeys = ["frontend", "backend", "database", "hosting", "auth", "other"];
+          for (const key of Object.keys(ts)) {
+            if (!validKeys.includes(key)) {
+              errors.push({
+                file: "_source_info.json",
+                message: `constraints.tech_stackに未知のキーがあります: "${key}"（有効キー: ${validKeys.join(", ")}）`,
+              });
+            }
+          }
+          if (ts.other && !Array.isArray(ts.other)) {
+            errors.push({
+              file: "_source_info.json",
+              message: "constraints.tech_stack.otherは文字列の配列である必要があります",
+            });
+          }
+        }
       }
 
       // dataset フィールドのオプショナル検証
