@@ -216,7 +216,7 @@ export function FavoritePage({
             </svg>
           </button>
           <span
-            className={`inline-flex shrink-0 items-center justify-center rounded text-[9px] font-bold px-1.5 py-0.5 ${typeBadgeClass(previewItem.type)}`}
+            className={`inline-flex shrink-0 items-center justify-center rounded text-[10px] font-bold px-1.5 py-0.5 ${typeBadgeClass(previewItem.type)}`}
           >
             {typeLabel(previewItem.type)}
           </span>
@@ -224,7 +224,7 @@ export function FavoritePage({
             {previewItem.title ?? previewItem.appName}
           </span>
         </div>
-        <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-8 bg-gray-900">
+        <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-32 bg-gray-900">
           {previewLoading ? (
             <div className="flex items-center justify-center py-12">
               <motion.div
@@ -284,7 +284,7 @@ export function FavoritePage({
                   className="flex items-center gap-2 mb-3 group"
                   onClick={() => onSelectApp(group.appName)}
                 >
-                  <span className="inline-flex shrink-0 items-center justify-center rounded text-[9px] font-bold px-1.5 py-0.5 bg-indigo-900/40 text-indigo-400">
+                  <span className="inline-flex shrink-0 items-center justify-center rounded text-[10px] font-bold px-1.5 py-0.5 bg-indigo-900/40 text-indigo-400">
                     APP
                   </span>
                   <span className="text-sm font-semibold text-gray-200 group-hover:text-indigo-300 transition-colors truncate">
@@ -327,7 +327,7 @@ export function FavoritePage({
                           }`}
                         >
                           <span
-                            className={`inline-flex shrink-0 items-center justify-center rounded text-[9px] font-bold px-1.5 py-0.5 ${typeBadgeClass(item.type)}`}
+                            className={`inline-flex shrink-0 items-center justify-center rounded text-[10px] font-bold px-1.5 py-0.5 ${typeBadgeClass(item.type)}`}
                           >
                             {typeLabel(item.type)}
                           </span>
@@ -434,7 +434,7 @@ export function FavoritePage({
         </svg>
         <div>
           <h2 className="text-sm font-bold text-gray-200">お気に入り</h2>
-          <p className="text-[10px] text-gray-500">{favorites.length} 件のお気に入り</p>
+          <p className="text-[11px] text-gray-500">{favorites.length} 件のお気に入り</p>
         </div>
       </div>
 
@@ -442,7 +442,7 @@ export function FavoritePage({
       <div className="flex flex-1 min-h-0">
         {/* List pane */}
         <div
-          className={`overflow-y-auto dark-scrollbar ${isMobile ? "p-4 pb-8" : "p-6"} bg-gray-900 ${
+          className={`overflow-y-auto dark-scrollbar ${isMobile ? "p-4 pb-32" : "p-6 pb-16"} bg-gray-900 ${
             previewItem && !isMobile ? "border-r border-gray-700/50" : ""
           }`}
           style={{ flex: previewItem && !isMobile ? "0 0 50%" : "1 1 100%" }}
@@ -465,7 +465,7 @@ export function FavoritePage({
                 {/* Preview header */}
                 <div className="flex items-center gap-2 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0">
                   <span
-                    className={`inline-flex shrink-0 items-center justify-center rounded text-[9px] font-bold px-1.5 py-0.5 ${typeBadgeClass(previewItem.type)}`}
+                    className={`inline-flex shrink-0 items-center justify-center rounded text-[10px] font-bold px-1.5 py-0.5 ${typeBadgeClass(previewItem.type)}`}
                   >
                     {typeLabel(previewItem.type)}
                   </span>
@@ -495,7 +495,7 @@ export function FavoritePage({
                   </button>
                 </div>
                 {/* Preview content */}
-                <div className="flex-1 overflow-y-auto dark-scrollbar p-6 bg-gray-900">
+                <div className="flex-1 overflow-y-auto dark-scrollbar p-6 pb-16 bg-gray-900">
                   <AnimatePresence mode="wait">
                     {previewLoading ? (
                       <motion.div

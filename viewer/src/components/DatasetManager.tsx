@@ -150,7 +150,7 @@ export function DatasetManager({
           <div className="flex-1" />
           {isDev && <CreateButton onClick={() => setCreating(true)} />}
         </div>
-        <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-8 bg-gray-900">
+        <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-32 bg-gray-900">
           <CreateForm
             show={creating}
             name={newName}
@@ -342,7 +342,7 @@ function DatasetList({
           </svg>
         </div>
         <p className="text-gray-600 text-xs">データセットがありません</p>
-        <p className="text-gray-700 text-[10px] mt-1">
+        <p className="text-gray-700 text-[11px] mt-1">
           アプリ要件のOverviewやFeatureを組み合わせて保存できます
         </p>
       </div>
@@ -376,8 +376,8 @@ function DatasetList({
             />
           </svg>
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium truncate">{ds.name}</p>
-            <p className="text-[10px] text-gray-600">{ds.items.length} items</p>
+            <p className="text-[14px] font-medium truncate">{ds.name}</p>
+            <p className="text-[11px] text-gray-600">{ds.items.length} items</p>
           </div>
           {isDev && (
             <button
@@ -453,7 +453,7 @@ function DatasetDetailHeader({
       <span className="px-3 py-2.5 text-xs font-medium text-indigo-400 truncate">
         {dataset.name}
       </span>
-      <span className="text-[10px] text-gray-600">{dataset.items.length} items</span>
+      <span className="text-[11px] text-gray-600">{dataset.items.length} items</span>
       <div className="flex-1" />
       {isDev && (
         <button
@@ -544,7 +544,7 @@ function DatasetItemList({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-8 bg-gray-900">
+    <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-32 bg-gray-900">
       <motion.div
         className="space-y-4"
         initial={{ opacity: 0 }}
@@ -556,13 +556,13 @@ function DatasetItemList({
             {onSelectApp ? (
               <button
                 type="button"
-                className="text-[10px] font-semibold uppercase tracking-wider text-gray-600 hover:text-indigo-400 mb-2 px-1 transition-colors"
+                className="text-[11px] font-semibold uppercase tracking-wider text-gray-600 hover:text-indigo-400 mb-2 px-1 transition-colors"
                 onClick={() => onSelectApp(appName)}
               >
                 {appName}
               </button>
             ) : (
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-600 mb-2 px-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-600 mb-2 px-1">
                 {appName}
               </p>
             )}
@@ -578,7 +578,7 @@ function DatasetItemList({
                     transition={{ duration: 0.2 }}
                   >
                     <span
-                      className={`inline-flex shrink-0 items-center justify-center rounded-lg text-[10px] font-bold px-2 py-1 ${
+                      className={`inline-flex shrink-0 items-center justify-center rounded-lg text-[11px] font-bold px-2 py-1 ${
                         item.type === "overview"
                           ? "bg-blue-900/40 text-blue-400"
                           : "bg-purple-900/40 text-purple-400"
@@ -624,7 +624,7 @@ function DatasetItemList({
         {/* 生成されたアプリ */}
         {generatedApps.length > 0 && (
           <div className="pt-2 border-t border-gray-700/50">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-2 px-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-2 px-1">
               生成されたアプリ
             </p>
             <div className="space-y-1">
@@ -636,7 +636,7 @@ function DatasetItemList({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <span className="inline-flex shrink-0 items-center justify-center rounded-lg text-[10px] font-bold px-2 py-1 bg-emerald-900/40 text-emerald-400">
+                  <span className="inline-flex shrink-0 items-center justify-center rounded-lg text-[11px] font-bold px-2 py-1 bg-emerald-900/40 text-emerald-400">
                     APP
                   </span>
                   <div className="flex-1 min-w-0">

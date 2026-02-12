@@ -132,7 +132,7 @@ function SearchInput({
         {/* タグ指定ボタン */}
         <button
           type="button"
-          className={`w-full px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
+          className={`w-full px-2 py-1 text-[11px] font-medium rounded-md transition-colors ${
             selectedTags.length > 0 || tagDialogOpen
               ? "bg-indigo-500/20 text-indigo-300 ring-1 ring-indigo-500/30"
               : "bg-gray-800/50 text-gray-500 hover:text-gray-300"
@@ -149,7 +149,7 @@ function SearchInput({
               <button
                 key={tag}
                 type="button"
-                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition-colors"
+                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] font-medium bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition-colors"
                 onClick={() => toggleTag(tag)}
               >
                 {tag}
@@ -182,7 +182,7 @@ function SearchInput({
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.15 }}
             >
-              <p className="text-[10px] text-gray-500 font-medium">タグを選択（AND検索）</p>
+              <p className="text-[11px] text-gray-500 font-medium">タグを選択（AND検索）</p>
               <div className="flex flex-wrap gap-1">
                 {allTags.map((tag) => {
                   const isSelected = selectedTags.includes(tag);
@@ -190,7 +190,7 @@ function SearchInput({
                     <button
                       key={tag}
                       type="button"
-                      className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors ${
+                      className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition-colors ${
                         isSelected
                           ? "bg-indigo-500/30 text-indigo-300 ring-1 ring-indigo-500/40"
                           : "bg-gray-700/50 text-gray-400 hover:bg-gray-700/80 hover:text-gray-300"
@@ -204,7 +204,7 @@ function SearchInput({
               </div>
               <button
                 type="button"
-                className="w-full px-2 py-1 text-[10px] font-medium rounded-md bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full px-2 py-1 text-[11px] font-medium rounded-md bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 disabled={!canSearch}
                 onClick={handleTagSearch}
               >
@@ -322,6 +322,31 @@ export function Sidebar({
                   <button
                     type="button"
                     className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                      viewMode === "datasets"
+                        ? "text-amber-400 bg-amber-400/10"
+                        : "text-gray-500 hover:text-amber-400 hover:bg-amber-400/10"
+                    }`}
+                    onClick={onSelectDatasets}
+                    title="データセット"
+                  >
+                    <svg
+                      className="size-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    className={`p-1.5 rounded-lg transition-colors shrink-0 ${
                       viewMode === "config"
                         ? "text-gray-300 bg-gray-700/50"
                         : "text-gray-500 hover:text-gray-300 hover:bg-gray-700/30"
@@ -344,12 +369,6 @@ export function Sidebar({
                       />
                     </svg>
                   </button>
-                  <div>
-                    <h1 className="text-sm font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent whitespace-nowrap">
-                      Requirements
-                    </h1>
-                    <p className="text-[10px] text-gray-500 font-medium">Viewer</p>
-                  </div>
                 </div>
                 <button
                   type="button"
@@ -384,7 +403,7 @@ export function Sidebar({
 
               {/* Navigation */}
               <nav className="flex-1 overflow-y-auto dark-scrollbar px-3 pb-4">
-                <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-600 whitespace-nowrap">
+                <p className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-600 whitespace-nowrap">
                   Apps
                 </p>
                 <div className="space-y-0.5">
@@ -393,7 +412,7 @@ export function Sidebar({
                       type="button"
                       key={app.name}
                       className={`
-                        w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-[13px] text-left
+                        w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-[14px] text-left
                         ${
                           selected === app.name
                             ? "bg-indigo-500/15 text-indigo-400 font-semibold shadow-lg shadow-indigo-500/5"
@@ -419,7 +438,7 @@ export function Sidebar({
                             {app.tags.slice(0, 3).map((tag) => (
                               <span
                                 key={tag}
-                                className="inline-flex px-1.5 py-0 rounded text-[9px] font-medium bg-gray-800/80 text-gray-500"
+                                className="inline-flex px-1.5 py-0 rounded text-[10px] font-medium bg-gray-800/80 text-gray-500"
                               >
                                 {tag}
                               </span>
@@ -453,13 +472,13 @@ export function Sidebar({
                 </div>
 
                 {/* Datasets */}
-                <p className="px-3 mt-6 mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-600 whitespace-nowrap">
+                <p className="px-3 mt-6 mb-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-600 whitespace-nowrap">
                   Datasets
                 </p>
                 <button
                   type="button"
                   className={`
-                    w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] whitespace-nowrap
+                    w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] whitespace-nowrap
                     ${
                       viewMode === "datasets"
                         ? "bg-amber-500/15 text-amber-400 font-semibold shadow-lg shadow-amber-500/5"
@@ -488,7 +507,7 @@ export function Sidebar({
 
               {/* Footer */}
               <div className="px-5 py-4 border-t border-gray-800/50">
-                <p className="text-[10px] text-gray-700 whitespace-nowrap">requirements_creator</p>
+                <p className="text-[11px] text-gray-700 whitespace-nowrap">requirements_creator</p>
               </div>
             </motion.aside>
           </>
@@ -570,6 +589,33 @@ export function Sidebar({
             <motion.button
               type="button"
               className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                viewMode === "datasets"
+                  ? "text-amber-400 bg-amber-400/10"
+                  : "text-gray-500 hover:text-amber-400 hover:bg-amber-400/10"
+              }`}
+              onClick={onSelectDatasets}
+              title="データセット"
+              animate={{ opacity: expanded ? 1 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <svg
+                className="size-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
+              </svg>
+            </motion.button>
+            <motion.button
+              type="button"
+              className={`p-1.5 rounded-lg transition-colors shrink-0 ${
                 viewMode === "config"
                   ? "text-gray-300 bg-gray-700/50"
                   : "text-gray-500 hover:text-gray-300 hover:bg-gray-700/30"
@@ -594,12 +640,6 @@ export function Sidebar({
                 />
               </svg>
             </motion.button>
-            <motion.div animate={{ opacity: expanded ? 1 : 0 }} transition={{ duration: 0.2 }}>
-              <h1 className="text-sm font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent whitespace-nowrap">
-                Requirements
-              </h1>
-              <p className="text-[10px] text-gray-500 font-medium">Viewer</p>
-            </motion.div>
           </div>
           <motion.button
             type="button"
@@ -650,7 +690,7 @@ export function Sidebar({
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto dark-scrollbar px-3 pb-4">
           <motion.p
-            className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-600 whitespace-nowrap"
+            className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-600 whitespace-nowrap"
             animate={{ opacity: expanded ? 1 : 0 }}
             transition={{ duration: 0.2 }}
           >
@@ -670,7 +710,7 @@ export function Sidebar({
                 variants={itemVariants}
                 whileHover={{ x: 2 }}
                 className={`
-                  group w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-[13px] text-left
+                  group w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-[14px] text-left
                   ${
                     selected === app.name
                       ? "bg-indigo-500/15 text-indigo-400 font-semibold shadow-lg shadow-indigo-500/5"
@@ -698,7 +738,7 @@ export function Sidebar({
                       {app.tags.slice(0, 3).map((tag) => (
                         <span
                           key={tag}
-                          className="inline-flex px-1.5 py-0 rounded text-[9px] font-medium bg-gray-800/80 text-gray-500"
+                          className="inline-flex px-1.5 py-0 rounded text-[10px] font-medium bg-gray-800/80 text-gray-500"
                         >
                           {tag}
                         </span>
@@ -733,7 +773,7 @@ export function Sidebar({
 
           {/* Datasets */}
           <motion.p
-            className="px-3 mt-6 mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-600 whitespace-nowrap"
+            className="px-3 mt-6 mb-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-600 whitespace-nowrap"
             animate={{ opacity: expanded ? 1 : 0 }}
             transition={{ duration: 0.2 }}
           >
@@ -743,7 +783,7 @@ export function Sidebar({
             type="button"
             whileHover={{ x: 2 }}
             className={`
-              group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] whitespace-nowrap
+              group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] whitespace-nowrap
               ${
                 viewMode === "datasets"
                   ? "bg-amber-500/15 text-amber-400 font-semibold shadow-lg shadow-amber-500/5"
@@ -772,7 +812,7 @@ export function Sidebar({
 
         {/* Footer */}
         <div className="px-5 py-4 border-t border-gray-800/50">
-          <p className="text-[10px] text-gray-700 whitespace-nowrap">requirements_creator</p>
+          <p className="text-[11px] text-gray-700 whitespace-nowrap">requirements_creator</p>
         </div>
       </div>
     </motion.aside>

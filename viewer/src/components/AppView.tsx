@@ -2,7 +2,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import {
   addFavorite,
-  commitAndPush,
   type DiagramFile,
   type FavoriteItem,
   type Feature,
@@ -21,7 +20,6 @@ import { type SwipeDirection, useSwipeTab } from "../hooks/useSwipeTab";
 import { DatasetAddButton } from "./DatasetAddButton";
 import { MarkdownPane } from "./MarkdownPane";
 import { MemoTab } from "./MemoTab";
-import { useToast } from "./Toast";
 
 export type AppTab = "overview" | "source-info" | "diagrams" | "features" | "memo";
 type LeftTab = "overview" | "source-info" | "diagrams" | "memo";
@@ -88,10 +86,7 @@ export function AppView({
   const mobileTab: AppTab = selectedTab;
   const [loading, setLoading] = useState(true);
   const [isDev, setIsDev] = useState(false);
-  const [pushing, setPushing] = useState(false);
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
-  const { showToast } = useToast();
-
   useEffect(() => {
     fetchMode().then((r) => setIsDev(r.isDev));
   }, []);
@@ -162,28 +157,6 @@ export function AppView({
     }
   }, [appName, selectedFeature]);
 
-  const handleCommitPush = useCallback(async () => {
-    if (pushing) return;
-    setPushing(true);
-    try {
-      const result = await commitAndPush();
-      showToast({
-        title: result.success ? "Commit & Push 完了" : "Commit & Push 失敗",
-        output: result.output,
-        success: result.success,
-      });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      showToast({
-        title: "Commit & Push エラー",
-        output: message,
-        success: false,
-      });
-    } finally {
-      setPushing(false);
-    }
-  }, [pushing, showToast]);
-
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -226,8 +199,6 @@ export function AppView({
         isFavorited={isFavorited}
         handleToggleFavorite={handleToggleFavorite}
         isDev={isDev}
-        pushing={pushing}
-        handleCommitPush={handleCommitPush}
         onNavigateToDataset={onNavigateToDataset}
         onNavigateToApp={onNavigateToApp}
       />
@@ -308,17 +279,11 @@ export function AppView({
                 onClick={() => handleToggleFavorite("overview", appName)}
               />
             )}
-            {isDev && (
-              <>
-                {leftTab === "overview" && (
-                  <DatasetAddButton
-                    item={{ appName, type: "overview", title: appName }}
-                    isDev={isDev}
-                  />
-                )}
-                <div className="flex-1" />
-                <CommitPushButton pushing={pushing} onClick={handleCommitPush} />
-              </>
+            {isDev && leftTab === "overview" && (
+              <DatasetAddButton
+                item={{ appName, type: "overview", title: appName }}
+                isDev={isDev}
+              />
             )}
           </div>
           {/* Content */}
@@ -327,7 +292,7 @@ export function AppView({
               <MemoTab appName={appName} isMobile={isMobile} isDev={isDev} />
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto dark-scrollbar p-6 bg-gray-900">
+            <div className="flex-1 overflow-y-auto dark-scrollbar p-6 pb-16 bg-gray-900">
               <AnimatePresence mode="wait">
                 {leftTab === "source-info" ? (
                   <motion.div
@@ -402,7 +367,7 @@ export function AppView({
             />
           </div>
           {/* Content */}
-          <div className="flex-1 overflow-y-auto dark-scrollbar p-6 bg-gray-900">
+          <div className="flex-1 overflow-y-auto dark-scrollbar p-6 pb-16 bg-gray-900">
             <motion.div
               className="space-y-2"
               variants={cardContainerVariants}
@@ -559,7 +524,7 @@ export function AppView({
               </motion.button>
             </div>
             {/* Content */}
-            <div className="flex-1 overflow-y-auto dark-scrollbar p-6 bg-gray-900">
+            <div className="flex-1 overflow-y-auto dark-scrollbar p-6 pb-16 bg-gray-900">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={selectedFeature}
@@ -599,8 +564,6 @@ function MobileLayout({
   isFavorited,
   handleToggleFavorite,
   isDev,
-  pushing,
-  handleCommitPush,
   onNavigateToDataset,
   onNavigateToApp,
 }: {
@@ -627,8 +590,6 @@ function MobileLayout({
     diagramId?: string,
   ) => void;
   isDev: boolean;
-  pushing: boolean;
-  handleCommitPush: () => void;
   onNavigateToDataset?: (datasetName: string) => void;
   onNavigateToApp?: (appName: string) => void;
 }) {
@@ -691,7 +652,7 @@ function MobileLayout({
           </span>
         </div>
         {/* Content */}
-        <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-8 bg-gray-900">
+        <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-32 bg-gray-900">
           <MarkdownPane content={featureContent} />
         </div>
       </motion.div>
@@ -747,17 +708,8 @@ function MobileLayout({
             onClick={() => handleToggleFavorite("overview", appName)}
           />
         )}
-        {isDev && (
-          <>
-            {mobileTab === "overview" && (
-              <DatasetAddButton
-                item={{ appName, type: "overview", title: appName }}
-                isDev={isDev}
-              />
-            )}
-            <div className="flex-1" />
-            <CommitPushButton pushing={pushing} onClick={handleCommitPush} />
-          </>
+        {isDev && mobileTab === "overview" && (
+          <DatasetAddButton item={{ appName, type: "overview", title: appName }} isDev={isDev} />
         )}
       </div>
       {/* Content */}
@@ -767,7 +719,7 @@ function MobileLayout({
         </div>
       ) : (
         <div
-          className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-8 bg-gray-900"
+          className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-32 bg-gray-900"
           {...swipeHandlers}
         >
           <AnimatePresence mode="wait" initial={false}>
@@ -919,7 +871,7 @@ function SourceInfoView({
             )}
             {info.dataset.sourceApps && info.dataset.sourceApps.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1.5">
                   参照元
                 </p>
                 <div className="space-y-1">
@@ -931,7 +883,7 @@ function SourceInfoView({
                         className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-gray-900/50"
                       >
                         <span
-                          className={`inline-flex shrink-0 items-center justify-center rounded text-[9px] font-bold px-1.5 py-0.5 ${
+                          className={`inline-flex shrink-0 items-center justify-center rounded text-[10px] font-bold px-1.5 py-0.5 ${
                             sa.type === "overview"
                               ? "bg-blue-900/40 text-blue-400"
                               : "bg-purple-900/40 text-purple-400"
@@ -1020,7 +972,7 @@ function SourceInfoView({
               >
                 <span className="text-xs text-gray-200">{kw.word}</span>
                 {kw.relevance != null && (
-                  <span className="text-[10px] text-gray-500 tabular-nums">
+                  <span className="text-[11px] text-gray-500 tabular-nums">
                     {(kw.relevance * 100).toFixed(0)}%
                   </span>
                 )}
@@ -1052,23 +1004,6 @@ function SourceInfoView({
         </section>
       )}
     </div>
-  );
-}
-
-function CommitPushButton({ pushing, onClick }: { pushing: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      className={`px-3 py-1 my-1 text-xs font-medium rounded-lg transition-colors ${
-        pushing
-          ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-          : "bg-emerald-700 text-white hover:bg-emerald-600"
-      }`}
-      onClick={onClick}
-      disabled={pushing}
-    >
-      {pushing ? "Push中..." : "Commit & Push"}
-    </button>
   );
 }
 

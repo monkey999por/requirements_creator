@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { abortCommand, type CommandEvent, executeCommand } from "../api";
+import { abortCommand, type CommandEvent, commitAndPush, executeCommand } from "../api";
+import { useToast } from "./Toast";
 
 // --- Types ---
 
@@ -242,6 +243,8 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
   const [dynamicChoices, setDynamicChoices] = useState<Record<string, string[]>>({});
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [running, setRunning] = useState(false);
+  const [pushing, setPushing] = useState(false);
+  const { showToast } = useToast();
   const logEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const logIdRef = useRef(0);
@@ -445,6 +448,28 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
     setLogs([]);
   }, []);
 
+  const handleCommitPush = useCallback(async () => {
+    if (pushing) return;
+    setPushing(true);
+    try {
+      const result = await commitAndPush();
+      showToast({
+        title: result.success ? "Commit & Push 完了" : "Commit & Push 失敗",
+        output: result.output,
+        success: result.success,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      showToast({
+        title: "Commit & Push エラー",
+        output: message,
+        success: false,
+      });
+    } finally {
+      setPushing(false);
+    }
+  }, [pushing, showToast]);
+
   if (!isDev) {
     return (
       <div className="flex h-full items-center justify-center text-gray-500 text-sm">
@@ -461,8 +486,8 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
           isMobile ? "h-[45%] border-b" : "w-[380px] shrink-0 border-r"
         } border-gray-800 flex flex-col overflow-hidden`}
       >
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 dark-scrollbar">
-          {/* Command selector */}
+        {/* Command selector (固定) */}
+        <div className="p-4 pb-0 space-y-3 shrink-0">
           <div className="flex flex-wrap gap-1.5">
             {COMMANDS.map((cmd) => (
               <button
@@ -478,17 +503,32 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
                 {cmd.label}
               </button>
             ))}
+            <button
+              type="button"
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                pushing
+                  ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                  : "bg-emerald-600/20 text-emerald-300 ring-1 ring-emerald-500/40 hover:bg-emerald-600/30"
+              }`}
+              onClick={handleCommitPush}
+              disabled={pushing}
+            >
+              {pushing ? "Push中..." : "Commit & Push"}
+            </button>
           </div>
 
           {/* Description */}
           <div className="rounded-lg bg-gray-800/30 border border-gray-800 p-3">
             <p className="text-xs text-gray-400 leading-relaxed">{selectedCommand.description}</p>
           </div>
+        </div>
 
+        {/* Options (スクロール可能) */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 dark-scrollbar">
           {/* Options */}
           {selectedCommand.options.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-[10px] font-semibold uppercase tracking-wider text-gray-600">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-gray-600">
                 オプション
               </h3>
               {selectedCommand.options.map((opt) => (
@@ -533,7 +573,7 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
                         {opt.saveUrlPattern && (
                           <button
                             type="button"
-                            className="px-2 py-0.5 text-[10px] font-medium rounded bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-gray-200 transition-colors disabled:opacity-50"
+                            className="px-2 py-0.5 text-[11px] font-medium rounded bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-gray-200 transition-colors disabled:opacity-50"
                             onClick={() => handleSaveMemo(opt)}
                             disabled={memoSaving}
                           >
@@ -601,7 +641,7 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
 
       {/* Right Pane: Log Output */}
       <div className="flex-1 flex flex-col overflow-hidden bg-gray-950">
-        <div className="px-4 py-2 border-b border-gray-800 flex items-center justify-between">
+        <div className="px-4 py-2 border-b border-gray-800 flex items-center gap-2">
           <span className="text-xs font-medium text-gray-500">ログ出力</span>
           {running && (
             <span className="flex items-center gap-1.5 text-xs text-indigo-400">
@@ -609,6 +649,7 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
               実行中...
             </span>
           )}
+          <div className="flex-1" />
         </div>
         <div className="flex-1 overflow-y-auto p-4 font-mono text-xs dark-scrollbar">
           {logs.length === 0 ? (
