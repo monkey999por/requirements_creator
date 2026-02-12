@@ -503,6 +503,18 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
                 {cmd.label}
               </button>
             ))}
+            <button
+              type="button"
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                pushing
+                  ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                  : "bg-emerald-600/20 text-emerald-300 ring-1 ring-emerald-500/40 hover:bg-emerald-600/30"
+              }`}
+              onClick={handleCommitPush}
+              disabled={pushing}
+            >
+              {pushing ? "Push中..." : "Commit & Push"}
+            </button>
           </div>
 
           {/* Description */}
@@ -638,18 +650,6 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
             </span>
           )}
           <div className="flex-1" />
-          <button
-            type="button"
-            className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
-              pushing
-                ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-                : "bg-emerald-700 text-white hover:bg-emerald-600"
-            }`}
-            onClick={handleCommitPush}
-            disabled={pushing}
-          >
-            {pushing ? "Push中..." : "Commit & Push"}
-          </button>
         </div>
         <div className="flex-1 overflow-y-auto p-4 font-mono text-xs dark-scrollbar">
           {logs.length === 0 ? (
