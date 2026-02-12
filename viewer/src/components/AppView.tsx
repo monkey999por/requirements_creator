@@ -17,6 +17,7 @@ import {
   removeFavorite,
   type SourceInfo,
 } from "../api";
+import { type SwipeDirection, useSwipeTab } from "../hooks/useSwipeTab";
 import { DatasetAddButton } from "./DatasetAddButton";
 import { MarkdownPane } from "./MarkdownPane";
 import { MemoTab } from "./MemoTab";
@@ -24,6 +25,25 @@ import { useToast } from "./Toast";
 
 export type AppTab = "overview" | "source-info" | "diagrams" | "features" | "memo";
 type LeftTab = "overview" | "source-info" | "diagrams" | "memo";
+
+/** モバイルタブの並び順 */
+const MOBILE_TABS: readonly AppTab[] = [
+  "overview",
+  "source-info",
+  "diagrams",
+  "features",
+  "memo",
+] as const;
+
+/** スワイプ方向に応じたスライドアニメーション */
+function slideVariants(dir: SwipeDirection) {
+  const offset = 60;
+  return {
+    initial: { opacity: 0, x: dir * offset },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: dir * -offset },
+  };
+}
 
 const cardContainerVariants = {
   hidden: {},
@@ -186,239 +206,31 @@ export function AppView({
 
   /* ── Mobile layout ── */
   if (isMobile) {
-    // Feature detail view
-    if (selectedFeature) {
-      return (
-        <motion.div
-          className="flex flex-col h-full"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-        >
-          {/* Header with back button */}
-          <div className="flex items-center gap-2 px-4 bg-gray-900 border-b border-gray-800 shrink-0">
-            <button
-              type="button"
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-700/50 transition-colors"
-              onClick={() => {
-                onSelectFeature(null);
-                setFeatureContent("");
-              }}
-            >
-              <svg
-                className="size-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-            </button>
-            <span className="text-xs font-medium text-indigo-400 py-2.5 truncate">
-              {features.find((f) => f.id === selectedFeature)?.title ?? selectedFeature}
-            </span>
-          </div>
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-8 bg-gray-900">
-            <MarkdownPane content={featureContent} />
-          </div>
-        </motion.div>
-      );
-    }
-
-    // Tab-based view
     return (
-      <motion.div
-        className="flex flex-col h-full"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.4 }}
-      >
-        {/* Tabs */}
-        <div className="flex items-center gap-1 px-4 bg-gray-900 border-b border-gray-800 shrink-0 overflow-x-auto">
-          <TabButton
-            active={mobileTab === "overview"}
-            onClick={() => onSelectTab("overview")}
-            label="Overview"
-            pinned={pinnedTab === "overview"}
-            onPin={() => onPinTab("overview")}
-          />
-          <TabButton
-            active={mobileTab === "source-info"}
-            onClick={() => onSelectTab("source-info")}
-            label="Source Info"
-            pinned={pinnedTab === "source-info"}
-            onPin={() => onPinTab("source-info")}
-          />
-          <TabButton
-            active={mobileTab === "diagrams"}
-            onClick={() => onSelectTab("diagrams")}
-            label="Diagrams"
-            pinned={pinnedTab === "diagrams"}
-            onPin={() => onPinTab("diagrams")}
-          />
-          <TabButton
-            active={mobileTab === "features"}
-            onClick={() => onSelectTab("features")}
-            label="Features"
-          />
-          <TabButton
-            active={mobileTab === "memo"}
-            onClick={() => onSelectTab("memo")}
-            label="Memo"
-            pinned={pinnedTab === "memo"}
-            onPin={() => onPinTab("memo")}
-          />
-          {mobileTab === "overview" && (
-            <FavoriteToggleButton
-              active={isFavorited("overview")}
-              onClick={() => handleToggleFavorite("overview", appName)}
-            />
-          )}
-          {isDev && (
-            <>
-              {mobileTab === "overview" && (
-                <DatasetAddButton
-                  item={{ appName, type: "overview", title: appName }}
-                  isDev={isDev}
-                />
-              )}
-              <div className="flex-1" />
-              <CommitPushButton pushing={pushing} onClick={handleCommitPush} />
-            </>
-          )}
-        </div>
-        {/* Content */}
-        {mobileTab === "memo" ? (
-          <div className="flex-1 overflow-hidden bg-gray-900">
-            <MemoTab appName={appName} isMobile={isMobile} isDev={isDev} />
-          </div>
-        ) : (
-          <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-8 bg-gray-900">
-            <AnimatePresence mode="wait">
-              {mobileTab === "features" ? (
-                <motion.div
-                  key="features"
-                  className="space-y-2"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {features.map((f) => (
-                    <button
-                      type="button"
-                      key={f.id}
-                      className="w-full flex items-start gap-3 p-4 rounded-xl border border-gray-700/50 bg-gray-800/60 text-left active:bg-gray-800 transition-colors"
-                      onClick={() => onSelectFeature(f.id)}
-                    >
-                      <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold bg-gradient-to-br from-indigo-900/40 to-purple-900/40 text-indigo-400">
-                        {f.id.split("_")[0]}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="text-sm font-semibold text-gray-200">{f.title}</h3>
-                        {f.summary && (
-                          <p className="mt-1 text-xs text-gray-400 leading-relaxed line-clamp-2">
-                            {f.summary}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0 mt-0.5">
-                        <FavoriteToggleButton
-                          active={isFavorited("feature", f.id)}
-                          onClick={() => handleToggleFavorite("feature", f.title, f.id)}
-                        />
-                        <DatasetAddButton
-                          item={{
-                            appName,
-                            type: "feature",
-                            featureId: f.id,
-                            title: f.title,
-                          }}
-                          isDev={isDev}
-                        />
-                        <svg
-                          className="size-4 text-gray-600"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          aria-hidden="true"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 5l7 7-7 7"
-                          />
-                        </svg>
-                      </div>
-                    </button>
-                  ))}
-                </motion.div>
-              ) : mobileTab === "source-info" ? (
-                <motion.div
-                  key="source-info"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <SourceInfoView
-                    info={sourceInfo}
-                    configYaml={configYaml}
-                    onNavigateToDataset={onNavigateToDataset}
-                    onNavigateToApp={onNavigateToApp}
-                  />
-                </motion.div>
-              ) : mobileTab === "diagrams" ? (
-                <motion.div
-                  key="diagrams"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {diagrams.length > 0 ? (
-                    <div className="space-y-8">
-                      {diagrams.map((d) => (
-                        <section key={d.id} className="relative">
-                          <div className="absolute top-0 right-0 z-10">
-                            <FavoriteToggleButton
-                              active={isFavorited("diagram", undefined, d.id)}
-                              onClick={() =>
-                                handleToggleFavorite("diagram", d.title, undefined, d.id)
-                              }
-                            />
-                          </div>
-                          <MarkdownPane content={d.content} />
-                        </section>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">図解データがありません</p>
-                  )}
-                </motion.div>
-              ) : (
-                <motion.div
-                  key={mobileTab}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <MarkdownPane content={overview} />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        )}
-      </motion.div>
+      <MobileLayout
+        appName={appName}
+        isMobile={isMobile}
+        selectedFeature={selectedFeature}
+        onSelectFeature={onSelectFeature}
+        mobileTab={mobileTab}
+        onSelectTab={onSelectTab}
+        pinnedTab={pinnedTab}
+        onPinTab={onPinTab}
+        overview={overview}
+        sourceInfo={sourceInfo}
+        configYaml={configYaml}
+        diagrams={diagrams}
+        features={features}
+        featureContent={featureContent}
+        setFeatureContent={setFeatureContent}
+        isFavorited={isFavorited}
+        handleToggleFavorite={handleToggleFavorite}
+        isDev={isDev}
+        pushing={pushing}
+        handleCommitPush={handleCommitPush}
+        onNavigateToDataset={onNavigateToDataset}
+        onNavigateToApp={onNavigateToApp}
+      />
     );
   }
 
@@ -763,6 +575,302 @@ export function AppView({
           </motion.div>
         )}
       </AnimatePresence>
+    </motion.div>
+  );
+}
+
+/* ── MobileLayout (swipe対応) ── */
+function MobileLayout({
+  appName,
+  isMobile,
+  selectedFeature,
+  onSelectFeature,
+  mobileTab,
+  onSelectTab,
+  pinnedTab,
+  onPinTab,
+  overview,
+  sourceInfo,
+  configYaml,
+  diagrams,
+  features,
+  featureContent,
+  setFeatureContent,
+  isFavorited,
+  handleToggleFavorite,
+  isDev,
+  pushing,
+  handleCommitPush,
+  onNavigateToDataset,
+  onNavigateToApp,
+}: {
+  appName: string;
+  isMobile: boolean;
+  selectedFeature: string | null;
+  onSelectFeature: (feature: string | null) => void;
+  mobileTab: AppTab;
+  onSelectTab: (tab: AppTab) => void;
+  pinnedTab: AppTab | null;
+  onPinTab: (tab: AppTab) => void;
+  overview: string;
+  sourceInfo: SourceInfo | null;
+  configYaml: string | null;
+  diagrams: DiagramFile[];
+  features: Feature[];
+  featureContent: string;
+  setFeatureContent: (content: string) => void;
+  isFavorited: (type: FavoriteItem["type"], featureId?: string, diagramId?: string) => boolean;
+  handleToggleFavorite: (
+    type: FavoriteItem["type"],
+    title?: string,
+    featureId?: string,
+    diagramId?: string,
+  ) => void;
+  isDev: boolean;
+  pushing: boolean;
+  handleCommitPush: () => void;
+  onNavigateToDataset?: (datasetName: string) => void;
+  onNavigateToApp?: (appName: string) => void;
+}) {
+  const { direction, setDirection, swipeHandlers } = useSwipeTab({
+    tabs: MOBILE_TABS,
+    currentTab: mobileTab,
+    onChangeTab: onSelectTab,
+    disabled: mobileTab === "memo",
+  });
+
+  /** タブボタン押下時: スワイプ方向を計算してからタブ切替 */
+  const handleTabClick = useCallback(
+    (tab: AppTab) => {
+      const fromIdx = MOBILE_TABS.indexOf(mobileTab);
+      const toIdx = MOBILE_TABS.indexOf(tab);
+      setDirection(toIdx >= fromIdx ? 1 : -1);
+      onSelectTab(tab);
+    },
+    [mobileTab, onSelectTab, setDirection],
+  );
+
+  const slide = slideVariants(direction);
+
+  // Feature detail view
+  if (selectedFeature) {
+    return (
+      <motion.div
+        className="flex flex-col h-full"
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+      >
+        {/* Header with back button */}
+        <div className="flex items-center gap-2 px-4 bg-gray-900 border-b border-gray-800 shrink-0">
+          <button
+            type="button"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-700/50 transition-colors"
+            onClick={() => {
+              onSelectFeature(null);
+              setFeatureContent("");
+            }}
+          >
+            <svg
+              className="size-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+          </button>
+          <span className="text-xs font-medium text-indigo-400 py-2.5 truncate">
+            {features.find((f) => f.id === selectedFeature)?.title ?? selectedFeature}
+          </span>
+        </div>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-8 bg-gray-900">
+          <MarkdownPane content={featureContent} />
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Tab-based view
+  return (
+    <motion.div
+      className="flex flex-col h-full"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+    >
+      {/* Tabs */}
+      <div className="flex items-center gap-1 px-4 bg-gray-900 border-b border-gray-800 shrink-0 overflow-x-auto">
+        <TabButton
+          active={mobileTab === "overview"}
+          onClick={() => handleTabClick("overview")}
+          label="Overview"
+          pinned={pinnedTab === "overview"}
+          onPin={() => onPinTab("overview")}
+        />
+        <TabButton
+          active={mobileTab === "source-info"}
+          onClick={() => handleTabClick("source-info")}
+          label="Source Info"
+          pinned={pinnedTab === "source-info"}
+          onPin={() => onPinTab("source-info")}
+        />
+        <TabButton
+          active={mobileTab === "diagrams"}
+          onClick={() => handleTabClick("diagrams")}
+          label="Diagrams"
+          pinned={pinnedTab === "diagrams"}
+          onPin={() => onPinTab("diagrams")}
+        />
+        <TabButton
+          active={mobileTab === "features"}
+          onClick={() => handleTabClick("features")}
+          label="Features"
+        />
+        <TabButton
+          active={mobileTab === "memo"}
+          onClick={() => handleTabClick("memo")}
+          label="Memo"
+          pinned={pinnedTab === "memo"}
+          onPin={() => onPinTab("memo")}
+        />
+        {mobileTab === "overview" && (
+          <FavoriteToggleButton
+            active={isFavorited("overview")}
+            onClick={() => handleToggleFavorite("overview", appName)}
+          />
+        )}
+        {isDev && (
+          <>
+            {mobileTab === "overview" && (
+              <DatasetAddButton
+                item={{ appName, type: "overview", title: appName }}
+                isDev={isDev}
+              />
+            )}
+            <div className="flex-1" />
+            <CommitPushButton pushing={pushing} onClick={handleCommitPush} />
+          </>
+        )}
+      </div>
+      {/* Content */}
+      {mobileTab === "memo" ? (
+        <div className="flex-1 overflow-hidden bg-gray-900">
+          <MemoTab appName={appName} isMobile={isMobile} isDev={isDev} />
+        </div>
+      ) : (
+        <div
+          className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-8 bg-gray-900"
+          {...swipeHandlers}
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            {mobileTab === "features" ? (
+              <motion.div
+                key="features"
+                className="space-y-2"
+                {...slide}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+              >
+                {features.map((f) => (
+                  <button
+                    type="button"
+                    key={f.id}
+                    className="w-full flex items-start gap-3 p-4 rounded-xl border border-gray-700/50 bg-gray-800/60 text-left active:bg-gray-800 transition-colors"
+                    onClick={() => onSelectFeature(f.id)}
+                  >
+                    <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold bg-gradient-to-br from-indigo-900/40 to-purple-900/40 text-indigo-400">
+                      {f.id.split("_")[0]}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm font-semibold text-gray-200">{f.title}</h3>
+                      {f.summary && (
+                        <p className="mt-1 text-xs text-gray-400 leading-relaxed line-clamp-2">
+                          {f.summary}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                      <FavoriteToggleButton
+                        active={isFavorited("feature", f.id)}
+                        onClick={() => handleToggleFavorite("feature", f.title, f.id)}
+                      />
+                      <DatasetAddButton
+                        item={{
+                          appName,
+                          type: "feature",
+                          featureId: f.id,
+                          title: f.title,
+                        }}
+                        isDev={isDev}
+                      />
+                      <svg
+                        className="size-4 text-gray-600"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </div>
+                  </button>
+                ))}
+              </motion.div>
+            ) : mobileTab === "source-info" ? (
+              <motion.div
+                key="source-info"
+                {...slide}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+              >
+                <SourceInfoView
+                  info={sourceInfo}
+                  configYaml={configYaml}
+                  onNavigateToDataset={onNavigateToDataset}
+                  onNavigateToApp={onNavigateToApp}
+                />
+              </motion.div>
+            ) : mobileTab === "diagrams" ? (
+              <motion.div key="diagrams" {...slide} transition={{ duration: 0.2, ease: "easeOut" }}>
+                {diagrams.length > 0 ? (
+                  <div className="space-y-8">
+                    {diagrams.map((d) => (
+                      <section key={d.id} className="relative">
+                        <div className="absolute top-0 right-0 z-10">
+                          <FavoriteToggleButton
+                            active={isFavorited("diagram", undefined, d.id)}
+                            onClick={() =>
+                              handleToggleFavorite("diagram", d.title, undefined, d.id)
+                            }
+                          />
+                        </div>
+                        <MarkdownPane content={d.content} />
+                      </section>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">図解データがありません</p>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div key="overview" {...slide} transition={{ duration: 0.2, ease: "easeOut" }}>
+                <MarkdownPane content={overview} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
     </motion.div>
   );
 }
