@@ -99,8 +99,17 @@ function MermaidFullscreenDialog({ svgHtml, onClose }: { svgHtml: string; onClos
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
+  const stopSwipePropagation = useCallback((e: React.PointerEvent) => {
+    e.stopPropagation();
+  }, []);
+
   return createPortal(
-    <div className="fixed inset-0 z-50 flex flex-col bg-gray-950/95">
+    <div
+      className="fixed inset-0 z-50 flex flex-col bg-gray-950/95"
+      onPointerDown={stopSwipePropagation}
+      onPointerMove={stopSwipePropagation}
+      onPointerUp={stopSwipePropagation}
+    >
       <div className="flex items-center justify-between px-4 py-3">
         <span className="text-xs text-gray-500">ESC で閉じる</span>
         <button
