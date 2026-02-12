@@ -322,6 +322,31 @@ export function Sidebar({
                   <button
                     type="button"
                     className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                      viewMode === "datasets"
+                        ? "text-amber-400 bg-amber-400/10"
+                        : "text-gray-500 hover:text-amber-400 hover:bg-amber-400/10"
+                    }`}
+                    onClick={onSelectDatasets}
+                    title="データセット"
+                  >
+                    <svg
+                      className="size-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    className={`p-1.5 rounded-lg transition-colors shrink-0 ${
                       viewMode === "config"
                         ? "text-gray-300 bg-gray-700/50"
                         : "text-gray-500 hover:text-gray-300 hover:bg-gray-700/30"
@@ -344,12 +369,6 @@ export function Sidebar({
                       />
                     </svg>
                   </button>
-                  <div>
-                    <h1 className="text-sm font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent whitespace-nowrap">
-                      Requirements
-                    </h1>
-                    <p className="text-[11px] text-gray-500 font-medium">Viewer</p>
-                  </div>
                 </div>
                 <button
                   type="button"
@@ -570,6 +589,33 @@ export function Sidebar({
             <motion.button
               type="button"
               className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                viewMode === "datasets"
+                  ? "text-amber-400 bg-amber-400/10"
+                  : "text-gray-500 hover:text-amber-400 hover:bg-amber-400/10"
+              }`}
+              onClick={onSelectDatasets}
+              title="データセット"
+              animate={{ opacity: expanded ? 1 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <svg
+                className="size-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
+              </svg>
+            </motion.button>
+            <motion.button
+              type="button"
+              className={`p-1.5 rounded-lg transition-colors shrink-0 ${
                 viewMode === "config"
                   ? "text-gray-300 bg-gray-700/50"
                   : "text-gray-500 hover:text-gray-300 hover:bg-gray-700/30"
@@ -594,12 +640,6 @@ export function Sidebar({
                 />
               </svg>
             </motion.button>
-            <motion.div animate={{ opacity: expanded ? 1 : 0 }} transition={{ duration: 0.2 }}>
-              <h1 className="text-sm font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent whitespace-nowrap">
-                Requirements
-              </h1>
-              <p className="text-[11px] text-gray-500 font-medium">Viewer</p>
-            </motion.div>
           </div>
           <motion.button
             type="button"
