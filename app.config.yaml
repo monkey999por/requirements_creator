@@ -13,8 +13,8 @@ collect:
       api_key_env: NEWS_API_KEY
       endpoint: https://newsapi.org/v2/top-headlines
       params:
-        country: us
-        category: business
+        country: jp
+        category: health
         pageSize: 20
       # 出力ファイル名（data_source/yyyy_mm_dd_hh_mm_ss/ 内）
       output_file: news.json
@@ -94,7 +94,7 @@ generate:
   #   tech_stack: 使用する技術スタック（指定した技術がベース。AIは必要に応じて追加可能だが、指定技術は必ず採用する）
   #     frontend / backend / database / hosting / auth / other（リスト）
   constraints:
-    platform: frontend-only
+    platform: mobile-android
     budget: free
 
   # 生成観点（オプション）
@@ -135,7 +135,8 @@ generate:
         - designer
         - reviewer
     gemini:
-      enabled: false
+      enabled: true
       model: gemini-2.5-pro
       roles:
         - researcher
+        - designer
