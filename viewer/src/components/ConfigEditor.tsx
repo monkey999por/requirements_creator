@@ -939,7 +939,7 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
         </section>
 
         {/* spacer */}
-        <div className="h-20" />
+        <div className="h-32" />
       </div>
     </div>
   );

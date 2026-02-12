@@ -224,7 +224,7 @@ export function FavoritePage({
             {previewItem.title ?? previewItem.appName}
           </span>
         </div>
-        <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-20 bg-gray-900">
+        <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-32 bg-gray-900">
           {previewLoading ? (
             <div className="flex items-center justify-center py-12">
               <motion.div
@@ -442,7 +442,7 @@ export function FavoritePage({
       <div className="flex flex-1 min-h-0">
         {/* List pane */}
         <div
-          className={`overflow-y-auto dark-scrollbar ${isMobile ? "p-4 pb-20" : "p-6 pb-10"} bg-gray-900 ${
+          className={`overflow-y-auto dark-scrollbar ${isMobile ? "p-4 pb-32" : "p-6 pb-16"} bg-gray-900 ${
             previewItem && !isMobile ? "border-r border-gray-700/50" : ""
           }`}
           style={{ flex: previewItem && !isMobile ? "0 0 50%" : "1 1 100%" }}
@@ -495,7 +495,7 @@ export function FavoritePage({
                   </button>
                 </div>
                 {/* Preview content */}
-                <div className="flex-1 overflow-y-auto dark-scrollbar p-6 pb-10 bg-gray-900">
+                <div className="flex-1 overflow-y-auto dark-scrollbar p-6 pb-16 bg-gray-900">
                   <AnimatePresence mode="wait">
                     {previewLoading ? (
                       <motion.div

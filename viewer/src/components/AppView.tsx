@@ -292,7 +292,7 @@ export function AppView({
               <MemoTab appName={appName} isMobile={isMobile} isDev={isDev} />
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto dark-scrollbar p-6 pb-10 bg-gray-900">
+            <div className="flex-1 overflow-y-auto dark-scrollbar p-6 pb-16 bg-gray-900">
               <AnimatePresence mode="wait">
                 {leftTab === "source-info" ? (
                   <motion.div
@@ -367,7 +367,7 @@ export function AppView({
             />
           </div>
           {/* Content */}
-          <div className="flex-1 overflow-y-auto dark-scrollbar p-6 pb-10 bg-gray-900">
+          <div className="flex-1 overflow-y-auto dark-scrollbar p-6 pb-16 bg-gray-900">
             <motion.div
               className="space-y-2"
               variants={cardContainerVariants}
@@ -524,7 +524,7 @@ export function AppView({
               </motion.button>
             </div>
             {/* Content */}
-            <div className="flex-1 overflow-y-auto dark-scrollbar p-6 pb-10 bg-gray-900">
+            <div className="flex-1 overflow-y-auto dark-scrollbar p-6 pb-16 bg-gray-900">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={selectedFeature}
@@ -652,7 +652,7 @@ function MobileLayout({
           </span>
         </div>
         {/* Content */}
-        <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-20 bg-gray-900">
+        <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-32 bg-gray-900">
           <MarkdownPane content={featureContent} />
         </div>
       </motion.div>
@@ -719,7 +719,7 @@ function MobileLayout({
         </div>
       ) : (
         <div
-          className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-20 bg-gray-900"
+          className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-32 bg-gray-900"
           {...swipeHandlers}
         >
           <AnimatePresence mode="wait" initial={false}>

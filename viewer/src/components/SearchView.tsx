@@ -93,7 +93,7 @@ function TagResultsView({
 
   return (
     <motion.div
-      className={`h-full overflow-y-auto dark-scrollbar ${isMobile ? "p-4 pb-20" : "p-6 pb-10"}`}
+      className={`h-full overflow-y-auto dark-scrollbar ${isMobile ? "p-4 pb-32" : "p-6 pb-16"}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
@@ -165,7 +165,7 @@ function GrepResultsView({
 
   if (isMobile) {
     return (
-      <div className="h-full overflow-y-auto dark-scrollbar p-4 pb-20">
+      <div className="h-full overflow-y-auto dark-scrollbar p-4 pb-32">
         <SearchHeader
           query={query}
           selectedTags={selectedTags}
