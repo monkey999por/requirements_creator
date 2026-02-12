@@ -1,4 +1,4 @@
-import { notifyPipelineResult, notifyGenerateResult } from "./lib/slack.js";
+import { notifyGenerateResult, notifyPipelineResult } from "./lib/slack.js";
 
 async function testPipelineSuccess() {
   console.log("[Test 1] パイプライン成功通知...");
