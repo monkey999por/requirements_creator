@@ -93,7 +93,7 @@ function TagResultsView({
 
   return (
     <motion.div
-      className={`h-full overflow-y-auto dark-scrollbar ${isMobile ? "p-4 pb-8" : "p-6"}`}
+      className={`h-full overflow-y-auto dark-scrollbar ${isMobile ? "p-4 pb-20" : "p-6 pb-10"}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
@@ -118,7 +118,7 @@ function TagResultsView({
               {r.tags.map((tag) => (
                 <span
                   key={tag}
-                  className={`inline-flex px-2 py-0.5 rounded-md text-[11px] font-medium ${
+                  className={`inline-flex px-2 py-0.5 rounded-md text-[12px] font-medium ${
                     r.matchedTags.includes(tag)
                       ? "bg-indigo-500/20 text-indigo-300 ring-1 ring-indigo-500/30"
                       : "bg-gray-700/50 text-gray-400"
@@ -165,7 +165,7 @@ function GrepResultsView({
 
   if (isMobile) {
     return (
-      <div className="h-full overflow-y-auto dark-scrollbar p-4 pb-8">
+      <div className="h-full overflow-y-auto dark-scrollbar p-4 pb-20">
         <SearchHeader
           query={query}
           selectedTags={selectedTags}
@@ -297,8 +297,8 @@ function ResultList({
                   onClick={() => onSelectItem(r.app, f.file, f.matches)}
                 >
                   <p className="text-xs font-medium text-gray-300">{f.file}</p>
-                  <p className="text-[11px] text-gray-500 mt-1">{f.matches.length}件のマッチ</p>
-                  <p className="text-[11px] text-gray-400 mt-1 truncate">
+                  <p className="text-[12px] text-gray-500 mt-1">{f.matches.length}件のマッチ</p>
+                  <p className="text-[12px] text-gray-400 mt-1 truncate">
                     <HighlightText text={f.matches[0]?.text ?? ""} query={query} />
                   </p>
                 </button>
@@ -321,14 +321,14 @@ function DetailPane({
   return (
     <div>
       <p className="text-xs font-semibold text-gray-300 mb-1">{item.app}</p>
-      <p className="text-[11px] text-gray-500 mb-4">{item.file}</p>
+      <p className="text-[12px] text-gray-500 mb-4">{item.file}</p>
       <div className="space-y-1">
         {item.matches.map((m) => (
           <div
             key={`${m.line}`}
             className="flex gap-3 px-3 py-2 rounded-lg bg-gray-800/50 border border-gray-700/30"
           >
-            <span className="text-[11px] text-gray-600 font-mono shrink-0 select-none w-8 text-right">
+            <span className="text-[12px] text-gray-600 font-mono shrink-0 select-none w-8 text-right">
               {m.line}
             </span>
             <span className="text-xs text-gray-300 break-all">

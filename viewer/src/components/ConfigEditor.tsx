@@ -131,7 +131,7 @@ function FieldLabel({
       <label htmlFor={htmlFor} className="text-sm font-medium text-gray-300">
         {label}
       </label>
-      <p className="text-[11px] text-gray-500 mt-0.5">{description}</p>
+      <p className="text-[12px] text-gray-500 mt-0.5">{description}</p>
     </div>
   );
 }
@@ -451,7 +451,7 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-gray-200">NewsAPI</h3>
-                <p className="text-[11px] text-gray-500">ニュースのトップヘッドラインを取得</p>
+                <p className="text-[12px] text-gray-500">ニュースのトップヘッドラインを取得</p>
               </div>
               <Toggle
                 checked={newsapi?.enabled ?? false}
@@ -554,7 +554,7 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-gray-200">YouTube Data API</h3>
-                <p className="text-[11px] text-gray-500">人気動画ランキングを取得</p>
+                <p className="text-[12px] text-gray-500">人気動画ランキングを取得</p>
               </div>
               <Toggle
                 checked={youtube?.enabled ?? false}
@@ -664,7 +664,7 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-gray-200">連想ゲーム方式</h3>
-                <p className="text-[11px] text-gray-500">
+                <p className="text-[12px] text-gray-500">
                   収集データに直接記載されていない関連キーワードも連想で抽出
                 </p>
               </div>
@@ -717,7 +717,7 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
           {/* Constraints */}
           <div className="rounded-lg border border-gray-800/50 bg-gray-800/30 p-4 space-y-4">
             <h3 className="text-sm font-semibold text-gray-200">制約条件 (constraints)</h3>
-            <p className="text-[11px] text-gray-500">
+            <p className="text-[12px] text-gray-500">
               生成されるアプリ案の技術構成・規模を制御。未設定の項目はAIが自由に判断
             </p>
             <div className="grid grid-cols-2 gap-4">
@@ -825,7 +825,7 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
           {/* Perspectives */}
           <div className="rounded-lg border border-gray-800/50 bg-gray-800/30 p-4 space-y-4">
             <h3 className="text-sm font-semibold text-gray-200">生成観点 (perspectives)</h3>
-            <p className="text-[11px] text-gray-500">
+            <p className="text-[12px] text-gray-500">
               アプリ案の体験設計・マネタイズ戦略の方向性を指定
             </p>
             <div>
@@ -864,7 +864,7 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
           {/* Agents */}
           <div className="rounded-lg border border-gray-800/50 bg-gray-800/30 p-4 space-y-4">
             <h3 className="text-sm font-semibold text-gray-200">マルチエージェント (agents)</h3>
-            <p className="text-[11px] text-gray-500">
+            <p className="text-[12px] text-gray-500">
               要件生成の各フェーズで活用するエージェントの設定
             </p>
 
@@ -877,7 +877,7 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
                   <div>
                     <h4 className="text-sm font-semibold text-gray-200 capitalize">{name}</h4>
                     {agent.model && (
-                      <span className="text-[11px] text-gray-500">model: {agent.model}</span>
+                      <span className="text-[12px] text-gray-500">model: {agent.model}</span>
                     )}
                   </div>
                   <Toggle
@@ -939,7 +939,7 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
         </section>
 
         {/* spacer */}
-        <div className="h-8" />
+        <div className="h-20" />
       </div>
     </div>
   );
