@@ -400,3 +400,19 @@ export async function commitAndPush(): Promise<GitResult> {
   const res = await fetch(`${BASE}/git/commit-push`, { method: "POST" });
   return res.json();
 }
+
+export async function getGenBranch(): Promise<{ branch: string | null }> {
+  const res = await fetch(`${BASE}/git/branch`);
+  return res.json();
+}
+
+export interface SwitchBranchResult {
+  success: boolean;
+  branch: string | null;
+  output: string;
+}
+
+export async function switchGenBranch(): Promise<SwitchBranchResult> {
+  const res = await fetch(`${BASE}/git/switch-branch`, { method: "POST" });
+  return res.json();
+}
