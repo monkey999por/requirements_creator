@@ -626,6 +626,57 @@ app.post("/api/git/commit-push", async (c) => {
   return c.json({ success: true, output: logs.join("\n") });
 });
 
+app.get("/api/git/branch", async (c) => {
+  const genDir = resolve(REQUIREMENTS_DIR, "..");
+  try {
+    const { stdout } = await execAsync("git rev-parse --abbrev-ref HEAD", { cwd: genDir });
+    return c.json({ branch: stdout.trim() });
+  } catch {
+    return c.json({ branch: null });
+  }
+});
+
+app.post("/api/git/switch-branch", async (c) => {
+  if (!isDev) return c.json({ error: "Only available in dev mode" }, 403);
+
+  const genDir = resolve(REQUIREMENTS_DIR, "..");
+
+  // 現在のブランチを取得
+  let currentBranch: string;
+  try {
+    const { stdout } = await execAsync("git rev-parse --abbrev-ref HEAD", { cwd: genDir });
+    currentBranch = stdout.trim();
+  } catch {
+    return c.json({
+      success: false,
+      branch: null,
+      output: "Error: gen ディレクトリに git リポジトリが見つかりません",
+    });
+  }
+
+  const targetBranch = currentBranch === "main" ? "develop" : "main";
+
+  try {
+    const { stdout, stderr } = await execAsync(`git checkout ${targetBranch}`, { cwd: genDir });
+    const output = [stdout, stderr].filter((s) => s.trim()).join("\n");
+    return c.json({
+      success: true,
+      branch: targetBranch,
+      output: output || `${targetBranch} に切り替えました`,
+    });
+  } catch (err: unknown) {
+    const e = err as { stdout?: string; stderr?: string; message: string };
+    const output = `${e.stdout || ""}${e.stderr || ""}`.trim() || e.message;
+    // 失敗時も現在ブランチを再取得
+    let branch = currentBranch;
+    try {
+      const { stdout } = await execAsync("git rev-parse --abbrev-ref HEAD", { cwd: genDir });
+      branch = stdout.trim();
+    } catch {}
+    return c.json({ success: false, branch, output });
+  }
+});
+
 // --- Commands API (dev mode only) ---
 
 const ALLOWED_COMMANDS: Record<string, { bin: string; baseArgs: string[] }> = {

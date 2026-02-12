@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { abortCommand, type CommandEvent, commitAndPush, executeCommand } from "../api";
+import {
+  abortCommand,
+  type CommandEvent,
+  commitAndPush,
+  executeCommand,
+  getGenBranch,
+  switchGenBranch,
+} from "../api";
 import { useToast } from "./Toast";
 
 // --- Types ---
@@ -244,6 +251,8 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [running, setRunning] = useState(false);
   const [pushing, setPushing] = useState(false);
+  const [genBranch, setGenBranch] = useState<string | null>(null);
+  const [switching, setSwitching] = useState(false);
   const { showToast } = useToast();
   const logContainerRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -282,6 +291,7 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
   // Initial fetch
   useEffect(() => {
     fetchDynamicChoices();
+    getGenBranch().then((r) => setGenBranch(r.branch));
   }, [fetchDynamicChoices]);
 
   // Auto-scroll logs (container直接スクロールで親要素への波及を防止)
@@ -471,6 +481,31 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
     }
   }, [pushing, showToast]);
 
+  const handleSwitchBranch = useCallback(async () => {
+    if (switching) return;
+    setSwitching(true);
+    try {
+      const result = await switchGenBranch();
+      setGenBranch(result.branch);
+      showToast({
+        title: result.success ? "ブランチ切替完了" : "ブランチ切替失敗",
+        output: result.output,
+        success: result.success,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      showToast({
+        title: "ブランチ切替エラー",
+        output: message,
+        success: false,
+      });
+      // エラー時もブランチ名を再取得
+      getGenBranch().then((r) => setGenBranch(r.branch));
+    } finally {
+      setSwitching(false);
+    }
+  }, [switching, showToast]);
+
   if (!isDev) {
     return (
       <div className="flex h-full items-center justify-center text-gray-500 text-sm">
@@ -515,6 +550,18 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
               disabled={pushing}
             >
               {pushing ? "Push中..." : "Commit & Push"}
+            </button>
+            <button
+              type="button"
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                switching
+                  ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                  : "bg-emerald-600/20 text-emerald-300 ring-1 ring-emerald-500/40 hover:bg-emerald-600/30"
+              }`}
+              onClick={handleSwitchBranch}
+              disabled={switching}
+            >
+              {switching ? "切替中..." : `Branch: ${genBranch ?? "---"}`}
             </button>
           </div>
 
