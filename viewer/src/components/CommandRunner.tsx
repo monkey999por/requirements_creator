@@ -245,7 +245,7 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
   const [running, setRunning] = useState(false);
   const [pushing, setPushing] = useState(false);
   const { showToast } = useToast();
-  const logEndRef = useRef<HTMLDivElement>(null);
+  const logContainerRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const logIdRef = useRef(0);
   const logsLenRef = useRef(0);
@@ -284,10 +284,11 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
     fetchDynamicChoices();
   }, [fetchDynamicChoices]);
 
-  // Auto-scroll logs
+  // Auto-scroll logs (container直接スクロールで親要素への波及を防止)
   useEffect(() => {
     if (logs.length > logsLenRef.current) {
-      logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      const el = logContainerRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
     }
     logsLenRef.current = logs.length;
   });
@@ -651,7 +652,10 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
           )}
           <div className="flex-1" />
         </div>
-        <div className="flex-1 overflow-y-auto p-4 font-mono text-xs dark-scrollbar">
+        <div
+          ref={logContainerRef}
+          className="flex-1 overflow-y-auto p-4 font-mono text-xs dark-scrollbar"
+        >
           {logs.length === 0 ? (
             <div className="text-gray-600 text-center mt-8">
               コマンドを選択して「実行」を押してください
@@ -678,7 +682,6 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
               </div>
             ))
           )}
-          <div ref={logEndRef} />
         </div>
       </div>
     </div>
