@@ -21,8 +21,8 @@ collect:
 
     # YouTube Data API (https://developers.google.com/youtube/v3)
     youtube:
-      enabled: false
-      api_key_env: YOUTUBE_API_KEY
+      enabled: true
+      api_key_env: YOUTUBE_DATA_API_KEY
       endpoint: https://www.googleapis.com/youtube/v3/videos
       params:
         chart: mostPopular

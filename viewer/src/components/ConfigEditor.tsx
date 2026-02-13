@@ -645,7 +645,7 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
               />
               <TextField
                 id="youtube-apikey"
-                value={youtube?.api_key_env ?? "YOUTUBE_API_KEY"}
+                value={youtube?.api_key_env ?? "YOUTUBE_DATA_API_KEY"}
                 onChange={(v) => updateSource("youtube", (s) => ({ ...s, api_key_env: v }))}
                 disabled={disabled}
               />
