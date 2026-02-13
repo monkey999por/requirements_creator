@@ -12,6 +12,7 @@ export interface SlackNotificationResult {
 interface SlackContext {
   token: string;
   viewerHost?: string;
+  mention?: string;
 }
 
 function getSlackContext(): SlackContext | undefined {
@@ -21,7 +22,13 @@ function getSlackContext(): SlackContext | undefined {
   const envKey = slackConfig.token_env ?? "SLACK_BOT_USER_OAUTH_TOKEN";
   const token = process.env[envKey];
   if (!token) return undefined;
-  return { token, viewerHost: slackConfig.viewer_host };
+  return { token, viewerHost: slackConfig.viewer_host, mention: slackConfig.mention };
+}
+
+function formatMention(mention: string | undefined): string {
+  if (!mention) return "";
+  if (mention === "channel") return "<!channel> ";
+  return `<@${mention}> `;
 }
 
 function appLink(viewerHost: string | undefined, appName: string): string {
@@ -85,7 +92,12 @@ export async function notifyPipelineResult(
     })
     .join("\n");
 
-  const lines: string[] = [`${emoji} *パイプライン${statusText}${modeLabel}*`, "", stepLines];
+  const mentionPrefix = formatMention(ctx.mention);
+  const lines: string[] = [
+    `${mentionPrefix}${emoji} *パイプライン${statusText}${modeLabel}*`,
+    "",
+    stepLines,
+  ];
 
   if (opts?.articleCount !== undefined) {
     lines.push("", `記事数: ${opts.articleCount}`);
@@ -105,13 +117,14 @@ export async function notifyGenerateResult(newApps?: string[]): Promise<SlackNot
   const ctx = getSlackContext();
   if (!ctx) return { success: false, error: "Slack通知が無効または未設定です" };
 
+  const mentionPrefix = formatMention(ctx.mention);
   if (newApps && newApps.length > 0) {
     const appLinks = newApps.map((a) => appLink(ctx.viewerHost, a)).join(", ");
-    const text = `:white_check_mark: *要件生成完了*\n生成アプリ: ${appLinks}`;
+    const text = `${mentionPrefix}:white_check_mark: *要件生成完了*\n生成アプリ: ${appLinks}`;
     return postToSlack(ctx.token, text);
   }
 
-  const text = `:white_check_mark: *要件生成完了*\n生成アプリ: （新規アプリなし）`;
+  const text = `${mentionPrefix}:white_check_mark: *要件生成完了*\n生成アプリ: （新規アプリなし）`;
   return postToSlack(ctx.token, text);
 }
 
