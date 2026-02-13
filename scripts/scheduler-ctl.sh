@@ -21,7 +21,8 @@ case "${1:-}" in
     echo "スケジューラを有効化します..."
     install_units
     systemctl --user enable --now pipeline.timer
-    echo "有効化完了。次回実行予定:"
+    echo "有効化完了。"
+    echo ""
     systemctl --user list-timers pipeline.timer --no-pager
     ;;
   disable)
@@ -36,8 +37,22 @@ case "${1:-}" in
     echo "=== サービス状態 ==="
     systemctl --user status pipeline.service --no-pager 2>/dev/null || echo "サービス未インストール"
     echo ""
-    echo "=== 次回実行予定 ==="
-    systemctl --user list-timers pipeline.timer --no-pager 2>/dev/null || echo "タイマー未登録"
+    echo "=== 今後の実行予定 ==="
+    # タイマーファイルから有効なOnCalendar行を抽出し、systemd-analyzeで今後の予定を表示
+    TIMER_FILE="$UNIT_DIR/pipeline.timer"
+    if [[ -f "$TIMER_FILE" ]]; then
+      CALENDARS=()
+      while IFS= read -r line; do
+        CALENDARS+=("$line")
+      done < <(grep -E '^OnCalendar=' "$TIMER_FILE" | sed 's/^OnCalendar=//')
+      TIMER_TZ=$(grep -E '^TimezoneOfTimer=' "$TIMER_FILE" | sed 's/^TimezoneOfTimer=//' || true)
+      if [[ ${#CALENDARS[@]} -gt 0 ]]; then
+        export TZ="${TIMER_TZ:-}"
+        systemd-analyze calendar --iterations=10 "${CALENDARS[@]}" 2>/dev/null || echo "解析できませんでした"
+      fi
+    else
+      echo "タイマーファイルが見つかりません"
+    fi
     ;;
   *)
     echo "Usage: bash scripts/scheduler-ctl.sh [enable|disable|status]"
