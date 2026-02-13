@@ -4,6 +4,7 @@ import { parse } from "yaml";
 import "dotenv/config";
 
 export interface SourceConfig {
+  type?: string;
   enabled: boolean;
   api_key_env: string;
   endpoint: string;

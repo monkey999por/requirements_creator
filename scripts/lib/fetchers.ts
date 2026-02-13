@@ -40,6 +40,10 @@ export async function fetchNewsApi(config: SourceConfig, apiKey: string): Promis
 export async function fetchYoutube(config: SourceConfig, apiKey: string): Promise<FetchResult> {
   const url = new URL(config.endpoint);
   for (const [key, value] of Object.entries(config.params)) {
+    // videoCategoryIdが空文字・"0"・未定義の場合はパラメータを送らない
+    if (key === "videoCategoryId" && (!value || String(value) === "0")) {
+      continue;
+    }
     url.searchParams.set(key, String(value));
   }
   url.searchParams.set("part", "snippet,statistics");
@@ -66,7 +70,7 @@ const fetcherMap: Record<string, (config: SourceConfig, apiKey: string) => Promi
 };
 
 export function getFetcher(
-  sourceName: string,
+  type: string,
 ): ((config: SourceConfig, apiKey: string) => Promise<FetchResult>) | undefined {
-  return fetcherMap[sourceName];
+  return fetcherMap[type];
 }

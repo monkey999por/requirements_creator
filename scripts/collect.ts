@@ -43,7 +43,7 @@ async function main() {
       continue;
     }
 
-    const fetcher = getFetcher(name);
+    const fetcher = getFetcher(sourceConfig.type ?? name);
     if (!fetcher) {
       console.warn(`[${name}] ⚠ 未対応のデータソースです。スキップします。`);
       continue;

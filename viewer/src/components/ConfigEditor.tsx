@@ -42,13 +42,12 @@ const REGION_CODE_OPTIONS = [
 ];
 
 const VIDEO_CATEGORY_OPTIONS = [
-  { value: "0", label: "0 - 全体" },
   { value: "1", label: "1 - 映画" },
   { value: "10", label: "10 - 音楽" },
-  { value: "20", label: "20 - ゲーム" },
-  { value: "28", label: "28 - 科学技術" },
-  { value: "25", label: "25 - ニュース" },
   { value: "17", label: "17 - スポーツ" },
+  { value: "20", label: "20 - ゲーム" },
+  { value: "25", label: "25 - ニュース" },
+  { value: "28", label: "28 - 科学技術" },
 ];
 
 const PLATFORM_OPTIONS = [
@@ -384,6 +383,7 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
 
   const newsapi = config.collect?.sources?.newsapi;
   const youtube = config.collect?.sources?.youtube;
+  const youtubeAll = config.collect?.sources?.youtube_all;
   const constraints = config.generate?.constraints ?? {};
   const perspectives = config.generate?.perspectives;
   const agents = config.generate?.agents ?? {};
@@ -549,12 +549,14 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
             </div>
           </div>
 
-          {/* YouTube */}
+          {/* YouTube（カテゴリ指定） */}
           <div className="rounded-lg border border-gray-800/50 bg-gray-800/30 p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-gray-200">YouTube Data API</h3>
-                <p className="text-[12px] text-gray-500">人気動画ランキングを取得</p>
+                <h3 className="text-sm font-semibold text-gray-200">
+                  YouTube Data API（カテゴリ指定）
+                </h3>
+                <p className="text-[12px] text-gray-500">指定カテゴリの人気動画ランキングを取得</p>
               </div>
               <Toggle
                 checked={youtube?.enabled ?? false}
@@ -590,7 +592,7 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
                 />
                 <SelectField
                   id="youtube-category"
-                  value={String(youtube?.params?.videoCategoryId ?? "0")}
+                  value={String(youtube?.params?.videoCategoryId ?? "28")}
                   options={VIDEO_CATEGORY_OPTIONS}
                   onChange={(v) =>
                     updateSource("youtube", (s) => ({
@@ -645,10 +647,96 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
               />
               <TextField
                 id="youtube-apikey"
-                value={youtube?.api_key_env ?? "YOUTUBE_API_KEY"}
+                value={youtube?.api_key_env ?? "YOUTUBE_DATA_API_KEY"}
                 onChange={(v) => updateSource("youtube", (s) => ({ ...s, api_key_env: v }))}
                 disabled={disabled}
               />
+            </div>
+          </div>
+
+          {/* YouTube（全体） */}
+          <div className="rounded-lg border border-gray-800/50 bg-gray-800/30 p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-200">YouTube Data API（全体）</h3>
+                <p className="text-[12px] text-gray-500">
+                  カテゴリ指定なしの全体人気動画ランキングを取得
+                </p>
+              </div>
+              <Toggle
+                checked={youtubeAll?.enabled ?? false}
+                onChange={(v) => updateSource("youtube_all", (s) => ({ ...s, enabled: v }))}
+                disabled={disabled}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <FieldLabel
+                  label="regionCode"
+                  description="動画の取得対象地域"
+                  htmlFor="youtube-all-region"
+                />
+                <SelectField
+                  id="youtube-all-region"
+                  value={String(youtubeAll?.params?.regionCode ?? "JP")}
+                  options={REGION_CODE_OPTIONS}
+                  onChange={(v) =>
+                    updateSource("youtube_all", (s) => ({
+                      ...s,
+                      params: { ...s.params, regionCode: v },
+                    }))
+                  }
+                  disabled={disabled}
+                />
+              </div>
+              <div>
+                <FieldLabel
+                  label="maxResults"
+                  description="取得する動画数（最大50）"
+                  htmlFor="youtube-all-maxresults"
+                />
+                <NumberField
+                  id="youtube-all-maxresults"
+                  value={Number(youtubeAll?.params?.maxResults ?? 20)}
+                  onChange={(v) =>
+                    updateSource("youtube_all", (s) => ({
+                      ...s,
+                      params: { ...s.params, maxResults: v },
+                    }))
+                  }
+                  disabled={disabled}
+                  min={1}
+                  max={50}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <FieldLabel
+                  label="output_file"
+                  description="出力ファイル名"
+                  htmlFor="youtube-all-output"
+                />
+                <TextField
+                  id="youtube-all-output"
+                  value={youtubeAll?.output_file ?? "youtube_all.json"}
+                  onChange={(v) => updateSource("youtube_all", (s) => ({ ...s, output_file: v }))}
+                  disabled={disabled}
+                />
+              </div>
+              <div>
+                <FieldLabel
+                  label="api_key_env"
+                  description="APIキーの環境変数名（.envに定義）"
+                  htmlFor="youtube-all-apikey"
+                />
+                <TextField
+                  id="youtube-all-apikey"
+                  value={youtubeAll?.api_key_env ?? "YOUTUBE_DATA_API_KEY"}
+                  onChange={(v) => updateSource("youtube_all", (s) => ({ ...s, api_key_env: v }))}
+                  disabled={disabled}
+                />
+              </div>
             </div>
           </div>
         </section>
