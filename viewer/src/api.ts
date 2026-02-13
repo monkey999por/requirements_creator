@@ -297,6 +297,14 @@ export interface AppConfig {
       }
     >;
   };
+  notifications?: {
+    slack?: {
+      enabled?: boolean;
+      token_env?: string;
+      viewer_host?: string;
+      mention?: string;
+    };
+  };
 }
 
 export async function fetchConfig(): Promise<AppConfig> {

@@ -74,7 +74,12 @@ notifications:
     # 詳細は SLACK_NOTIFICATION.md を参照
     token_env: SLACK_BOT_USER_OAUTH_TOKEN
     # Viewerへのリンク生成用ホスト（通知メッセージにアプリへのリンクを含める）
-    viewer_host: http://localhost:3001
+    viewer_host: http://100.113.125.78:3001
+    # メンション設定（通知メッセージにメンションを付与）
+    # - Slack User ID（例: U01ABCDEF）を指定すると <@U01ABCDEF> 形式で個人メンション
+    # - "channel" を指定すると <!channel> でチャンネル全員にメンション
+    # - 未設定の場合はメンションなし
+    mention: channel
 
 # --- パイプライン共通設定 ---
 pipeline:
