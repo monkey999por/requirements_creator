@@ -1002,6 +1002,80 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
           </div>
         </section>
 
+        {/* --- Notifications --- */}
+        <section className="rounded-xl border border-gray-800 bg-gray-900/50 p-5 space-y-4">
+          <SectionHeader title="Notifications" description="パイプライン完了時の通知設定" />
+
+          {/* Slack */}
+          <div className="rounded-lg border border-gray-800/50 bg-gray-800/30 p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-200">Slack</h3>
+                <p className="text-[12px] text-gray-500">
+                  パイプライン完了時にSlackチャンネルへ通知
+                </p>
+              </div>
+              <Toggle
+                checked={config.notifications?.slack?.enabled ?? false}
+                onChange={(v) =>
+                  persistConfig({
+                    ...config,
+                    notifications: {
+                      ...config.notifications,
+                      slack: { ...config.notifications?.slack, enabled: v },
+                    },
+                  })
+                }
+                disabled={disabled}
+              />
+            </div>
+            <div>
+              <FieldLabel
+                label="viewer_host"
+                description="通知メッセージ内のアプリリンクに使用するViewerホストURL"
+                htmlFor="slack-viewer-host"
+              />
+              <TextField
+                id="slack-viewer-host"
+                value={config.notifications?.slack?.viewer_host ?? ""}
+                onChange={(v) =>
+                  persistConfig({
+                    ...config,
+                    notifications: {
+                      ...config.notifications,
+                      slack: { ...config.notifications?.slack, viewer_host: v || undefined },
+                    },
+                  })
+                }
+                disabled={disabled}
+                placeholder="例: http://100.113.125.78:3001"
+              />
+            </div>
+            <div>
+              <FieldLabel
+                label="mention"
+                description="通知時のメンション（Slack User ID または 'channel'。空欄でメンションなし）"
+                htmlFor="slack-mention"
+              />
+              <TextField
+                id="slack-mention"
+                value={config.notifications?.slack?.mention ?? ""}
+                onChange={(v) =>
+                  persistConfig({
+                    ...config,
+                    notifications: {
+                      ...config.notifications,
+                      slack: { ...config.notifications?.slack, mention: v || undefined },
+                    },
+                  })
+                }
+                disabled={disabled}
+                placeholder="例: U01ABCDEF または channel"
+              />
+            </div>
+          </div>
+        </section>
+
         {/* --- Pipeline --- */}
         <section className="rounded-xl border border-gray-800 bg-gray-900/50 p-5">
           <SectionHeader title="Pipeline" description="パイプライン共通の設定" />
