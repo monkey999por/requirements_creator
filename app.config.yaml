@@ -8,7 +8,7 @@ collect:
   sources:
     # NewsAPI (https://newsapi.org/)
     newsapi:
-      enabled: true
+      enabled: false
       # 環境変数名（.envに定義）
       api_key_env: NEWS_API_KEY
       endpoint: https://newsapi.org/v2/top-headlines
@@ -19,8 +19,10 @@ collect:
       # 出力ファイル名（data_source/yyyy_mm_dd_hh_mm_ss/ 内）
       output_file: news.json
 
-    # YouTube Data API (https://developers.google.com/youtube/v3)
+    # YouTube Data API - カテゴリ指定 (https://developers.google.com/youtube/v3)
+    # カテゴリID: 1=映画, 10=音楽, 20=ゲーム, 28=科学技術, 25=ニュース, 17=スポーツ
     youtube:
+      type: youtube
       enabled: true
       api_key_env: YOUTUBE_DATA_API_KEY
       endpoint: https://www.googleapis.com/youtube/v3/videos
@@ -28,9 +30,20 @@ collect:
         chart: mostPopular
         regionCode: JP
         maxResults: 20
-        # カテゴリID: 0=全体, 1=映画, 10=音楽, 20=ゲーム, 28=科学技術 等
-        videoCategoryId: "0"
+        videoCategoryId: "28"
       output_file: youtube.json
+
+    # YouTube Data API - 全体ランキング（カテゴリなし）
+    youtube_all:
+      type: youtube
+      enabled: true
+      api_key_env: YOUTUBE_DATA_API_KEY
+      endpoint: https://www.googleapis.com/youtube/v3/videos
+      params:
+        chart: mostPopular
+        regionCode: JP
+        maxResults: 20
+      output_file: youtube_all.json
 
 # --- 今後追加予定のデータソース ---
 

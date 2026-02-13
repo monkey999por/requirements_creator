@@ -263,6 +263,7 @@ export interface AppConfig {
     sources?: Record<
       string,
       {
+        type?: string;
         enabled?: boolean;
         api_key_env?: string;
         endpoint?: string;
