@@ -27,3 +27,6 @@ export const REQUIREMENTS_DIR = resolve(OUTPUT_BASE_DIR, "requirements");
 
 /** datasets ディレクトリのフルパス */
 export const DATASETS_DIR = resolve(OUTPUT_BASE_DIR, "datasets");
+
+/** pipeline_queue ディレクトリのフルパス */
+export const PIPELINE_QUEUE_DIR = resolve(OUTPUT_BASE_DIR, "pipeline_queue");

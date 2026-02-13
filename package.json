@@ -15,6 +15,7 @@
     "viewer:start": "pnpm --filter viewer start",
     "setup": "bash setup.sh",
     "pipeline": "tsx scripts/pipeline.ts",
+    "queue:process": "tsx scripts/process-queue.ts",
     "scheduler:enable": "bash scripts/scheduler-ctl.sh enable",
     "scheduler:disable": "bash scripts/scheduler-ctl.sh disable",
     "scheduler:status": "bash scripts/scheduler-ctl.sh status",

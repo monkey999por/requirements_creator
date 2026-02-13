@@ -32,12 +32,29 @@ fi
 log "Node: $(node --version 2>/dev/null || echo 'not found')"
 log "pnpm: $(pnpm --version 2>/dev/null || echo 'not found')"
 
-# パイプライン実行
-log "pnpm pipeline を実行中..."
-if pnpm pipeline >> "$LOG_FILE" 2>&1; then
-  log "=== パイプライン完了（成功） ==="
+# キューがあればキュー処理、なければ通常パイプライン
+QUEUE_DIR="$PROJECT_ROOT/gen/pipeline_queue"
+
+has_queue_items() {
+  [[ -d "$QUEUE_DIR" ]] && [[ -n "$(find "$QUEUE_DIR" -maxdepth 1 -name '*.json' -print -quit 2>/dev/null)" ]]
+}
+
+if has_queue_items; then
+  log "キューにアイテムがあります。キュー処理を実行..."
+  if pnpm queue:process >> "$LOG_FILE" 2>&1; then
+    log "=== キュー処理完了（成功） ==="
+  else
+    EXIT_CODE=$?
+    log "=== キュー処理完了（失敗: exit $EXIT_CODE） ==="
+    exit $EXIT_CODE
+  fi
 else
-  EXIT_CODE=$?
-  log "=== パイプライン完了（失敗: exit $EXIT_CODE） ==="
-  exit $EXIT_CODE
+  log "キューは空です。通常パイプラインを実行..."
+  if pnpm pipeline >> "$LOG_FILE" 2>&1; then
+    log "=== パイプライン完了（成功） ==="
+  else
+    EXIT_CODE=$?
+    log "=== パイプライン完了（失敗: exit $EXIT_CODE） ==="
+    exit $EXIT_CODE
+  fi
 fi

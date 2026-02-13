@@ -16,12 +16,13 @@ import { CommandRunner } from "./components/CommandRunner";
 import { ConfigEditor } from "./components/ConfigEditor";
 import { DatasetManager } from "./components/DatasetManager";
 import { FavoritePage } from "./components/FavoritePage";
+import { QueueManager } from "./components/QueueManager";
 import { SearchView } from "./components/SearchView";
 import { Sidebar } from "./components/Sidebar";
 import { ToastProvider } from "./components/Toast";
 import { useIsMobile } from "./hooks/useIsMobile";
 
-type ViewMode = "apps" | "datasets" | "favorites" | "commands" | "config";
+type ViewMode = "apps" | "datasets" | "favorites" | "commands" | "config" | "queue";
 
 function buildUrl(state: {
   viewMode: ViewMode;
@@ -45,6 +46,8 @@ function buildUrl(state: {
     url.searchParams.set("view", "commands");
   } else if (state.viewMode === "config") {
     url.searchParams.set("view", "config");
+  } else if (state.viewMode === "queue") {
+    url.searchParams.set("view", "queue");
   } else {
     if (state.app) url.searchParams.set("app", state.app);
     if (state.feature) url.searchParams.set("feature", state.feature);
@@ -109,8 +112,11 @@ export function App() {
     const isFavoritesView = viewParam === "favorites";
     const isCommandsView = viewParam === "commands";
     const isConfigView = viewParam === "config";
-    // URL から datasets/favorites/commands/config ビュー復元
-    if (isConfigView) {
+    const isQueueView = viewParam === "queue";
+    // URL から datasets/favorites/commands/config/queue ビュー復元
+    if (isQueueView) {
+      setViewMode("queue");
+    } else if (isConfigView) {
       setViewMode("config");
     } else if (isCommandsView) {
       setViewMode("commands");
@@ -148,15 +154,17 @@ export function App() {
         tabParam && ["overview", "source-info", "diagrams", "features", "memo"].includes(tabParam)
           ? tabParam
           : undefined;
-      const currentViewMode = isConfigView
-        ? "config"
-        : isCommandsView
-          ? "commands"
-          : isFavoritesView
-            ? "favorites"
-            : isDatasetView
-              ? "datasets"
-              : "apps";
+      const currentViewMode = isQueueView
+        ? "queue"
+        : isConfigView
+          ? "config"
+          : isCommandsView
+            ? "commands"
+            : isFavoritesView
+              ? "favorites"
+              : isDatasetView
+                ? "datasets"
+                : "apps";
       window.history.replaceState(
         {},
         "",
@@ -176,7 +184,11 @@ export function App() {
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
       const viewParam = params.get("view");
-      if (viewParam === "config") {
+      if (viewParam === "queue") {
+        setViewMode("queue");
+        setSelectedFeature(null);
+        setSelectedTab("overview");
+      } else if (viewParam === "config") {
         setViewMode("config");
         setSelectedFeature(null);
         setSelectedTab("overview");
@@ -257,6 +269,14 @@ export function App() {
     setSearchActive(false);
     if (isMobile) setMobileSidebarOpen(false);
     window.history.pushState({}, "", buildUrl({ viewMode: "favorites" }));
+  };
+
+  const handleSelectQueue = () => {
+    setViewMode("queue");
+    setSelectedFeature(null);
+    setSearchActive(false);
+    if (isMobile) setMobileSidebarOpen(false);
+    window.history.pushState({}, "", buildUrl({ viewMode: "queue" }));
   };
 
   const handleNavigateToDataset = (datasetName: string) => {
@@ -462,7 +482,9 @@ export function App() {
                     ? "お気に入り"
                     : viewMode === "datasets"
                       ? "データセット"
-                      : (selectedApp ?? "Requirements Viewer")}
+                      : viewMode === "queue"
+                        ? "パイプラインキュー"
+                        : (selectedApp ?? "Requirements Viewer")}
             </span>
           </div>
         )}
@@ -481,6 +503,7 @@ export function App() {
           onSelectFavorites={handleSelectFavorites}
           onSelectCommands={handleSelectCommands}
           onSelectConfig={handleSelectConfig}
+          onSelectQueue={handleSelectQueue}
           onSearch={handleSearch}
           onClearSearch={handleClearSearch}
           isSearchActive={searchActive}
@@ -506,6 +529,8 @@ export function App() {
               onSelectFeature={handleNavigateToFeature}
               onSelectDiagram={handleNavigateToDiagram}
             />
+          ) : viewMode === "queue" ? (
+            <QueueManager isMobile={isMobile} isDev={isDev} />
           ) : viewMode === "datasets" ? (
             <DatasetManager
               isMobile={isMobile}

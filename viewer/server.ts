@@ -63,6 +63,28 @@ function loadDataSourceDir(): string {
 
 const DATA_SOURCE_DIR = loadDataSourceDir();
 
+function loadPipelineQueueDir(): string {
+  try {
+    const configPath = resolve(projectRoot, "app.config.yaml");
+    const raw = readFileSync(configPath, "utf-8");
+    const config = parse(raw) as { output_base_dir?: string };
+    const base = config.output_base_dir ?? "gen";
+    return resolve(projectRoot, base, "pipeline_queue");
+  } catch {
+    return resolve(projectRoot, "gen", "pipeline_queue");
+  }
+}
+
+const PIPELINE_QUEUE_DIR = loadPipelineQueueDir();
+
+interface QueueItem {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface DatasetItem {
   appName: string;
   type: "overview" | "feature";
@@ -563,6 +585,80 @@ app.delete("/api/favorites", async (c) => {
       ),
   );
   writeFavorites(filtered);
+  return c.json({ success: true });
+});
+
+// --- Pipeline Queue API ---
+
+function readQueueItems(): QueueItem[] {
+  if (!existsSync(PIPELINE_QUEUE_DIR)) return [];
+  return readdirSync(PIPELINE_QUEUE_DIR)
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => {
+      try {
+        return JSON.parse(readFileSync(join(PIPELINE_QUEUE_DIR, f), "utf-8")) as QueueItem;
+      } catch {
+        return null;
+      }
+    })
+    .filter((item): item is QueueItem => item !== null)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+app.get("/api/queue", (c) => {
+  return c.json(readQueueItems());
+});
+
+app.get("/api/queue/:id", (c) => {
+  const id = c.req.param("id");
+  const filePath = join(PIPELINE_QUEUE_DIR, `${id}.json`);
+  if (!existsSync(filePath)) return c.json({ error: "Not found" }, 404);
+  return c.json(JSON.parse(readFileSync(filePath, "utf-8")) as QueueItem);
+});
+
+app.post("/api/queue", async (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  const body = await c.req.json<{ title: string; content: string }>();
+  if (!body.title?.trim()) return c.json({ error: "タイトルは必須です" }, 400);
+  if (!body.content?.trim()) return c.json({ error: "内容は必須です" }, 400);
+
+  if (!existsSync(PIPELINE_QUEUE_DIR)) mkdirSync(PIPELINE_QUEUE_DIR, { recursive: true });
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const now = new Date().toISOString();
+  const item: QueueItem = {
+    id,
+    title: body.title.trim(),
+    content: body.content.trim(),
+    createdAt: now,
+    updatedAt: now,
+  };
+  writeFileSync(join(PIPELINE_QUEUE_DIR, `${id}.json`), JSON.stringify(item, null, 2), "utf-8");
+  return c.json({ success: true, item });
+});
+
+app.put("/api/queue/:id", async (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  const id = c.req.param("id");
+  const filePath = join(PIPELINE_QUEUE_DIR, `${id}.json`);
+  if (!existsSync(filePath)) return c.json({ error: "Not found" }, 404);
+
+  const existing = JSON.parse(readFileSync(filePath, "utf-8")) as QueueItem;
+  const body = await c.req.json<{ title?: string; content?: string }>();
+
+  if (body.title !== undefined) existing.title = body.title.trim();
+  if (body.content !== undefined) existing.content = body.content.trim();
+  existing.updatedAt = new Date().toISOString();
+
+  writeFileSync(filePath, JSON.stringify(existing, null, 2), "utf-8");
+  return c.json({ success: true, item: existing });
+});
+
+app.delete("/api/queue/:id", (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  const id = c.req.param("id");
+  const filePath = join(PIPELINE_QUEUE_DIR, `${id}.json`);
+  if (!existsSync(filePath)) return c.json({ error: "Not found" }, 404);
+  unlinkSync(filePath);
   return c.json({ success: true });
 });
 
