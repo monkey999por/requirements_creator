@@ -3,6 +3,13 @@ Description=Requirements Creator パイプライン 毎日AM5:00 JST実行
 
 [Timer]
 OnCalendar=*-*-* 05:00:00
+# 複数時間の設定例（OnCalendarを複数行記述）:
+# OnCalendar=*-*-* 05:00:00
+# OnCalendar=*-*-* 18:00:00
+# 毎時実行:
+# OnCalendar=*-*-* *:00:00
+# 平日のみ:
+# OnCalendar=Mon..Fri *-*-* 05:00:00
 TimezoneOfTimer=Asia/Tokyo
 Persistent=true
 
