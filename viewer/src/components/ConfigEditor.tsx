@@ -108,6 +108,11 @@ const AGENT_ROLE_OPTIONS = [
   { value: "enhancer", desc: "レビュー結果に基づく要件の修正" },
 ];
 
+const THREADS_SEARCH_TYPE_OPTIONS = [
+  { value: "TOP", label: "TOP (人気順)" },
+  { value: "RECENT", label: "RECENT (新着順)" },
+];
+
 const ASSOCIATION_DEPTH_OPTIONS = [
   { value: "shallow", label: "shallow (1段階 - 直接的な関連語・類義語)" },
   { value: "moderate", label: "moderate (2段階 - 関連分野・応用領域まで)" },
@@ -395,6 +400,7 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
   const youtubeAll = config.collect?.sources?.youtube_all;
   const xTrends = config.collect?.sources?.x;
   const xPopularPosts = config.collect?.sources?.x_popular_posts;
+  const threads = config.collect?.sources?.threads;
   const constraints = config.generate?.constraints ?? {};
   const perspectives = config.generate?.perspectives;
   const agents = config.generate?.agents ?? {};
@@ -885,6 +891,85 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
                 onChange={(v) => updateSource("x_popular_posts", (s) => ({ ...s, api_key_env: v }))}
                 disabled={disabled}
               />
+            </div>
+          </div>
+
+          {/* Threads */}
+          <div className="rounded-lg border border-gray-800/50 bg-gray-800/30 p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-200">Threads API</h3>
+                <p className="text-[12px] text-gray-500">キーワード検索でThreadsの投稿を取得</p>
+              </div>
+              <Toggle
+                checked={threads?.enabled ?? false}
+                onChange={(v) => updateSource("threads", (s) => ({ ...s, enabled: v }))}
+                disabled={disabled}
+              />
+            </div>
+            <div>
+              <FieldLabel label="q" description="検索キーワード" htmlFor="threads-query" />
+              <TextField
+                id="threads-query"
+                value={String(threads?.params?.q ?? "トレンド")}
+                onChange={(v) =>
+                  updateSource("threads", (s) => ({
+                    ...s,
+                    params: { ...s.params, q: v },
+                  }))
+                }
+                disabled={disabled}
+                placeholder="トレンド"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <FieldLabel
+                  label="search_type"
+                  description="検索結果のソート順"
+                  htmlFor="threads-search-type"
+                />
+                <SelectField
+                  id="threads-search-type"
+                  value={String(threads?.params?.search_type ?? "TOP")}
+                  options={THREADS_SEARCH_TYPE_OPTIONS}
+                  onChange={(v) =>
+                    updateSource("threads", (s) => ({
+                      ...s,
+                      params: { ...s.params, search_type: v },
+                    }))
+                  }
+                  disabled={disabled}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <FieldLabel
+                  label="output_file"
+                  description="出力ファイル名"
+                  htmlFor="threads-output"
+                />
+                <TextField
+                  id="threads-output"
+                  value={threads?.output_file ?? "threads.json"}
+                  onChange={(v) => updateSource("threads", (s) => ({ ...s, output_file: v }))}
+                  disabled={disabled}
+                />
+              </div>
+              <div>
+                <FieldLabel
+                  label="api_key_env"
+                  description="アクセストークンの環境変数名（.envに定義）"
+                  htmlFor="threads-apikey"
+                />
+                <TextField
+                  id="threads-apikey"
+                  value={threads?.api_key_env ?? "THREADS_ACCESS_TOKEN"}
+                  onChange={(v) => updateSource("threads", (s) => ({ ...s, api_key_env: v }))}
+                  disabled={disabled}
+                />
+              </div>
             </div>
           </div>
         </section>

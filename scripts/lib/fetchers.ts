@@ -124,11 +124,37 @@ export async function fetchXPopularPosts(
   };
 }
 
+export async function fetchThreads(config: SourceConfig, apiKey: string): Promise<FetchResult> {
+  const query = String(config.params.q ?? "トレンド");
+  const searchType = String(config.params.search_type ?? "TOP");
+
+  const url = new URL(config.endpoint);
+  url.searchParams.set("q", query);
+  url.searchParams.set("search_type", searchType);
+  url.searchParams.set("fields", "id,text");
+  url.searchParams.set("access_token", apiKey);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Threads API error (${res.status}): ${body}`);
+  }
+
+  const data = await res.json();
+  return {
+    fetched_at: new Date().toISOString(),
+    source: "threads",
+    params: { q: query, search_type: searchType },
+    data,
+  };
+}
+
 const fetcherMap: Record<string, (config: SourceConfig, apiKey: string) => Promise<FetchResult>> = {
   newsapi: fetchNewsApi,
   youtube: fetchYoutube,
   x: fetchXTrends,
   x_popular_posts: fetchXPopularPosts,
+  threads: fetchThreads,
 };
 
 export function getFetcher(

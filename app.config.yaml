@@ -72,6 +72,20 @@ collect:
         sort_order: relevancy
       output_file: x_popular_posts.json
 
+    # Threads API - キーワード検索 (https://developers.facebook.com/docs/threads/keyword-search)
+    # search_type: TOP（人気順）/ RECENT（新着順）
+    # 権限: threads_keyword_search が必要
+    # レート制限: 7日間で500クエリ
+    threads:
+      type: threads
+      enabled: false
+      api_key_env: THREADS_ACCESS_TOKEN
+      endpoint: https://graph.threads.net/v1.0/keyword_search
+      params:
+        q: "トレンド"
+        search_type: TOP
+      output_file: threads.json
+
 # --- 今後追加予定のデータソース ---
 
 # TikTok

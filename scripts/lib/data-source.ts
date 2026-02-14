@@ -152,6 +152,21 @@ export function extractYoutubeTexts(data: unknown): ArticleText[] {
     }));
 }
 
+/** Threadsのデータからテキスト要素を抽出 */
+export function extractThreadsTexts(data: unknown): ArticleText[] {
+  const d = data as {
+    data?: Array<{ text?: string; username?: string; permalink?: string }>;
+  };
+  const posts = d?.data;
+  if (!Array.isArray(posts)) return [];
+  return posts
+    .filter((p) => p.text)
+    .map((p) => ({
+      title: p.username ? `@${p.username}` : "Threads Post",
+      description: p.text ?? "",
+    }));
+}
+
 /** user_proposal.md からテキスト要素を抽出 */
 export function extractUserProposalTexts(dirName: string): ArticleText[] {
   const filePath = join(DATA_SOURCE_DIR, dirName, USER_PROPOSAL_FILE);
@@ -180,7 +195,13 @@ function extractMarkdownTexts(filePath: string, defaultTitle: string): ArticleTe
 const TEXT_FILE_EXTENSIONS = [".md", ".txt"];
 
 /** 既知のファイル名（個別処理で扱うもの） */
-const KNOWN_FILES = new Set(["news.json", "youtube.json", "keyword.json", USER_PROPOSAL_FILE]);
+const KNOWN_FILES = new Set([
+  "news.json",
+  "youtube.json",
+  "threads.json",
+  "keyword.json",
+  USER_PROPOSAL_FILE,
+]);
 
 /** 任意のテキストファイルからテキスト要素を抽出 */
 export function extractTextFileTexts(dirName: string): ArticleText[] {
@@ -222,6 +243,9 @@ export function loadAllTexts(dirName: string): ArticleText[] {
 
   const youtube = loadJson(dirName, "youtube.json");
   if (youtube) texts.push(...extractYoutubeTexts(youtube));
+
+  const threads = loadJson(dirName, "threads.json");
+  if (threads) texts.push(...extractThreadsTexts(threads));
 
   texts.push(...extractUserProposalTexts(dirName));
   texts.push(...extractTextFileTexts(dirName));
