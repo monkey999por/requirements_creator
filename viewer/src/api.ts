@@ -447,6 +447,13 @@ export async function deleteQueueItem(id: string): Promise<{ success: boolean }>
   return res.json();
 }
 
+export async function executeQueueItem(
+  id: string,
+): Promise<{ success: boolean; message?: string; error?: string }> {
+  const res = await fetch(`${BASE}/queue/${id}/execute`, { method: "POST" });
+  return res.json();
+}
+
 // --- Git API ---
 
 export interface GitResult {
