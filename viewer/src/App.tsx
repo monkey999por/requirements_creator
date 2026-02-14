@@ -30,6 +30,7 @@ function buildUrl(state: {
   feature?: string | null;
   dataset?: string | null;
   tab?: AppTab | null;
+  queueItem?: string | null;
 }) {
   const url = new URL(window.location.href);
   url.searchParams.delete("app");
@@ -37,6 +38,7 @@ function buildUrl(state: {
   url.searchParams.delete("dataset");
   url.searchParams.delete("feature");
   url.searchParams.delete("tab");
+  url.searchParams.delete("queueItem");
   if (state.viewMode === "datasets") {
     url.searchParams.set("view", "datasets");
     if (state.dataset) url.searchParams.set("dataset", state.dataset);
@@ -48,6 +50,7 @@ function buildUrl(state: {
     url.searchParams.set("view", "config");
   } else if (state.viewMode === "queue") {
     url.searchParams.set("view", "queue");
+    if (state.queueItem) url.searchParams.set("queueItem", state.queueItem);
   } else {
     if (state.app) url.searchParams.set("app", state.app);
     if (state.feature) url.searchParams.set("feature", state.feature);
