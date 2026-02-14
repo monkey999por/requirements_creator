@@ -45,6 +45,17 @@ collect:
         maxResults: 20
       output_file: youtube_all.json
 
+    # X (Twitter) Trends API (https://docs.x.com/x-api/trends/introduction)
+    # WOEID: 1=世界, 23424856=日本, 1118370=東京
+    x:
+      type: x
+      enabled: false
+      api_key_env: X_BEARER_TOKEN
+      endpoint: https://api.x.com/2/trends/by/woeid
+      params:
+        woeid: 23424856
+      output_file: x_trends.json
+
 # --- 今後追加予定のデータソース ---
 
 # TikTok

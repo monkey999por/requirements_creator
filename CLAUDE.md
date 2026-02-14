@@ -193,6 +193,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `NEWS_API_KEY` - NewsAPI用
 - `YOUTUBE_API_KEY` - YouTube Data API用（`app.config.yaml`で`enabled: false`がデフォルト）
+- `X_BEARER_TOKEN` - X (Twitter) API用（`app.config.yaml`で`enabled: false`がデフォルト）
 
 ## アプリケーション設定（`app.config.yaml`）
 

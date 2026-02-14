@@ -64,9 +64,31 @@ export async function fetchYoutube(config: SourceConfig, apiKey: string): Promis
   };
 }
 
+export async function fetchXTrends(config: SourceConfig, apiKey: string): Promise<FetchResult> {
+  const woeid = config.params.woeid ?? 23424856;
+  const url = `${config.endpoint}/${woeid}`;
+
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`X API error (${res.status}): ${body}`);
+  }
+
+  const data = await res.json();
+  return {
+    fetched_at: new Date().toISOString(),
+    source: "x",
+    params: config.params,
+    data,
+  };
+}
+
 const fetcherMap: Record<string, (config: SourceConfig, apiKey: string) => Promise<FetchResult>> = {
   newsapi: fetchNewsApi,
   youtube: fetchYoutube,
+  x: fetchXTrends,
 };
 
 export function getFetcher(
