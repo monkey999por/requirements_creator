@@ -50,6 +50,15 @@ const VIDEO_CATEGORY_OPTIONS = [
   { value: "28", label: "28 - 科学技術" },
 ];
 
+const WOEID_OPTIONS = [
+  { value: "1", label: "1 - 世界" },
+  { value: "23424856", label: "23424856 - 日本" },
+  { value: "1118370", label: "1118370 - 東京" },
+  { value: "23424977", label: "23424977 - アメリカ" },
+  { value: "23424975", label: "23424975 - イギリス" },
+  { value: "23424868", label: "23424868 - 韓国" },
+];
+
 const PLATFORM_OPTIONS = [
   { value: "frontend-only", label: "frontend-only (フロントエンドのみ)" },
   { value: "fullstack", label: "fullstack (フルスタック)" },
@@ -384,6 +393,8 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
   const newsapi = config.collect?.sources?.newsapi;
   const youtube = config.collect?.sources?.youtube;
   const youtubeAll = config.collect?.sources?.youtube_all;
+  const xTrends = config.collect?.sources?.x;
+  const xPopularPosts = config.collect?.sources?.x_popular_posts;
   const constraints = config.generate?.constraints ?? {};
   const perspectives = config.generate?.perspectives;
   const agents = config.generate?.agents ?? {};
@@ -737,6 +748,143 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
                   disabled={disabled}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* X (Twitter) Trends */}
+          <div className="rounded-lg border border-gray-800/50 bg-gray-800/30 p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-200">X (Twitter) Trends API</h3>
+                <p className="text-[12px] text-gray-500">地域別のトレンドトピックを取得</p>
+              </div>
+              <Toggle
+                checked={xTrends?.enabled ?? false}
+                onChange={(v) => updateSource("x", (s) => ({ ...s, enabled: v }))}
+                disabled={disabled}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <FieldLabel label="woeid" description="地域コード (WOEID)" htmlFor="x-woeid" />
+                <SelectField
+                  id="x-woeid"
+                  value={String(xTrends?.params?.woeid ?? "23424856")}
+                  options={WOEID_OPTIONS}
+                  onChange={(v) =>
+                    updateSource("x", (s) => ({
+                      ...s,
+                      params: { ...s.params, woeid: Number(v) },
+                    }))
+                  }
+                  disabled={disabled}
+                />
+              </div>
+              <div>
+                <FieldLabel label="output_file" description="出力ファイル名" htmlFor="x-output" />
+                <TextField
+                  id="x-output"
+                  value={xTrends?.output_file ?? "x_trends.json"}
+                  onChange={(v) => updateSource("x", (s) => ({ ...s, output_file: v }))}
+                  disabled={disabled}
+                />
+              </div>
+            </div>
+            <div>
+              <FieldLabel
+                label="api_key_env"
+                description="Bearer Tokenの環境変数名（.envに定義）"
+                htmlFor="x-apikey"
+              />
+              <TextField
+                id="x-apikey"
+                value={xTrends?.api_key_env ?? "X_API_BEARER_TOKEN"}
+                onChange={(v) => updateSource("x", (s) => ({ ...s, api_key_env: v }))}
+                disabled={disabled}
+              />
+            </div>
+          </div>
+
+          {/* X (Twitter) Popular Posts */}
+          <div className="rounded-lg border border-gray-800/50 bg-gray-800/30 p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-200">X (Twitter) Popular Posts</h3>
+                <p className="text-[12px] text-gray-500">バズったツイートをrelevancy順で取得</p>
+              </div>
+              <Toggle
+                checked={xPopularPosts?.enabled ?? false}
+                onChange={(v) => updateSource("x_popular_posts", (s) => ({ ...s, enabled: v }))}
+                disabled={disabled}
+              />
+            </div>
+            <div>
+              <FieldLabel
+                label="query"
+                description="検索クエリ（キーワードが最低1つ必要。例: #AI lang:ja -is:retweet）"
+                htmlFor="xpp-query"
+              />
+              <TextField
+                id="xpp-query"
+                value={String(
+                  xPopularPosts?.params?.query ??
+                    "(話題 OR トレンド OR 注目 OR ニュース OR 最新) lang:ja -is:retweet -is:reply",
+                )}
+                onChange={(v) =>
+                  updateSource("x_popular_posts", (s) => ({
+                    ...s,
+                    params: { ...s.params, query: v },
+                  }))
+                }
+                disabled={disabled}
+                placeholder="(話題 OR トレンド) lang:ja -is:retweet -is:reply"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <FieldLabel
+                  label="maxResults"
+                  description="取得するツイート数（10〜100）"
+                  htmlFor="xpp-maxresults"
+                />
+                <NumberField
+                  id="xpp-maxresults"
+                  value={Number(xPopularPosts?.params?.maxResults ?? 20)}
+                  onChange={(v) =>
+                    updateSource("x_popular_posts", (s) => ({
+                      ...s,
+                      params: { ...s.params, maxResults: v },
+                    }))
+                  }
+                  disabled={disabled}
+                  min={10}
+                  max={100}
+                />
+              </div>
+              <div>
+                <FieldLabel label="output_file" description="出力ファイル名" htmlFor="xpp-output" />
+                <TextField
+                  id="xpp-output"
+                  value={xPopularPosts?.output_file ?? "x_popular_posts.json"}
+                  onChange={(v) =>
+                    updateSource("x_popular_posts", (s) => ({ ...s, output_file: v }))
+                  }
+                  disabled={disabled}
+                />
+              </div>
+            </div>
+            <div>
+              <FieldLabel
+                label="api_key_env"
+                description="Bearer Tokenの環境変数名（.envに定義）"
+                htmlFor="xpp-apikey"
+              />
+              <TextField
+                id="xpp-apikey"
+                value={xPopularPosts?.api_key_env ?? "X_API_BEARER_TOKEN"}
+                onChange={(v) => updateSource("x_popular_posts", (s) => ({ ...s, api_key_env: v }))}
+                disabled={disabled}
+              />
             </div>
           </div>
         </section>
