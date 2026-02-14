@@ -3,15 +3,31 @@ import { useCallback, useEffect, useState } from "react";
 import {
   createQueueItem,
   deleteQueueItem,
+  executeQueueItem,
   fetchQueueItems,
   type QueueItem,
   updateQueueItem,
 } from "../api";
 
+function pushQueueUrl(queueItem?: string | null) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("view", "queue");
+  if (queueItem) {
+    url.searchParams.set("queueItem", queueItem);
+  } else {
+    url.searchParams.delete("queueItem");
+  }
+  window.history.pushState({}, "", url.toString());
+}
+
+function getQueueItemFromUrl(): string | null {
+  return new URLSearchParams(window.location.search).get("queueItem");
+}
+
 export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: boolean }) {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(() => getQueueItemFromUrl());
   const [creating, setCreating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -24,6 +40,24 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
   useEffect(() => {
     reload();
   }, [reload]);
+
+  // ブラウザバック/フォワード対応
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("view") !== "queue") return;
+      const queueItem = params.get("queueItem");
+      if (queueItem === "__new__") {
+        setCreating(true);
+        setSelected(null);
+      } else {
+        setCreating(false);
+        setSelected(queueItem);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   const selectedItem = items.find((i) => i.id === selected);
 
@@ -39,6 +73,7 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
         setCreating(false);
         reload();
         setSelected(result.item.id);
+        pushQueueUrl(result.item.id);
         showMessage("キューに追加しました");
       } else {
         showMessage(result.error ?? "作成エラー");
@@ -60,13 +95,36 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
     [reload, showMessage],
   );
 
+  const handleExecute = useCallback(
+    async (id: string) => {
+      const target = items.find((i) => i.id === id);
+      const label = target ? `「${target.title}」` : "このアイテム";
+      if (
+        !window.confirm(
+          `${label}のパイプラインを即時実行しますか？\nバックグラウンドで実行されます。`,
+        )
+      )
+        return;
+      const result = await executeQueueItem(id);
+      if (result.success) {
+        showMessage(result.message ?? "パイプラインを開始しました");
+      } else {
+        showMessage(result.error ?? "実行エラー");
+      }
+    },
+    [items, showMessage],
+  );
+
   const handleDelete = useCallback(
     async (id: string) => {
       const target = items.find((i) => i.id === id);
       const label = target ? `「${target.title}」` : "このアイテム";
       if (!window.confirm(`${label}を削除しますか？`)) return;
       await deleteQueueItem(id);
-      if (selected === id) setSelected(null);
+      if (selected === id) {
+        setSelected(null);
+        pushQueueUrl(null);
+      }
       reload();
       showMessage("削除しました");
     },
@@ -103,7 +161,15 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.25 }}
         >
-          <QueueForm onSubmit={handleCreate} onCancel={() => setCreating(false)} isMobile />
+          <QueueForm
+            key="__new__"
+            onSubmit={handleCreate}
+            onCancel={() => {
+              setCreating(false);
+              pushQueueUrl(null);
+            }}
+            isMobile
+          />
           <MessageToast message={message} />
         </motion.div>
       );
@@ -117,9 +183,14 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
           transition={{ duration: 0.25 }}
         >
           <QueueForm
+            key={selectedItem.id}
             item={selectedItem}
             onSubmit={(title, content) => handleUpdate(selectedItem.id, title, content)}
-            onCancel={() => setSelected(null)}
+            onCancel={() => {
+              setSelected(null);
+              pushQueueUrl(null);
+            }}
+            onExecute={isDev ? () => handleExecute(selectedItem.id) : undefined}
             isMobile
           />
           <MessageToast message={message} />
@@ -136,13 +207,24 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
         <div className="flex items-center gap-2 px-4 py-3 bg-gray-900 border-b border-gray-800 shrink-0">
           <h2 className="text-sm font-semibold text-gray-200">パイプラインキュー</h2>
           <div className="flex-1" />
-          {isDev && <CreateButton onClick={() => setCreating(true)} />}
+          {isDev && (
+            <CreateButton
+              onClick={() => {
+                setCreating(true);
+                setSelected(null);
+                pushQueueUrl("__new__");
+              }}
+            />
+          )}
         </div>
         <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-32 bg-gray-900">
           <QueueList
             items={items}
             selected={selected}
-            onSelect={setSelected}
+            onSelect={(id) => {
+              setSelected(id);
+              pushQueueUrl(id);
+            }}
             onDelete={handleDelete}
             isDev={isDev}
             isMobile
@@ -168,7 +250,15 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
             パイプラインキュー
           </span>
           <div className="flex-1" />
-          {isDev && <CreateButton onClick={() => setCreating(true)} />}
+          {isDev && (
+            <CreateButton
+              onClick={() => {
+                setCreating(true);
+                setSelected(null);
+                pushQueueUrl("__new__");
+              }}
+            />
+          )}
         </div>
         <div className="flex-1 overflow-y-auto dark-scrollbar p-3 bg-gray-900">
           <QueueList
@@ -177,6 +267,7 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
             onSelect={(id) => {
               setSelected(id);
               setCreating(false);
+              pushQueueUrl(id);
             }}
             onDelete={handleDelete}
             isDev={isDev}
@@ -187,12 +278,24 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
       {/* Right: edit form */}
       <div className="flex-1 flex flex-col min-w-0">
         {creating ? (
-          <QueueForm onSubmit={handleCreate} onCancel={() => setCreating(false)} />
+          <QueueForm
+            key="__new__"
+            onSubmit={handleCreate}
+            onCancel={() => {
+              setCreating(false);
+              pushQueueUrl(null);
+            }}
+          />
         ) : selectedItem ? (
           <QueueForm
+            key={selectedItem.id}
             item={selectedItem}
             onSubmit={(title, content) => handleUpdate(selectedItem.id, title, content)}
-            onCancel={() => setSelected(null)}
+            onCancel={() => {
+              setSelected(null);
+              pushQueueUrl(null);
+            }}
+            onExecute={isDev ? () => handleExecute(selectedItem.id) : undefined}
           />
         ) : (
           <div className="flex h-full items-center justify-center text-gray-500 text-sm">
@@ -338,11 +441,13 @@ function QueueForm({
   item,
   onSubmit,
   onCancel,
+  onExecute,
   isMobile,
 }: {
   item?: QueueItem;
   onSubmit: (title: string, content: string) => void;
   onCancel: () => void;
+  onExecute?: () => void;
   isMobile?: boolean;
 }) {
   const [title, setTitle] = useState(item?.title ?? "");
@@ -383,6 +488,19 @@ function QueueForm({
           {isEdit ? "キューアイテム編集" : "新規キューアイテム"}
         </span>
         <div className="flex-1" />
+        {isEdit && onExecute && (
+          <button
+            type="button"
+            className="px-3 py-1.5 my-1 text-xs font-medium rounded-lg transition-colors bg-emerald-600 text-white hover:bg-emerald-500 flex items-center gap-1"
+            onClick={onExecute}
+            title="パイプラインを即時実行"
+          >
+            <svg aria-hidden="true" className="size-3.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            実行
+          </button>
+        )}
         <button
           type="button"
           className={`px-3 py-1.5 my-1 text-xs font-medium rounded-lg transition-colors ${
@@ -396,8 +514,10 @@ function QueueForm({
           {isEdit ? "更新" : "追加"}
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto dark-scrollbar p-6 bg-gray-900 space-y-4">
-        <div>
+      <div
+        className={`flex-1 flex flex-col overflow-hidden p-6 ${isMobile ? "pb-32" : ""} bg-gray-900 gap-4`}
+      >
+        <div className="shrink-0">
           <label className="block text-[11px] font-medium text-gray-500 mb-1.5" htmlFor="q-title">
             タイトル
           </label>
@@ -410,13 +530,16 @@ function QueueForm({
             onChange={(e) => setTitle(e.target.value)}
           />
         </div>
-        <div className="flex-1 flex flex-col">
-          <label className="block text-[11px] font-medium text-gray-500 mb-1.5" htmlFor="q-content">
+        <div className="flex-1 flex flex-col min-h-0">
+          <label
+            className="block text-[11px] font-medium text-gray-500 mb-1.5 shrink-0"
+            htmlFor="q-content"
+          >
             内容
           </label>
           <textarea
             id="q-content"
-            className="w-full flex-1 min-h-[200px] px-3 py-2 text-sm bg-gray-800 border border-gray-700/50 rounded-lg text-gray-200 placeholder-gray-600 outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 resize-y"
+            className="w-full flex-1 px-3 py-2 text-sm bg-gray-800 border border-gray-700/50 rounded-lg text-gray-200 placeholder-gray-600 outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 resize-none"
             placeholder="アプリのアイデアを自由に記述してください。箇条書きでも文章でもOKです。"
             value={content}
             onChange={(e) => setContent(e.target.value)}

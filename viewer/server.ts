@@ -654,6 +654,36 @@ app.put("/api/queue/:id", async (c) => {
   return c.json({ success: true, item: existing });
 });
 
+// キュー即時実行（バックグラウンド）
+app.post("/api/queue/:id/execute", (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  const id = c.req.param("id");
+  const filePath = join(PIPELINE_QUEUE_DIR, `${id}.json`);
+  if (!existsSync(filePath)) return c.json({ error: "Not found" }, 404);
+  const item = JSON.parse(readFileSync(filePath, "utf-8")) as QueueItem;
+
+  // data_source にディレクトリを作成し user_proposal.md を配置
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const ts = `${now.getFullYear()}_${pad(now.getMonth() + 1)}_${pad(now.getDate())}_${pad(now.getHours())}_${pad(now.getMinutes())}_${pad(now.getSeconds())}`;
+  const sourceDir = join(DATA_SOURCE_DIR, ts);
+  mkdirSync(sourceDir, { recursive: true });
+  writeFileSync(join(sourceDir, "user_proposal.md"), `# ${item.title}\n\n${item.content}`, "utf-8");
+
+  // バックグラウンドでパイプライン実行（detached + unref）
+  const child = spawn("tsx", ["scripts/pipeline.ts", "--skip-collect", "--source", ts], {
+    cwd: projectRoot,
+    stdio: "ignore",
+    detached: true,
+  });
+  child.unref();
+
+  return c.json({
+    success: true,
+    message: `「${item.title}」のパイプラインをバックグラウンドで開始しました。`,
+  });
+});
+
 app.delete("/api/queue/:id", (c) => {
   if (!isDev) return c.json({ error: "Dev mode only" }, 403);
   const id = c.req.param("id");
