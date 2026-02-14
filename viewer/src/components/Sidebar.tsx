@@ -266,11 +266,34 @@ export function Sidebar({
               transition={{ duration: 0.25, ease: "easeOut" }}
             >
               {/* Header */}
-              <div className="px-5 py-6 flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div className="px-5 pt-5 pb-3 space-y-2">
+                <div className="flex items-center justify-between">
                   <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm font-bold shadow-lg shadow-indigo-500/25">
                     R
                   </span>
+                  <button
+                    type="button"
+                    className="p-1.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-white/[0.06] transition-colors shrink-0"
+                    onClick={onMobileClose}
+                    title="閉じる"
+                  >
+                    <svg
+                      className="size-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5 pl-1">
                   <button
                     type="button"
                     className={`p-1.5 rounded-lg transition-colors shrink-0 ${
@@ -282,7 +305,7 @@ export function Sidebar({
                     title="お気に入り"
                   >
                     <svg
-                      className="size-5"
+                      className="size-4.5"
                       viewBox="0 0 24 24"
                       fill={viewMode === "favorites" ? "currentColor" : "none"}
                       stroke="currentColor"
@@ -307,7 +330,7 @@ export function Sidebar({
                     title="コマンド実行"
                   >
                     <svg
-                      className="size-5"
+                      className="size-4.5"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -332,7 +355,7 @@ export function Sidebar({
                     title="データセット"
                   >
                     <svg
-                      className="size-5"
+                      className="size-4.5"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -357,7 +380,7 @@ export function Sidebar({
                     title="パイプラインキュー"
                   >
                     <svg
-                      className="size-5"
+                      className="size-4.5"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -382,7 +405,7 @@ export function Sidebar({
                     title="設定"
                   >
                     <svg
-                      className="size-5"
+                      className="size-4.5"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -397,27 +420,6 @@ export function Sidebar({
                     </svg>
                   </button>
                 </div>
-                <button
-                  type="button"
-                  className="p-1.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-white/[0.06] transition-colors shrink-0"
-                  onClick={onMobileClose}
-                  title="閉じる"
-                >
-                  <svg
-                    className="size-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
               </div>
 
               {/* Search */}
@@ -521,12 +523,50 @@ export function Sidebar({
     >
       <div className="h-full flex flex-col" style={{ width: SIDEBAR_WIDTH }}>
         {/* Header */}
-        <div className="px-5 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="px-5 pt-5 pb-3 space-y-2">
+          <div className="flex items-center justify-between">
             <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm font-bold shadow-lg shadow-indigo-500/25">
               R
             </span>
             <motion.button
+              type="button"
+              className="p-1.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-white/[0.06] transition-colors shrink-0"
+              onClick={onToggleCollapse}
+              title={collapsed ? "サイドバーを開く" : "サイドバーを閉じる"}
+              animate={{ opacity: expanded ? 1 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <svg
+                aria-hidden="true"
+                className="size-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                {collapsed ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                )}
+              </svg>
+            </motion.button>
+          </div>
+          <motion.div
+            className="flex items-center gap-1.5 pl-1"
+            animate={{ opacity: expanded ? 1 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <button
               type="button"
               className={`p-1.5 rounded-lg transition-colors shrink-0 ${
                 viewMode === "favorites"
@@ -535,11 +575,9 @@ export function Sidebar({
               }`}
               onClick={onSelectFavorites}
               title="お気に入り"
-              animate={{ opacity: expanded ? 1 : 0 }}
-              transition={{ duration: 0.2 }}
             >
               <svg
-                className="size-5"
+                className="size-4.5"
                 viewBox="0 0 24 24"
                 fill={viewMode === "favorites" ? "currentColor" : "none"}
                 stroke="currentColor"
@@ -552,8 +590,8 @@ export function Sidebar({
                   d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
                 />
               </svg>
-            </motion.button>
-            <motion.button
+            </button>
+            <button
               type="button"
               className={`p-1.5 rounded-lg transition-colors shrink-0 ${
                 viewMode === "commands"
@@ -562,11 +600,9 @@ export function Sidebar({
               }`}
               onClick={onSelectCommands}
               title="コマンド実行"
-              animate={{ opacity: expanded ? 1 : 0 }}
-              transition={{ duration: 0.2 }}
             >
               <svg
-                className="size-5"
+                className="size-4.5"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -579,8 +615,8 @@ export function Sidebar({
                   d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z"
                 />
               </svg>
-            </motion.button>
-            <motion.button
+            </button>
+            <button
               type="button"
               className={`p-1.5 rounded-lg transition-colors shrink-0 ${
                 viewMode === "datasets"
@@ -589,11 +625,9 @@ export function Sidebar({
               }`}
               onClick={onSelectDatasets}
               title="データセット"
-              animate={{ opacity: expanded ? 1 : 0 }}
-              transition={{ duration: 0.2 }}
             >
               <svg
-                className="size-5"
+                className="size-4.5"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -606,8 +640,8 @@ export function Sidebar({
                   d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
                 />
               </svg>
-            </motion.button>
-            <motion.button
+            </button>
+            <button
               type="button"
               className={`p-1.5 rounded-lg transition-colors shrink-0 ${
                 viewMode === "queue"
@@ -616,11 +650,9 @@ export function Sidebar({
               }`}
               onClick={onSelectQueue}
               title="パイプラインキュー"
-              animate={{ opacity: expanded ? 1 : 0 }}
-              transition={{ duration: 0.2 }}
             >
               <svg
-                className="size-5"
+                className="size-4.5"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -633,8 +665,8 @@ export function Sidebar({
                   d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z"
                 />
               </svg>
-            </motion.button>
-            <motion.button
+            </button>
+            <button
               type="button"
               className={`p-1.5 rounded-lg transition-colors shrink-0 ${
                 viewMode === "config"
@@ -643,11 +675,9 @@ export function Sidebar({
               }`}
               onClick={onSelectConfig}
               title="設定"
-              animate={{ opacity: expanded ? 1 : 0 }}
-              transition={{ duration: 0.2 }}
             >
               <svg
-                className="size-5"
+                className="size-4.5"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -660,40 +690,8 @@ export function Sidebar({
                   d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
                 />
               </svg>
-            </motion.button>
-          </div>
-          <motion.button
-            type="button"
-            className="p-1.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-white/[0.06] transition-colors shrink-0"
-            onClick={onToggleCollapse}
-            title={collapsed ? "サイドバーを開く" : "サイドバーを閉じる"}
-            animate={{ opacity: expanded ? 1 : 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <svg
-              aria-hidden="true"
-              className="size-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              {collapsed ? (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              ) : (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              )}
-            </svg>
-          </motion.button>
+            </button>
+          </motion.div>
         </div>
 
         {/* Search */}
