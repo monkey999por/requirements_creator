@@ -50,11 +50,27 @@ collect:
     x:
       type: x
       enabled: false
-      api_key_env: X_BEARER_TOKEN
+      api_key_env: X_API_BEARER_TOKEN
       endpoint: https://api.x.com/2/trends/by/woeid
       params:
         woeid: 23424856
       output_file: x_trends.json
+
+    # X (Twitter) Popular Posts - バズったツイートを取得
+    # sort_order=relevancy でエンゲージメントの高い投稿を優先取得
+    # query: lang/is/has等のオペレーターだけでは使用不可。キーワードが最低1つ必要
+    # query例: "(話題 OR トレンド OR 注目) lang:ja -is:retweet -is:reply"
+    #          "#AI lang:ja -is:retweet"
+    x_popular_posts:
+      type: x_popular_posts
+      enabled: false
+      api_key_env: X_API_BEARER_TOKEN
+      endpoint: https://api.x.com/2/tweets/search/recent
+      params:
+        query: "(話題 OR トレンド OR 注目 OR ニュース OR 最新) lang:ja -is:retweet -is:reply"
+        maxResults: 20
+        sort_order: relevancy
+      output_file: x_popular_posts.json
 
 # --- 今後追加予定のデータソース ---
 
