@@ -398,6 +398,55 @@ export async function abortCommand(): Promise<{ success: boolean }> {
   return res.json();
 }
 
+// --- Pipeline Queue API ---
+
+export interface QueueItem {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchQueueItems(): Promise<QueueItem[]> {
+  const res = await fetch(`${BASE}/queue`);
+  return res.json();
+}
+
+export async function fetchQueueItem(id: string): Promise<QueueItem> {
+  const res = await fetch(`${BASE}/queue/${id}`);
+  return res.json();
+}
+
+export async function createQueueItem(
+  title: string,
+  content: string,
+): Promise<{ success: boolean; item?: QueueItem; error?: string }> {
+  const res = await fetch(`${BASE}/queue`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title, content }),
+  });
+  return res.json();
+}
+
+export async function updateQueueItem(
+  id: string,
+  data: { title?: string; content?: string },
+): Promise<{ success: boolean; item?: QueueItem; error?: string }> {
+  const res = await fetch(`${BASE}/queue/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function deleteQueueItem(id: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE}/queue/${id}`, { method: "DELETE" });
+  return res.json();
+}
+
 // --- Git API ---
 
 export interface GitResult {

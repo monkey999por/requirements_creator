@@ -46,6 +46,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │   │       └── keyword.json
 │   ├── datasets/             # データセット定義（JSON、Viewer経由で管理）
 │   │   └── {dataset_name}.json
+│   ├── pipeline_queue/       # パイプラインキュー（アイデアをJSON保存、スケジューラで自動処理）
+│   │   └── {id}.json
 │   └── requirements/         # 生成されたアプリ要件（アプリ単位のサブディレクトリ）
 │       └── {app_name}/
 │           ├── _source_info.json
@@ -59,8 +61,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │   ├── collect.ts            # データ収集
 │   ├── extract.sh / extract.ts  # キーワード抽出
 │   ├── generate.sh / generate.ts  # 要件生成
+│   ├── regenerate.sh         # 既存アプリの再生成
 │   ├── validate-requirements.ts  # バリデーション
 │   ├── pipeline.ts           # パイプライン一括実行
+│   ├── process-queue.ts      # パイプラインキュー処理（キュー内アイテムを順次pipeline実行）
+│   ├── scheduler-run.sh      # systemdタイマー用ラッパー（キュー優先で分岐実行）
+│   ├── scheduler-ctl.sh      # systemdスケジューラの有効/無効/状態確認
 │   └── lib/                  # 共通ライブラリ
 │       ├── cli.ts            # CLIオプションパーサー
 │       ├── config.ts         # app.config.yaml読み込み
@@ -84,8 +90,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │           ├── FavoritePage.tsx   # お気に入り一覧ページ（解除・データセット追加機能付き）
 │           ├── MarkdownPane.tsx   # Markdownレンダリング
 │           ├── MemoTab.tsx        # メモ編集タブ
+│           ├── QueueManager.tsx   # パイプラインキュー管理画面（CRUD操作）
 │           ├── SearchView.tsx     # 検索結果表示
 │           ├── Sidebar.tsx        # アプリ選択サイドバー（タグフィルタ・検索機能付き）
+│           ├── CommandRunner.tsx  # コマンド実行UI（パイプライン操作等）
+│           ├── ConfigEditor.tsx   # app.config.yaml編集UI
 │           └── Toast.tsx          # トースト通知
 ├── todo/                     # 開発タスク管理（フェーズ別）
 ├── app.config.yaml           # アプリケーション設定（フェーズ別の設定を階層管理）
@@ -134,6 +143,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `pnpm generate` | キーワードから要件生成 |
 | `pnpm generate:validate` | 要件構造のバリデーション |
 | `pnpm pipeline` | 上記を一括実行（`--skip-collect`, `--skip-extract`, `--source <dir>` オプション対応） |
+| `pnpm regenerate` | 既存アプリの要件を再生成 |
+| `pnpm queue:process` | パイプラインキュー内のアイテムを順次処理 |
+
+### スケジューラ
+
+| コマンド | 説明 |
+| --------- | ------ |
+| `pnpm scheduler:enable` | systemdスケジューラを有効化 |
+| `pnpm scheduler:disable` | systemdスケジューラを無効化 |
+| `pnpm scheduler:status` | スケジューラの状態・今後の実行予定を表示 |
 
 ### Webビューワー
 
@@ -271,11 +290,42 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `GET /api/apps-with-tags` | 全アプリのタグ情報（全タグ取得、名前順） |
 | `GET /api/search?q=&tags=` | 全文検索 + タグAND検索（複合検索対応） |
 
+### パイプラインキュー
+
+| エンドポイント | 説明 |
+| -------------- | ------ |
+| `GET /api/queue` | キューアイテム一覧取得 |
+| `GET /api/queue/:id` | キューアイテム詳細取得 |
+| `POST /api/queue` | キューアイテム作成（dev modeのみ、body: `{title, content}`） |
+| `PUT /api/queue/:id` | キューアイテム更新（dev modeのみ、body: `{title?, content?}`） |
+| `DELETE /api/queue/:id` | キューアイテム削除（dev modeのみ） |
+
+### 設定
+
+| エンドポイント | 説明 |
+| -------------- | ------ |
+| `GET /api/config` | app.config.yamlの内容取得 |
+| `PUT /api/config` | app.config.yamlの更新（dev modeのみ） |
+| `GET /api/apps/:name/config` | アプリ固有の設定取得 |
+
+### コマンド実行
+
+| エンドポイント | 説明 |
+| -------------- | ------ |
+| `GET /api/commands/data-sources` | データソース一覧 |
+| `GET /api/commands/apps` | アプリ名一覧 |
+| `GET /api/commands/collect-sources` | 収集ソース一覧（config由来） |
+| `GET /api/commands/dataset-names` | データセット名一覧 |
+| `POST /api/commands/execute` | コマンド実行（dev modeのみ、body: `{command, args}`） |
+| `POST /api/commands/abort` | 実行中コマンドの中止 |
+
 ### Git操作
 
 | エンドポイント | 説明 |
 | -------------- | ------ |
 | `POST /api/git/commit-push` | genディレクトリのgit add + commit + push（dev modeのみ） |
+| `GET /api/git/branch` | 現在のブランチ名取得 |
+| `POST /api/git/switch-branch` | main/develop間のブランチ切り替え（dev modeのみ） |
 
 ## pnpmワークスペース構成
 

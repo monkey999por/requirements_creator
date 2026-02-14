@@ -156,5 +156,7 @@ generate:
       enabled: true
       model: gemini-2.5-pro
       roles:
-        - researcher
         - designer
+        - researcher
+  perspectives:
+    mode: random
