@@ -64,13 +64,16 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
 
   const handleDelete = useCallback(
     async (id: string) => {
+      const target = items.find((i) => i.id === id);
+      const label = target ? `「${target.title}」` : "このアイテム";
+      if (!window.confirm(`${label}を削除しますか？`)) return;
       await deleteQueueItem(id);
       if (selected === id) setSelected(null);
       setEditing(false);
       reload();
       showMessage("削除しました");
     },
-    [selected, reload, showMessage],
+    [items, selected, reload, showMessage],
   );
 
   if (loading) {
