@@ -12,7 +12,6 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
   const [items, setItems] = useState<QueueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
-  const [editing, setEditing] = useState(false);
   const [creating, setCreating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -52,7 +51,6 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
     async (id: string, title: string, content: string) => {
       const result = await updateQueueItem(id, { title, content });
       if (result.success) {
-        setEditing(false);
         reload();
         showMessage("更新しました");
       } else {
@@ -69,7 +67,6 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
       if (!window.confirm(`${label}を削除しますか？`)) return;
       await deleteQueueItem(id);
       if (selected === id) setSelected(null);
-      setEditing(false);
       reload();
       showMessage("削除しました");
     },
@@ -111,7 +108,7 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
         </motion.div>
       );
     }
-    if (selectedItem && editing) {
+    if (selectedItem) {
       return (
         <motion.div
           className="flex flex-col h-full"
@@ -122,30 +119,9 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
           <QueueForm
             item={selectedItem}
             onSubmit={(title, content) => handleUpdate(selectedItem.id, title, content)}
-            onCancel={() => setEditing(false)}
+            onCancel={() => setSelected(null)}
             isMobile
           />
-          <MessageToast message={message} />
-        </motion.div>
-      );
-    }
-    if (selectedItem) {
-      return (
-        <motion.div
-          className="flex flex-col h-full"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.25 }}
-        >
-          <QueueDetailHeader
-            item={selectedItem}
-            onBack={() => setSelected(null)}
-            onEdit={() => setEditing(true)}
-            onDelete={() => handleDelete(selectedItem.id)}
-            isDev={isDev}
-            isMobile
-          />
-          <QueueDetailContent item={selectedItem} />
           <MessageToast message={message} />
         </motion.div>
       );
@@ -169,6 +145,7 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
             onSelect={setSelected}
             onDelete={handleDelete}
             isDev={isDev}
+            isMobile
           />
         </div>
         <MessageToast message={message} />
@@ -199,7 +176,6 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
             selected={selected}
             onSelect={(id) => {
               setSelected(id);
-              setEditing(false);
               setCreating(false);
             }}
             onDelete={handleDelete}
@@ -208,26 +184,16 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
         </div>
       </div>
 
-      {/* Right: detail / form */}
+      {/* Right: edit form */}
       <div className="flex-1 flex flex-col min-w-0">
         {creating ? (
           <QueueForm onSubmit={handleCreate} onCancel={() => setCreating(false)} />
-        ) : selectedItem && editing ? (
+        ) : selectedItem ? (
           <QueueForm
             item={selectedItem}
             onSubmit={(title, content) => handleUpdate(selectedItem.id, title, content)}
-            onCancel={() => setEditing(false)}
+            onCancel={() => setSelected(null)}
           />
-        ) : selectedItem ? (
-          <>
-            <QueueDetailHeader
-              item={selectedItem}
-              onEdit={() => setEditing(true)}
-              onDelete={() => handleDelete(selectedItem.id)}
-              isDev={isDev}
-            />
-            <QueueDetailContent item={selectedItem} />
-          </>
         ) : (
           <div className="flex h-full items-center justify-center text-gray-500 text-sm">
             {items.length === 0
@@ -268,12 +234,14 @@ function QueueList({
   onSelect,
   onDelete,
   isDev,
+  isMobile,
 }: {
   items: QueueItem[];
   selected: string | null;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
   isDev: boolean;
+  isMobile?: boolean;
 }) {
   if (items.length === 0) {
     return (
@@ -337,7 +305,7 @@ function QueueList({
           {isDev && (
             <button
               type="button"
-              className="p-1 rounded-md text-gray-700 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+              className={`p-1.5 rounded-lg text-gray-700 hover:text-red-400 hover:bg-red-400/10 transition-all shrink-0 ${isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(item.id);
@@ -346,7 +314,7 @@ function QueueList({
             >
               <svg
                 aria-hidden="true"
-                className="size-3.5"
+                className="size-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -362,124 +330,6 @@ function QueueList({
           )}
         </button>
       ))}
-    </div>
-  );
-}
-
-function QueueDetailHeader({
-  item,
-  onBack,
-  onEdit,
-  onDelete,
-  isDev,
-  isMobile,
-}: {
-  item: QueueItem;
-  onBack?: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-  isDev: boolean;
-  isMobile?: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-2 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0">
-      {isMobile && onBack && (
-        <button
-          type="button"
-          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-700/50 transition-colors"
-          onClick={onBack}
-        >
-          <svg
-            aria-hidden="true"
-            className="size-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
-      )}
-      <span className="px-3 py-2.5 text-xs font-medium text-orange-400 truncate">{item.title}</span>
-      <span className="text-[11px] text-gray-600 shrink-0">
-        {new Date(item.createdAt).toLocaleDateString("ja-JP")}
-      </span>
-      <div className="flex-1" />
-      {isDev && (
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
-            onClick={onEdit}
-            title="編集"
-          >
-            <svg
-              aria-hidden="true"
-              className="size-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
-              />
-            </svg>
-          </button>
-          <button
-            type="button"
-            className="p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-400/10 transition-colors"
-            onClick={onDelete}
-            title="削除"
-          >
-            <svg
-              aria-hidden="true"
-              className="size-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-              />
-            </svg>
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function QueueDetailContent({ item }: { item: QueueItem }) {
-  return (
-    <div className="flex-1 overflow-y-auto dark-scrollbar p-6 bg-gray-900">
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className="prose prose-invert prose-sm max-w-none">
-          <pre className="whitespace-pre-wrap text-sm text-gray-300 bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
-            {item.content}
-          </pre>
-        </div>
-        <div className="mt-6 flex gap-4 text-[11px] text-gray-600">
-          <span>作成: {new Date(item.createdAt).toLocaleString("ja-JP")}</span>
-          {item.updatedAt !== item.createdAt && (
-            <span>更新: {new Date(item.updatedAt).toLocaleString("ja-JP")}</span>
-          )}
-        </div>
-      </motion.div>
     </div>
   );
 }
@@ -533,13 +383,6 @@ function QueueForm({
           {isEdit ? "キューアイテム編集" : "新規キューアイテム"}
         </span>
         <div className="flex-1" />
-        <button
-          type="button"
-          className="px-3 py-1.5 my-1 text-xs text-gray-400 hover:text-gray-200 transition-colors"
-          onClick={onCancel}
-        >
-          キャンセル
-        </button>
         <button
           type="button"
           className={`px-3 py-1.5 my-1 text-xs font-medium rounded-lg transition-colors ${

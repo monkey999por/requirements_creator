@@ -30,3 +30,6 @@ export const DATASETS_DIR = resolve(OUTPUT_BASE_DIR, "datasets");
 
 /** pipeline_queue ディレクトリのフルパス */
 export const PIPELINE_QUEUE_DIR = resolve(OUTPUT_BASE_DIR, "pipeline_queue");
+
+/** pipeline_queue_rejected ディレクトリのフルパス（論理削除先） */
+export const PIPELINE_QUEUE_REJECTED_DIR = resolve(OUTPUT_BASE_DIR, "pipeline_queue_rejected");

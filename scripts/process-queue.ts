@@ -4,11 +4,11 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
-  unlinkSync,
+  renameSync,
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { DATA_SOURCE_DIR, PIPELINE_QUEUE_DIR } from "./lib/paths.js";
+import { DATA_SOURCE_DIR, PIPELINE_QUEUE_DIR, PIPELINE_QUEUE_REJECTED_DIR } from "./lib/paths.js";
 
 interface QueueItem {
   id: string;
@@ -70,11 +70,14 @@ function main() {
       });
       console.log("パイプライン完了（成功）");
 
-      // 成功したらキューアイテムを削除
+      // 成功したらキューアイテムを処理済みディレクトリに移動
       const queueFilePath = join(PIPELINE_QUEUE_DIR, `${item.id}.json`);
       if (existsSync(queueFilePath)) {
-        unlinkSync(queueFilePath);
-        console.log(`キューアイテムを削除しました: ${item.id}`);
+        if (!existsSync(PIPELINE_QUEUE_REJECTED_DIR)) {
+          mkdirSync(PIPELINE_QUEUE_REJECTED_DIR, { recursive: true });
+        }
+        renameSync(queueFilePath, join(PIPELINE_QUEUE_REJECTED_DIR, `${item.id}.json`));
+        console.log(`キューアイテムを処理済みに移動しました: ${item.id}`);
       }
     } catch (err) {
       console.error(`パイプライン失敗: ${item.title} (${item.id})`);

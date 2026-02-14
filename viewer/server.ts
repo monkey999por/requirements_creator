@@ -5,6 +5,7 @@ import {
   readdirSync,
   readFileSync,
   statSync,
+  renameSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -658,7 +659,9 @@ app.delete("/api/queue/:id", (c) => {
   const id = c.req.param("id");
   const filePath = join(PIPELINE_QUEUE_DIR, `${id}.json`);
   if (!existsSync(filePath)) return c.json({ error: "Not found" }, 404);
-  unlinkSync(filePath);
+  const rejectedDir = join(PIPELINE_QUEUE_DIR, "..", "pipeline_queue_rejected");
+  if (!existsSync(rejectedDir)) mkdirSync(rejectedDir, { recursive: true });
+  renameSync(filePath, join(rejectedDir, `${id}.json`));
   return c.json({ success: true });
 });
 
