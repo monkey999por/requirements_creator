@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   createQueueItem,
   deleteQueueItem,
+  executeQueueItem,
   fetchQueueItems,
   type QueueItem,
   updateQueueItem,
@@ -94,6 +95,26 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
     [reload, showMessage],
   );
 
+  const handleExecute = useCallback(
+    async (id: string) => {
+      const target = items.find((i) => i.id === id);
+      const label = target ? `「${target.title}」` : "このアイテム";
+      if (
+        !window.confirm(
+          `${label}のパイプラインを即時実行しますか？\nバックグラウンドで実行されます。`,
+        )
+      )
+        return;
+      const result = await executeQueueItem(id);
+      if (result.success) {
+        showMessage(result.message ?? "パイプラインを開始しました");
+      } else {
+        showMessage(result.error ?? "実行エラー");
+      }
+    },
+    [items, showMessage],
+  );
+
   const handleDelete = useCallback(
     async (id: string) => {
       const target = items.find((i) => i.id === id);
@@ -169,6 +190,7 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
               setSelected(null);
               pushQueueUrl(null);
             }}
+            onExecute={isDev ? () => handleExecute(selectedItem.id) : undefined}
             isMobile
           />
           <MessageToast message={message} />
@@ -273,6 +295,7 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
               setSelected(null);
               pushQueueUrl(null);
             }}
+            onExecute={isDev ? () => handleExecute(selectedItem.id) : undefined}
           />
         ) : (
           <div className="flex h-full items-center justify-center text-gray-500 text-sm">
@@ -418,11 +441,13 @@ function QueueForm({
   item,
   onSubmit,
   onCancel,
+  onExecute,
   isMobile,
 }: {
   item?: QueueItem;
   onSubmit: (title: string, content: string) => void;
   onCancel: () => void;
+  onExecute?: () => void;
   isMobile?: boolean;
 }) {
   const [title, setTitle] = useState(item?.title ?? "");
@@ -463,6 +488,19 @@ function QueueForm({
           {isEdit ? "キューアイテム編集" : "新規キューアイテム"}
         </span>
         <div className="flex-1" />
+        {isEdit && onExecute && (
+          <button
+            type="button"
+            className="px-3 py-1.5 my-1 text-xs font-medium rounded-lg transition-colors bg-emerald-600 text-white hover:bg-emerald-500 flex items-center gap-1"
+            onClick={onExecute}
+            title="パイプラインを即時実行"
+          >
+            <svg aria-hidden="true" className="size-3.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            実行
+          </button>
+        )}
         <button
           type="button"
           className={`px-3 py-1.5 my-1 text-xs font-medium rounded-lg transition-colors ${
