@@ -1107,30 +1107,6 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
           </div>
         </section>
 
-        {/* --- Pipeline --- */}
-        <section className="rounded-xl border border-gray-800 bg-gray-900/50 p-5">
-          <SectionHeader title="Pipeline" description="パイプライン共通の設定" />
-          <div>
-            <FieldLabel
-              label="default_source"
-              description="デフォルトのdata_sourceディレクトリ名（空欄で最新を自動検出）"
-              htmlFor="pipeline-source"
-            />
-            <TextField
-              id="pipeline-source"
-              value={config.pipeline?.default_source ?? ""}
-              onChange={(v) =>
-                persistConfig({
-                  ...config,
-                  pipeline: v ? { ...config.pipeline, default_source: v } : undefined,
-                })
-              }
-              disabled={disabled}
-              placeholder="例: 2026_02_10_01_54_10（空欄で自動検出）"
-            />
-          </div>
-        </section>
-
         {/* spacer */}
         <div className="h-32" />
       </div>
