@@ -255,6 +255,39 @@ export async function removeFavorite(item: FavoriteItem): Promise<{ success: boo
   return res.json();
 }
 
+// --- Scheduler API ---
+
+export interface SchedulerStatus {
+  timerActive: boolean;
+  nextRun: string | null;
+  output: string;
+}
+
+export async function fetchSchedulerStatus(): Promise<SchedulerStatus> {
+  const res = await fetch(`${BASE}/scheduler/status`);
+  return res.json();
+}
+
+export async function enableScheduler(): Promise<{ success: boolean; output: string }> {
+  const res = await fetch(`${BASE}/scheduler/enable`, { method: "POST" });
+  return res.json();
+}
+
+export async function disableScheduler(): Promise<{ success: boolean; output: string }> {
+  const res = await fetch(`${BASE}/scheduler/disable`, { method: "POST" });
+  return res.json();
+}
+
+export async function fetchTimerConfig(): Promise<{ content: string }> {
+  const res = await fetch(`${BASE}/scheduler/timer-config`);
+  return res.json();
+}
+
+export async function fetchServiceConfig(): Promise<{ content: string }> {
+  const res = await fetch(`${BASE}/scheduler/service-config`);
+  return res.json();
+}
+
 // --- Config API ---
 
 export interface AppConfig {

@@ -806,6 +806,70 @@ app.post("/api/git/switch-branch", async (c) => {
   }
 });
 
+// --- Scheduler API ---
+app.get("/api/scheduler/status", async (c) => {
+  try {
+    const { stdout } = await execAsync("bash scripts/scheduler-ctl.sh status 2>&1", {
+      cwd: projectRoot,
+      timeout: 10000,
+    });
+    // タイマーが active かどうか判定
+    const timerActive = /Active:\s+active/.test(stdout.split("=== サービス状態 ===")[0] ?? "");
+    // 次回実行時刻を抽出（systemd-analyze calendar の出力から）
+    const nextMatch = stdout.match(/Next elapse:\s+(.+)/);
+    const nextRun = nextMatch?.[1]?.trim() ?? null;
+    return c.json({ timerActive, nextRun, output: stdout });
+  } catch (err: unknown) {
+    const e = err as { stdout?: string; stderr?: string; message: string };
+    const output = `${e.stdout ?? ""}${e.stderr ?? ""}`.trim() || e.message;
+    return c.json({ timerActive: false, nextRun: null, output });
+  }
+});
+
+app.post("/api/scheduler/enable", async (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  try {
+    const { stdout, stderr } = await execAsync("bash scripts/scheduler-ctl.sh enable 2>&1", {
+      cwd: projectRoot,
+      timeout: 15000,
+    });
+    const output = [stdout, stderr].filter((s) => s?.trim()).join("\n");
+    return c.json({ success: true, output });
+  } catch (err: unknown) {
+    const e = err as { stdout?: string; stderr?: string; message: string };
+    const output = `${e.stdout ?? ""}${e.stderr ?? ""}`.trim() || e.message;
+    return c.json({ success: false, output });
+  }
+});
+
+app.post("/api/scheduler/disable", async (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  try {
+    const { stdout, stderr } = await execAsync("bash scripts/scheduler-ctl.sh disable 2>&1", {
+      cwd: projectRoot,
+      timeout: 15000,
+    });
+    const output = [stdout, stderr].filter((s) => s?.trim()).join("\n");
+    return c.json({ success: true, output });
+  } catch (err: unknown) {
+    const e = err as { stdout?: string; stderr?: string; message: string };
+    const output = `${e.stdout ?? ""}${e.stderr ?? ""}`.trim() || e.message;
+    return c.json({ success: false, output });
+  }
+});
+
+app.get("/api/scheduler/timer-config", (c) => {
+  const timerPath = resolve(projectRoot, "systemd", "pipeline.timer");
+  if (!existsSync(timerPath)) return c.json({ error: "Timer file not found" }, 404);
+  return c.json({ content: readFileSync(timerPath, "utf-8") });
+});
+
+app.get("/api/scheduler/service-config", (c) => {
+  const servicePath = resolve(projectRoot, "systemd", "pipeline.service");
+  if (!existsSync(servicePath)) return c.json({ error: "Service file not found" }, 404);
+  return c.json({ content: readFileSync(servicePath, "utf-8") });
+});
+
 // --- Commands API (dev mode only) ---
 
 const ALLOWED_COMMANDS: Record<string, { bin: string; baseArgs: string[] }> = {

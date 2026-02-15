@@ -11,12 +11,13 @@ interface SidebarProps {
   isMobile: boolean;
   mobileOpen: boolean;
   onMobileClose: () => void;
-  viewMode: "apps" | "datasets" | "favorites" | "commands" | "config" | "queue";
+  viewMode: "apps" | "datasets" | "favorites" | "commands" | "config" | "queue" | "scheduler";
   onSelectDatasets: () => void;
   onSelectFavorites: () => void;
   onSelectCommands: () => void;
   onSelectConfig: () => void;
   onSelectQueue: () => void;
+  onSelectScheduler: () => void;
   onSearch: (query: string, tags: string[]) => void;
   onClearSearch: () => void;
   isSearchActive: boolean;
@@ -234,6 +235,7 @@ export function Sidebar({
   onSelectCommands,
   onSelectConfig,
   onSelectQueue,
+  onSelectScheduler,
   onSearch,
   onClearSearch,
   isSearchActive,
@@ -365,6 +367,31 @@ export function Sidebar({
                         strokeLinejoin="round"
                         strokeWidth={2}
                         d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                      viewMode === "scheduler"
+                        ? "text-purple-400 bg-purple-400/10"
+                        : "text-gray-500 hover:text-purple-400 hover:bg-purple-400/10"
+                    }`}
+                    onClick={onSelectScheduler}
+                    title="スケジューラ"
+                  >
+                    <svg
+                      className="size-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
                       />
                     </svg>
                   </button>
@@ -622,6 +649,31 @@ export function Sidebar({
                   strokeLinejoin="round"
                   strokeWidth={2}
                   d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z"
+                />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                viewMode === "scheduler"
+                  ? "text-purple-400 bg-purple-400/10"
+                  : "text-gray-500 hover:text-purple-400 hover:bg-purple-400/10"
+              }`}
+              onClick={onSelectScheduler}
+              title="スケジューラ"
+            >
+              <svg
+                className="size-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
                 />
               </svg>
             </button>
