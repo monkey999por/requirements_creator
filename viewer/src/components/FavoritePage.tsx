@@ -10,6 +10,9 @@ import {
 } from "../api";
 import { DatasetAddButton } from "./DatasetAddButton";
 import { MarkdownPane } from "./MarkdownPane";
+import { EmptyState } from "./shared/EmptyState";
+import { LoadingSpinner } from "./shared/LoadingSpinner";
+import { typeBadgeClass, typeLabel } from "./shared/TypeBadge";
 
 interface FavoritePageProps {
   isMobile: boolean;
@@ -33,28 +36,6 @@ function groupByApp(items: FavoriteItem[]): GroupedFavorites[] {
     map.set(item.appName, list);
   }
   return Array.from(map.entries()).map(([appName, items]) => ({ appName, items }));
-}
-
-function typeLabel(type: FavoriteItem["type"]): string {
-  switch (type) {
-    case "overview":
-      return "OVR";
-    case "feature":
-      return "FTR";
-    case "diagram":
-      return "DGM";
-  }
-}
-
-function typeBadgeClass(type: FavoriteItem["type"]): string {
-  switch (type) {
-    case "overview":
-      return "bg-blue-900/40 text-blue-400";
-    case "feature":
-      return "bg-purple-900/40 text-purple-400";
-    case "diagram":
-      return "bg-emerald-900/40 text-emerald-400";
-  }
 }
 
 function toDatasetItem(fav: FavoriteItem) {
@@ -166,23 +147,7 @@ export function FavoritePage({
   const grouped = groupByApp(favorites);
 
   if (loading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <motion.div
-          className="flex flex-col items-center gap-3"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        >
-          <motion.div
-            className="size-8 rounded-full border-2 border-pink-800 border-t-pink-400"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-          />
-          <p className="text-xs text-gray-500">読み込み中...</p>
-        </motion.div>
-      </div>
-    );
+    return <LoadingSpinner borderColor="border-pink-800" borderTopColor="border-t-pink-400" />;
   }
 
   /* ── Mobile: preview replaces list ── */
@@ -244,8 +209,8 @@ export function FavoritePage({
   const listContent = (
     <>
       {favorites.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16">
-          <div className="size-14 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
+        <EmptyState
+          icon={
             <svg
               className="size-7 text-gray-600"
               viewBox="0 0 24 24"
@@ -260,12 +225,11 @@ export function FavoritePage({
                 d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
               />
             </svg>
-          </div>
-          <p className="text-sm text-gray-500">お気に入りがありません</p>
-          <p className="text-xs text-gray-600 mt-1">
-            アプリのハートアイコンからお気に入りに追加できます
-          </p>
-        </div>
+          }
+          message="お気に入りがありません"
+          submessage="アプリのハートアイコンからお気に入りに追加できます"
+          className="flex flex-col items-center justify-center py-16"
+        />
       ) : (
         <div className="space-y-6">
           <AnimatePresence>
