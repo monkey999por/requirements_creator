@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createDataset,
   type Dataset,
@@ -80,6 +80,7 @@ export function DatasetManager({
   const [previewItem, setPreviewItem] = useState<DatasetItem | null>(null);
   const [previewContent, setPreviewContent] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
+  const previewHistoryPushed = useRef(false);
 
   const reload = useCallback(() => {
     fetchDatasets()
@@ -135,9 +136,19 @@ export function DatasetManager({
   const handlePreview = useCallback(
     async (item: DatasetItem) => {
       if (previewItem && itemKey(previewItem) === itemKey(item)) {
+        // トグルで閉じる場合はブラウザバックで戻す
+        if (previewHistoryPushed.current) {
+          previewHistoryPushed.current = false;
+          window.history.back();
+        }
         setPreviewItem(null);
         setPreviewContent("");
         return;
+      }
+      // 既にプレビュー中なら追加pushしない（差し替え）
+      if (!previewItem) {
+        window.history.pushState({ datasetPreview: true }, "");
+        previewHistoryPushed.current = true;
       }
       setPreviewItem(item);
       setPreviewContent("");
@@ -153,9 +164,26 @@ export function DatasetManager({
   );
 
   const closePreview = useCallback(() => {
+    if (previewHistoryPushed.current) {
+      previewHistoryPushed.current = false;
+      window.history.back();
+    }
     setPreviewItem(null);
     setPreviewContent("");
   }, []);
+
+  // ブラウザバックでプレビューだけ閉じる
+  useEffect(() => {
+    const handlePopState = () => {
+      if (previewItem) {
+        previewHistoryPushed.current = false;
+        setPreviewItem(null);
+        setPreviewContent("");
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [previewItem]);
 
   const handleNavigateItem = useCallback(
     (item: DatasetItem) => {
@@ -288,59 +316,72 @@ export function DatasetManager({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
     >
-      {/* Left: dataset list */}
-      <div className="w-72 flex flex-col border-r border-gray-700/50 shrink-0">
-        <div className="flex items-center gap-2 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0">
-          <span className="px-3 py-2.5 text-xs font-medium text-indigo-400">データセット</span>
-          <div className="flex-1" />
-          {isDev && <CreateButton onClick={() => setCreating(true)} title="新規データセット作成" />}
-        </div>
-        <div className="flex-1 overflow-y-auto dark-scrollbar p-3 bg-gray-900">
-          <CreateForm
-            show={creating}
-            name={newName}
-            onNameChange={setNewName}
-            onCreate={handleCreate}
-            onCancel={() => {
-              setCreating(false);
-              setNewName("");
-            }}
-          />
-          <DatasetList
-            datasets={datasets}
-            selected={selected}
-            onSelect={setSelected}
-            onDelete={handleDelete}
-            isDev={isDev}
-          />
-        </div>
-      </div>
-
-      {/* Center: selected dataset detail */}
-      <div className="flex flex-col min-w-0" style={{ flex: previewItem ? "0 0 35%" : "1 1 100%" }}>
-        {selectedDataset ? (
-          <>
-            <DatasetDetailHeader
-              dataset={selectedDataset}
-              onGenerate={handleGenerateClick}
-              generating={isGeneratingThis}
-              isDev={isDev}
-            />
-            <DatasetItemList
-              dataset={selectedDataset}
-              onRemove={handleRemoveItem}
-              isDev={isDev}
-              onSelectApp={onSelectApp}
-              onPreview={handlePreview}
-              previewItem={previewItem}
-              onNavigateItem={handleNavigateItem}
-            />
-          </>
-        ) : (
-          <div className="flex h-full items-center justify-center text-gray-500 text-sm">
-            データセットを選択してください
+      {/* Left + Center: click to close preview */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: click-to-dismiss */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: click-to-dismiss */}
+      <div
+        className="flex min-w-0"
+        style={{ flex: previewItem ? "0 0 35%" : "1 1 100%" }}
+        onClick={() => {
+          if (previewItem) closePreview();
+        }}
+      >
+        {/* Left: dataset list */}
+        <div className="w-72 flex flex-col border-r border-gray-700/50 shrink-0">
+          <div className="flex items-center gap-2 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0">
+            <span className="px-3 py-2.5 text-xs font-medium text-indigo-400">データセット</span>
+            <div className="flex-1" />
+            {isDev && (
+              <CreateButton onClick={() => setCreating(true)} title="新規データセット作成" />
+            )}
           </div>
-        )}
+          <div className="flex-1 overflow-y-auto dark-scrollbar p-3 bg-gray-900">
+            <CreateForm
+              show={creating}
+              name={newName}
+              onNameChange={setNewName}
+              onCreate={handleCreate}
+              onCancel={() => {
+                setCreating(false);
+                setNewName("");
+              }}
+            />
+            <DatasetList
+              datasets={datasets}
+              selected={selected}
+              onSelect={setSelected}
+              onDelete={handleDelete}
+              isDev={isDev}
+            />
+          </div>
+        </div>
+
+        {/* Center: selected dataset detail */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {selectedDataset ? (
+            <>
+              <DatasetDetailHeader
+                dataset={selectedDataset}
+                onGenerate={handleGenerateClick}
+                generating={isGeneratingThis}
+                isDev={isDev}
+              />
+              <DatasetItemList
+                dataset={selectedDataset}
+                onRemove={handleRemoveItem}
+                isDev={isDev}
+                onSelectApp={onSelectApp}
+                onPreview={handlePreview}
+                previewItem={previewItem}
+                onNavigateItem={handleNavigateItem}
+              />
+            </>
+          ) : (
+            <div className="flex h-full items-center justify-center text-gray-500 text-sm">
+              データセットを選択してください
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Right: preview pane (desktop only) */}
@@ -350,7 +391,7 @@ export function DatasetManager({
             key="preview"
             className="flex flex-col min-w-0 border-l border-gray-700/50 bg-gray-900"
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "65%", opacity: 1 }}
+            animate={{ flex: "1 1 65%", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
           >
@@ -538,8 +579,9 @@ function DatasetList({
                   window.confirm(
                     `データセット「${ds.name}」(${ds.items.length}件) を削除しますか？`,
                   )
-                )
+                ) {
                   onDelete(ds.name);
+                }
               }}
               title="削除"
             >
@@ -683,7 +725,10 @@ function DatasetItemList({
               <button
                 type="button"
                 className="text-[11px] font-semibold uppercase tracking-wider text-gray-600 hover:text-indigo-400 mb-2 px-1 transition-colors"
-                onClick={() => onSelectApp(appName)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectApp(appName);
+                }}
               >
                 {appName}
               </button>
@@ -713,7 +758,10 @@ function DatasetItemList({
                       <button
                         type="button"
                         className="text-xs font-medium text-gray-200 hover:text-indigo-300 transition-colors truncate max-w-full text-left"
-                        onClick={() => onNavigateItem(item)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onNavigateItem(item);
+                        }}
                       >
                         {item.title ?? item.featureId ?? "Overview"}
                       </button>
@@ -727,7 +775,10 @@ function DatasetItemList({
                             ? "text-indigo-400 bg-indigo-400/10"
                             : "text-gray-600 hover:text-indigo-400 hover:bg-indigo-400/10"
                         }`}
-                        onClick={() => onPreview(item)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onPreview(item);
+                        }}
                         title="プレビュー"
                       >
                         <svg
@@ -755,7 +806,8 @@ function DatasetItemList({
                         <button
                           type="button"
                           className="p-1 rounded-md text-gray-700 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all shrink-0"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             const label = item.title ?? item.featureId ?? "Overview";
                             if (window.confirm(`「${label}」(${item.appName}) を削除しますか？`))
                               onRemove(item);
@@ -796,7 +848,10 @@ function DatasetItemList({
                       <button
                         type="button"
                         className="text-xs font-medium text-gray-200 hover:text-indigo-300 hover:underline transition-colors truncate"
-                        onClick={() => onSelectApp(appName)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectApp(appName);
+                        }}
                       >
                         {appName}
                       </button>
