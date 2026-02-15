@@ -317,11 +317,10 @@ export function DatasetManager({
       transition={{ duration: 0.4 }}
     >
       {/* Left + Center: click to close preview */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: click-to-dismiss */}
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: click-to-dismiss */}
-      <div
+      <motion.div
         className="flex min-w-0"
-        style={{ flex: previewItem ? "0 0 35%" : "1 1 100%" }}
+        animate={{ flex: previewItem ? "0 0 35%" : "1 1 100%" }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
         onClick={() => {
           if (previewItem) closePreview();
         }}
@@ -382,7 +381,7 @@ export function DatasetManager({
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Right: preview pane (desktop only) */}
       <AnimatePresence>
@@ -391,7 +390,7 @@ export function DatasetManager({
             key="preview"
             className="flex flex-col min-w-0 border-l border-gray-700/50 bg-gray-900"
             initial={{ width: 0, opacity: 0 }}
-            animate={{ flex: "1 1 65%", opacity: 1 }}
+            animate={{ width: "65%", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
           >
