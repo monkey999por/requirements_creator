@@ -660,65 +660,25 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
 
           {/* Execute / Abort (モバイル: スクロール内) */}
           {isMobile && (
-            <div className="pt-2 pb-8 flex gap-2">
-              {running ? (
-                <button
-                  type="button"
-                  className="flex-1 px-4 py-2 rounded-lg text-xs font-semibold bg-red-500/20 text-red-300 hover:bg-red-500/30 ring-1 ring-red-500/30 transition-colors"
-                  onClick={handleAbort}
-                >
-                  中止
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="flex-1 px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 ring-1 ring-indigo-500/30 transition-colors"
-                  onClick={handleExecute}
-                >
-                  実行
-                </button>
-              )}
-              <button
-                type="button"
-                className="px-3 py-2 rounded-lg text-xs text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors"
-                onClick={handleClearLogs}
-                title="ログクリア"
-              >
-                クリア
-              </button>
-            </div>
+            <ExecuteButtons
+              className="pt-2 pb-8"
+              running={running}
+              onExecute={handleExecute}
+              onAbort={handleAbort}
+              onClear={handleClearLogs}
+            />
           )}
         </div>
 
         {/* Execute / Abort (PC: 下部固定) */}
         {!isMobile && (
-          <div className="p-4 border-t border-gray-800 flex gap-2">
-            {running ? (
-              <button
-                type="button"
-                className="flex-1 px-4 py-2 rounded-lg text-xs font-semibold bg-red-500/20 text-red-300 hover:bg-red-500/30 ring-1 ring-red-500/30 transition-colors"
-                onClick={handleAbort}
-              >
-                中止
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="flex-1 px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 ring-1 ring-indigo-500/30 transition-colors"
-                onClick={handleExecute}
-              >
-                実行
-              </button>
-            )}
-            <button
-              type="button"
-              className="px-3 py-2 rounded-lg text-xs text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors"
-              onClick={handleClearLogs}
-              title="ログクリア"
-            >
-              クリア
-            </button>
-          </div>
+          <ExecuteButtons
+            className="p-4 border-t border-gray-800"
+            running={running}
+            onExecute={handleExecute}
+            onAbort={handleAbort}
+            onClear={handleClearLogs}
+          />
         )}
       </div>
 
@@ -766,6 +726,50 @@ export function CommandRunner({ isMobile, isDev }: CommandRunnerProps) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ExecuteButtons({
+  className,
+  running,
+  onExecute,
+  onAbort,
+  onClear,
+}: {
+  className?: string;
+  running: boolean;
+  onExecute: () => void;
+  onAbort: () => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className={`flex gap-2 ${className ?? ""}`}>
+      {running ? (
+        <button
+          type="button"
+          className="flex-1 px-4 py-2 rounded-lg text-xs font-semibold bg-red-500/20 text-red-300 hover:bg-red-500/30 ring-1 ring-red-500/30 transition-colors"
+          onClick={onAbort}
+        >
+          中止
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="flex-1 px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 ring-1 ring-indigo-500/30 transition-colors"
+          onClick={onExecute}
+        >
+          実行
+        </button>
+      )}
+      <button
+        type="button"
+        className="px-3 py-2 rounded-lg text-xs text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors"
+        onClick={onClear}
+        title="ログクリア"
+      >
+        クリア
+      </button>
     </div>
   );
 }

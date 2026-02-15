@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchMemo, saveMemo } from "../api";
 import { MarkdownPane } from "./MarkdownPane";
 import { LoadingSpinner } from "./shared/LoadingSpinner";
+import { SaveButton } from "./shared/SaveButton";
 
 type MemoView = "edit" | "preview";
 
@@ -78,20 +79,7 @@ export function MemoTab({
             </div>
           )}
           <div className="flex-1" />
-          {isDev && (
-            <button
-              type="button"
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                hasChanges
-                  ? "bg-indigo-600 text-white hover:bg-indigo-500"
-                  : "bg-gray-800 text-gray-600 cursor-not-allowed"
-              }`}
-              onClick={handleSave}
-              disabled={!hasChanges || saving}
-            >
-              {saving ? "保存中..." : "保存"}
-            </button>
-          )}
+          {isDev && <SaveButton hasChanges={hasChanges} saving={saving} onClick={handleSave} />}
         </div>
         {/* Content */}
         <div className="flex-1 overflow-y-auto dark-scrollbar bg-gray-900">
@@ -122,18 +110,12 @@ export function MemoTab({
           <div className="flex items-center gap-2 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0">
             <span className="px-3 py-2.5 text-xs font-medium text-indigo-400">Edit</span>
             <div className="flex-1" />
-            <button
-              type="button"
-              className={`px-3 py-1.5 my-1 text-xs font-medium rounded-lg transition-colors ${
-                hasChanges
-                  ? "bg-indigo-600 text-white hover:bg-indigo-500"
-                  : "bg-gray-800 text-gray-600 cursor-not-allowed"
-              }`}
+            <SaveButton
+              hasChanges={hasChanges}
+              saving={saving}
               onClick={handleSave}
-              disabled={!hasChanges || saving}
-            >
-              {saving ? "保存中..." : "保存"}
-            </button>
+              className="my-1"
+            />
           </div>
           <textarea
             ref={textareaRef}

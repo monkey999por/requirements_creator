@@ -2,25 +2,25 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import { staggerContainerVariants, staggerItemVariants } from "../animations";
 import {
-  addFavorite,
   type DiagramFile,
   type FavoriteItem,
   type Feature,
   fetchAppGenerationConfig,
   fetchDiagrams,
-  fetchFavorites,
   fetchFeatureDetail,
   fetchFeatures,
   fetchMode,
   fetchOverview,
   fetchSourceInfo,
-  removeFavorite,
   type SourceInfo,
 } from "../api";
+import { useFavorites } from "../hooks/useFavorites";
 import { type SwipeDirection, useSwipeTab } from "../hooks/useSwipeTab";
 import { DatasetAddButton } from "./DatasetAddButton";
 import { MarkdownPane } from "./MarkdownPane";
 import { MemoTab } from "./MemoTab";
+import { BackButton } from "./shared/BackButton";
+import { ChevronRightIcon, XIcon } from "./shared/Icons";
 import { LoadingSpinner } from "./shared/LoadingSpinner";
 
 export type AppTab = "overview" | "source-info" | "diagrams" | "features" | "memo";
@@ -78,51 +78,10 @@ export function AppView({
   const mobileTab: AppTab = selectedTab;
   const [loading, setLoading] = useState(true);
   const [isDev, setIsDev] = useState(false);
-  const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
+  const { isFavorited, toggleFavorite: handleToggleFavorite } = useFavorites(appName);
   useEffect(() => {
     fetchMode().then((r) => setIsDev(r.isDev));
   }, []);
-
-  useEffect(() => {
-    fetchFavorites().then(setFavorites);
-  }, []);
-
-  const isFavorited = useCallback(
-    (type: FavoriteItem["type"], featureId?: string, diagramId?: string) => {
-      return favorites.some(
-        (f) =>
-          f.appName === appName &&
-          f.type === type &&
-          f.featureId === featureId &&
-          f.diagramId === diagramId,
-      );
-    },
-    [appName, favorites],
-  );
-
-  const handleToggleFavorite = useCallback(
-    async (type: FavoriteItem["type"], title?: string, featureId?: string, diagramId?: string) => {
-      const item: FavoriteItem = { appName, type, featureId, diagramId, title };
-      if (isFavorited(type, featureId, diagramId)) {
-        await removeFavorite(item);
-        setFavorites((prev) =>
-          prev.filter(
-            (f) =>
-              !(
-                f.appName === appName &&
-                f.type === type &&
-                f.featureId === featureId &&
-                f.diagramId === diagramId
-              ),
-          ),
-        );
-      } else {
-        await addFavorite(item);
-        setFavorites((prev) => [...prev, item]);
-      }
-    },
-    [appName, isFavorited],
-  );
 
   useEffect(() => {
     setFeatureContent("");
@@ -413,22 +372,14 @@ export function AppView({
                       }}
                       isDev={isDev}
                     />
-                    <motion.svg
-                      aria-hidden="true"
-                      className={`size-4 ${selectedFeature === f.id ? "text-indigo-400" : "text-gray-600"}`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                    <motion.span
                       whileHover={{ x: 2, color: "#818cf8" }}
                       transition={{ duration: 0.2 }}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
+                      <ChevronRightIcon
+                        className={`size-4 ${selectedFeature === f.id ? "text-indigo-400" : "text-gray-600"}`}
                       />
-                    </motion.svg>
+                    </motion.span>
                   </div>
                 </motion.button>
               ))}
@@ -483,20 +434,7 @@ export function AppView({
                 whileTap={{ scale: 0.95 }}
                 title="閉じる"
               >
-                <svg
-                  aria-hidden="true"
-                  className="size-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <XIcon />
               </motion.button>
             </div>
             {/* Content */}
@@ -600,29 +538,12 @@ function MobileLayout({
       >
         {/* Header with back button */}
         <div className="flex items-center gap-2 px-4 bg-gray-900 border-b border-gray-800 shrink-0">
-          <button
-            type="button"
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-700/50 transition-colors"
+          <BackButton
             onClick={() => {
               onSelectFeature(null);
               setFeatureContent("");
             }}
-          >
-            <svg
-              className="size-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-          </button>
+          />
           <span className="text-xs font-medium text-indigo-400 py-2.5 truncate">
             {features.find((f) => f.id === selectedFeature)?.title ?? selectedFeature}
           </span>
@@ -738,20 +659,7 @@ function MobileLayout({
                         }}
                         isDev={isDev}
                       />
-                      <svg
-                        className="size-4 text-gray-600"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        aria-hidden="true"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
+                      <ChevronRightIcon className="size-4 text-gray-600" />
                     </div>
                   </button>
                 ))}

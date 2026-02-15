@@ -8,7 +8,11 @@ import {
   type QueueItem,
   updateQueueItem,
 } from "../api";
+import { useMessageToast } from "../hooks/useMessageToast";
+import { BackButton } from "./shared/BackButton";
+import { CreateButton } from "./shared/CreateButton";
 import { EmptyState } from "./shared/EmptyState";
+import { TrashIcon } from "./shared/Icons";
 import { LoadingSpinner } from "./shared/LoadingSpinner";
 import { MessageToast } from "./shared/MessageToast";
 
@@ -32,7 +36,7 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(() => getQueueItemFromUrl());
   const [creating, setCreating] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const { message, showMessage } = useMessageToast();
 
   const reload = useCallback(() => {
     fetchQueueItems()
@@ -63,11 +67,6 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
   }, []);
 
   const selectedItem = items.find((i) => i.id === selected);
-
-  const showMessage = useCallback((msg: string) => {
-    setMessage(msg);
-    setTimeout(() => setMessage(null), 3000);
-  }, []);
 
   const handleCreate = useCallback(
     async (title: string, content: string) => {
@@ -201,6 +200,8 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
                 setSelected(null);
                 pushQueueUrl("__new__");
               }}
+              title="新規キューアイテム作成"
+              hoverClassName="hover:text-orange-400 hover:bg-orange-500/10"
             />
           )}
         </div>
@@ -244,6 +245,8 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
                 setSelected(null);
                 pushQueueUrl("__new__");
               }}
+              title="新規キューアイテム作成"
+              hoverClassName="hover:text-orange-400 hover:bg-orange-500/10"
             />
           )}
         </div>
@@ -294,27 +297,6 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
       </div>
       <MessageToast message={message} />
     </motion.div>
-  );
-}
-
-function CreateButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      className="p-1.5 rounded-lg text-gray-400 hover:text-orange-400 hover:bg-orange-500/10 transition-colors"
-      onClick={onClick}
-      title="新規キューアイテム作成"
-    >
-      <svg
-        aria-hidden="true"
-        className="size-4"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-      </svg>
-    </button>
   );
 }
 
@@ -400,20 +382,7 @@ function QueueList({
               }}
               title="削除"
             >
-              <svg
-                aria-hidden="true"
-                className="size-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
+              <TrashIcon className="size-4" />
             </button>
           )}
         </button>
@@ -447,28 +416,7 @@ function QueueForm({
       transition={{ duration: 0.2 }}
     >
       <div className="flex items-center gap-2 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0">
-        {isMobile && (
-          <button
-            type="button"
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-700/50 transition-colors"
-            onClick={onCancel}
-          >
-            <svg
-              aria-hidden="true"
-              className="size-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-          </button>
-        )}
+        {isMobile && <BackButton onClick={onCancel} />}
         <span className="px-3 py-2.5 text-xs font-medium text-orange-400">
           {isEdit ? "キューアイテム編集" : "新規キューアイテム"}
         </span>
