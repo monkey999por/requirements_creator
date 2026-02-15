@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from "react";
 import { staggerContainerVariants, staggerItemVariants } from "../animations";
 import {
   type DiagramFile,
-  type FavoriteItem,
   type Feature,
   fetchAppGenerationConfig,
   fetchDiagrams,
@@ -14,7 +13,6 @@ import {
   fetchSourceInfo,
   type SourceInfo,
 } from "../api";
-import { useFavorites } from "../hooks/useFavorites";
 import { type SwipeDirection, useSwipeTab } from "../hooks/useSwipeTab";
 import { DatasetAddButton } from "./DatasetAddButton";
 import { MarkdownPane } from "./MarkdownPane";
@@ -78,7 +76,6 @@ export function AppView({
   const mobileTab: AppTab = selectedTab;
   const [loading, setLoading] = useState(true);
   const [isDev, setIsDev] = useState(false);
-  const { isFavorited, toggleFavorite: handleToggleFavorite } = useFavorites(appName);
   useEffect(() => {
     fetchMode().then((r) => setIsDev(r.isDev));
   }, []);
@@ -131,8 +128,6 @@ export function AppView({
         features={features}
         featureContent={featureContent}
         setFeatureContent={setFeatureContent}
-        isFavorited={isFavorited}
-        handleToggleFavorite={handleToggleFavorite}
         isDev={isDev}
         onNavigateToDataset={onNavigateToDataset}
         onNavigateToApp={onNavigateToApp}
@@ -208,12 +203,6 @@ export function AppView({
               pinned={pinnedTab === "memo"}
               onPin={() => onPinTab("memo")}
             />
-            {leftTab === "overview" && (
-              <FavoriteToggleButton
-                active={isFavorited("overview")}
-                onClick={() => handleToggleFavorite("overview", appName)}
-              />
-            )}
             {isDev && leftTab === "overview" && (
               <DatasetAddButton
                 item={{ appName, type: "overview", title: appName }}
@@ -256,14 +245,19 @@ export function AppView({
                       <div className="space-y-8">
                         {diagrams.map((d) => (
                           <section key={d.id} className="relative">
-                            <div className="absolute top-0 right-0 z-10">
-                              <FavoriteToggleButton
-                                active={isFavorited("diagram", undefined, d.id)}
-                                onClick={() =>
-                                  handleToggleFavorite("diagram", d.title, undefined, d.id)
-                                }
-                              />
-                            </div>
+                            {isDev && (
+                              <div className="absolute top-0 right-0 z-10">
+                                <DatasetAddButton
+                                  item={{
+                                    appName,
+                                    type: "diagram",
+                                    diagramId: d.id,
+                                    title: d.title,
+                                  }}
+                                  isDev={isDev}
+                                />
+                              </div>
+                            )}
                             <MarkdownPane content={d.content} />
                           </section>
                         ))}
@@ -357,12 +351,8 @@ export function AppView({
                       </p>
                     )}
                   </div>
-                  {/* Favorite + Dataset add + Arrow */}
+                  {/* Dataset add + Arrow */}
                   <div className="flex items-center gap-1 shrink-0 mt-0.5">
-                    <FavoriteToggleButton
-                      active={isFavorited("feature", f.id)}
-                      onClick={() => handleToggleFavorite("feature", f.title, f.id)}
-                    />
                     <DatasetAddButton
                       item={{
                         appName,
@@ -475,8 +465,6 @@ function MobileLayout({
   features,
   featureContent,
   setFeatureContent,
-  isFavorited,
-  handleToggleFavorite,
   isDev,
   onNavigateToDataset,
   onNavigateToApp,
@@ -496,13 +484,6 @@ function MobileLayout({
   features: Feature[];
   featureContent: string;
   setFeatureContent: (content: string) => void;
-  isFavorited: (type: FavoriteItem["type"], featureId?: string, diagramId?: string) => boolean;
-  handleToggleFavorite: (
-    type: FavoriteItem["type"],
-    title?: string,
-    featureId?: string,
-    diagramId?: string,
-  ) => void;
   isDev: boolean;
   onNavigateToDataset?: (datasetName: string) => void;
   onNavigateToApp?: (appName: string) => void;
@@ -599,12 +580,6 @@ function MobileLayout({
           pinned={pinnedTab === "memo"}
           onPin={() => onPinTab("memo")}
         />
-        {mobileTab === "overview" && (
-          <FavoriteToggleButton
-            active={isFavorited("overview")}
-            onClick={() => handleToggleFavorite("overview", appName)}
-          />
-        )}
         {isDev && mobileTab === "overview" && (
           <DatasetAddButton item={{ appName, type: "overview", title: appName }} isDev={isDev} />
         )}
@@ -646,10 +621,6 @@ function MobileLayout({
                       )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0 mt-0.5">
-                      <FavoriteToggleButton
-                        active={isFavorited("feature", f.id)}
-                        onClick={() => handleToggleFavorite("feature", f.title, f.id)}
-                      />
                       <DatasetAddButton
                         item={{
                           appName,
@@ -683,14 +654,19 @@ function MobileLayout({
                   <div className="space-y-8">
                     {diagrams.map((d) => (
                       <section key={d.id} className="relative">
-                        <div className="absolute top-0 right-0 z-10">
-                          <FavoriteToggleButton
-                            active={isFavorited("diagram", undefined, d.id)}
-                            onClick={() =>
-                              handleToggleFavorite("diagram", d.title, undefined, d.id)
-                            }
-                          />
-                        </div>
+                        {isDev && (
+                          <div className="absolute top-0 right-0 z-10">
+                            <DatasetAddButton
+                              item={{
+                                appName,
+                                type: "diagram",
+                                diagramId: d.id,
+                                title: d.title,
+                              }}
+                              isDev={isDev}
+                            />
+                          </div>
+                        )}
                         <MarkdownPane content={d.content} />
                       </section>
                     ))}
@@ -950,38 +926,5 @@ function TabButton({
         transition={{ duration: 0.3, ease: "easeOut" }}
       />
     </div>
-  );
-}
-
-function FavoriteToggleButton({ active, onClick }: { active: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      className={`p-1 rounded-md transition-colors ${
-        active
-          ? "text-pink-400 hover:text-pink-300"
-          : "text-gray-600 hover:text-pink-400 hover:bg-pink-400/10"
-      }`}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
-      title={active ? "お気に入りから削除" : "お気に入りに追加"}
-    >
-      <svg
-        className="size-4"
-        viewBox="0 0 24 24"
-        fill={active ? "currentColor" : "none"}
-        stroke="currentColor"
-        aria-hidden="true"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-        />
-      </svg>
-    </button>
   );
 }

@@ -1,13 +1,13 @@
-import type { FavoriteItem } from "../../api";
+type ItemType = "overview" | "feature" | "diagram";
 
-const TYPE_CONFIG: Record<FavoriteItem["type"], { label: string; className: string }> = {
+const TYPE_CONFIG: Record<ItemType, { label: string; className: string }> = {
   overview: { label: "OVR", className: "bg-blue-900/40 text-blue-400" },
   feature: { label: "FTR", className: "bg-purple-900/40 text-purple-400" },
   diagram: { label: "DGM", className: "bg-emerald-900/40 text-emerald-400" },
 };
 
 interface TypeBadgeProps {
-  type: FavoriteItem["type"];
+  type: ItemType;
   className?: string;
 }
 
@@ -24,10 +24,10 @@ export function TypeBadge({ type, className }: TypeBadgeProps) {
   );
 }
 
-export function typeLabel(type: FavoriteItem["type"]): string {
+export function typeLabel(type: ItemType): string {
   return TYPE_CONFIG[type].label;
 }
 
-export function typeBadgeClass(type: FavoriteItem["type"]): string {
+export function typeBadgeClass(type: ItemType): string {
   return TYPE_CONFIG[type].className;
 }

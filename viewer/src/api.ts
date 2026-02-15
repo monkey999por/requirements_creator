@@ -105,8 +105,9 @@ export async function saveMemo(appName: string, content: string): Promise<{ succ
 
 export interface DatasetItem {
   appName: string;
-  type: "overview" | "feature";
+  type: "overview" | "feature" | "diagram";
   featureId?: string;
+  diagramId?: string;
   title?: string;
 }
 
@@ -217,41 +218,6 @@ export async function search(
   if (query) params.set("q", query);
   if (tags.length > 0) params.set("tags", tags.join(","));
   const res = await fetch(`${BASE}/search?${params.toString()}`);
-  return res.json();
-}
-
-// --- Favorites API ---
-
-export interface FavoriteItem {
-  appName: string;
-  type: "overview" | "feature" | "diagram";
-  featureId?: string;
-  diagramId?: string;
-  title?: string;
-}
-
-export async function fetchFavorites(): Promise<FavoriteItem[]> {
-  const res = await fetch(`${BASE}/favorites`);
-  return res.json();
-}
-
-export async function addFavorite(
-  item: FavoriteItem,
-): Promise<{ success: boolean; error?: string }> {
-  const res = await fetch(`${BASE}/favorites`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(item),
-  });
-  return res.json();
-}
-
-export async function removeFavorite(item: FavoriteItem): Promise<{ success: boolean }> {
-  const res = await fetch(`${BASE}/favorites`, {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(item),
-  });
   return res.json();
 }
 

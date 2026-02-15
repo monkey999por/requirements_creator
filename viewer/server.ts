@@ -88,46 +88,10 @@ interface QueueItem {
 
 interface DatasetItem {
   appName: string;
-  type: "overview" | "feature";
-  featureId?: string;
-  title?: string;
-}
-
-interface FavoriteItem {
-  appName: string;
   type: "overview" | "feature" | "diagram";
   featureId?: string;
   diagramId?: string;
   title?: string;
-}
-
-function loadFavoritesPath(): string {
-  try {
-    const configPath = resolve(projectRoot, "app.config.yaml");
-    const raw = readFileSync(configPath, "utf-8");
-    const config = parse(raw) as { output_base_dir?: string };
-    const base = config.output_base_dir ?? "gen";
-    return resolve(projectRoot, base, "favorite.json");
-  } catch {
-    return resolve(projectRoot, "gen", "favorite.json");
-  }
-}
-
-const FAVORITES_PATH = loadFavoritesPath();
-
-function readFavorites(): FavoriteItem[] {
-  if (!existsSync(FAVORITES_PATH)) return [];
-  try {
-    return JSON.parse(readFileSync(FAVORITES_PATH, "utf-8")) as FavoriteItem[];
-  } catch {
-    return [];
-  }
-}
-
-function writeFavorites(items: FavoriteItem[]): void {
-  const dir = resolve(FAVORITES_PATH, "..");
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(FAVORITES_PATH, JSON.stringify(items, null, 2), "utf-8");
 }
 
 interface Dataset {
@@ -343,7 +307,11 @@ app.post("/api/datasets/:name/items", async (c) => {
   const dataset = JSON.parse(readFileSync(filePath, "utf-8")) as Dataset;
   const item = await c.req.json<DatasetItem>();
   const exists = dataset.items.some(
-    (i) => i.appName === item.appName && i.type === item.type && i.featureId === item.featureId,
+    (i) =>
+      i.appName === item.appName &&
+      i.type === item.type &&
+      i.featureId === item.featureId &&
+      i.diagramId === item.diagramId,
   );
   if (exists) return c.json({ error: "このアイテムは既にデータセットに含まれています" }, 409);
   dataset.items.push(item);
@@ -359,7 +327,13 @@ app.delete("/api/datasets/:name/items", async (c) => {
   const dataset = JSON.parse(readFileSync(filePath, "utf-8")) as Dataset;
   const item = await c.req.json<DatasetItem>();
   dataset.items = dataset.items.filter(
-    (i) => !(i.appName === item.appName && i.type === item.type && i.featureId === item.featureId),
+    (i) =>
+      !(
+        i.appName === item.appName &&
+        i.type === item.type &&
+        i.featureId === item.featureId &&
+        i.diagramId === item.diagramId
+      ),
   );
   writeFileSync(filePath, JSON.stringify(dataset, null, 2), "utf-8");
   return c.json({ success: true });
@@ -549,43 +523,6 @@ app.put("/api/config", async (c) => {
   const body = await c.req.json();
   applyToDocument(doc, body);
   writeFileSync(configPath, doc.toString(), "utf-8");
-  return c.json({ success: true });
-});
-
-// --- Favorites API ---
-app.get("/api/favorites", (c) => {
-  return c.json(readFavorites());
-});
-
-app.post("/api/favorites", async (c) => {
-  const item = await c.req.json<FavoriteItem>();
-  const favorites = readFavorites();
-  const exists = favorites.some(
-    (f) =>
-      f.appName === item.appName &&
-      f.type === item.type &&
-      f.featureId === item.featureId &&
-      f.diagramId === item.diagramId,
-  );
-  if (exists) return c.json({ error: "既にお気に入りに登録されています" }, 409);
-  favorites.push(item);
-  writeFavorites(favorites);
-  return c.json({ success: true });
-});
-
-app.delete("/api/favorites", async (c) => {
-  const item = await c.req.json<FavoriteItem>();
-  const favorites = readFavorites();
-  const filtered = favorites.filter(
-    (f) =>
-      !(
-        f.appName === item.appName &&
-        f.type === item.type &&
-        f.featureId === item.featureId &&
-        f.diagramId === item.diagramId
-      ),
-  );
-  writeFavorites(filtered);
   return c.json({ success: true });
 });
 
