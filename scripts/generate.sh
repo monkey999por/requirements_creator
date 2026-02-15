@@ -5,27 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"
 
 # --- 一時ファイル管理 ---
-TMPDIR_AGENTS=$(mktemp -d)
 SKIP_AGENTS=false
-
-RESEARCH_CONTEXT="${TMPDIR_AGENTS}/research_context.md"
-DESIGN_CONTEXT="${TMPDIR_AGENTS}/design_context.md"
-REVIEW_RESULT="${TMPDIR_AGENTS}/review_result.md"
-
-# 新規生成されたアプリにapp.config.yamlをコピー
-copy_config_to_new_apps() {
-  local apps_after
-  apps_after=$(ls -1 "${REQUIREMENTS_DIR}" 2>/dev/null || true)
-  local new_apps
-  new_apps=$(comm -13 <(echo "$APPS_BEFORE" | sort) <(echo "$apps_after" | sort) 2>/dev/null || true)
-
-  if [[ -n "$new_apps" ]]; then
-    for app_name in $new_apps; do
-      cp "$CONFIG_FILE" "${REQUIREMENTS_DIR}/${app_name}/_config.yaml"
-      echo "  設定ファイルをコピー: ${app_name}/_config.yaml"
-    done
-  fi
-}
 
 # --- 引数処理 ---
 TARGET_DIR=""
@@ -60,8 +40,9 @@ done
 # =============================================================================
 # 共通関数の読み込み
 # =============================================================================
-source "${SCRIPT_DIR}/lib/select-source.sh"
 source "${SCRIPT_DIR}/lib/generate-helpers.sh"
+
+init_agent_tmpdir
 
 read_constraints
 CONSTRAINTS_PROMPT=$(format_constraints_prompt)

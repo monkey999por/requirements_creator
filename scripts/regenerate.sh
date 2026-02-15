@@ -4,16 +4,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"
 
-# --- 一時ファイル管理 ---
-TMPDIR_AGENTS=$(mktemp -d)
-RESEARCH_CONTEXT="${TMPDIR_AGENTS}/research_context.md"
-DESIGN_CONTEXT="${TMPDIR_AGENTS}/design_context.md"
-REVIEW_RESULT="${TMPDIR_AGENTS}/review_result.md"
+# --- 一時ファイル管理（早期クリーンアップ設定） ---
+SKIP_AGENTS=false
 
 # --- 引数処理 ---
 APP_NAME=""
 MEMO_TEXT=""
-SKIP_AGENTS=false
 while [[ $# -gt 0 ]]; do
   case $1 in
     --memo) MEMO_TEXT="$2"; shift 2 ;;
@@ -60,6 +56,9 @@ fi
 # 共通関数の読み込み
 # =============================================================================
 source "${SCRIPT_DIR}/lib/generate-helpers.sh"
+
+init_agent_tmpdir
+setup_cleanup_trap "rm -rf \"$TMPDIR_AGENTS\""
 
 read_constraints
 CONSTRAINTS_PROMPT=$(format_constraints_prompt)

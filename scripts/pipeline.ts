@@ -10,6 +10,7 @@ import {
 } from "./lib/data-source.js";
 import { DATA_SOURCE_DIR, DATASETS_DIR, REQUIREMENTS_DIR } from "./lib/paths.js";
 import { notifyPipelineResult, type PipelineStepResult } from "./lib/slack.js";
+import { formatError } from "./lib/utils.js";
 
 // --- 型定義 ---
 interface PipelineOptions {
@@ -40,11 +41,6 @@ interface Dataset {
   name: string;
   createdAt: string;
   items: DatasetItem[];
-}
-
-// --- ユーティリティ ---
-function formatError(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
 }
 
 // --- 引数パース ---
@@ -178,9 +174,13 @@ function listRequirementApps(): string[] {
 }
 
 // --- バリデーション実行ヘルパー ---
-async function runValidation(newApps: string[], results: StepResult[]): Promise<void> {
+async function runValidation(
+  newApps: string[],
+  results: StepResult[],
+  prefix = "[validate]",
+): Promise<void> {
   if (newApps.length > 0) {
-    console.log(`[validate] ${newApps.join(", ")} を検証...\n`);
+    console.log(`${prefix} ${newApps.join(", ")} を検証...\n`);
     try {
       for (const app of newApps) {
         await runStep("tsx", ["scripts/validate-requirements.ts", app]);
@@ -192,7 +192,7 @@ async function runValidation(newApps: string[], results: StepResult[]): Promise<
       results.push({ name: "validate", status: "failed" });
     }
   } else {
-    console.log("[validate] 新規アプリが検出されませんでした（スキップ）\n");
+    console.log(`${prefix} 新規アプリが検出されませんでした（スキップ）\n`);
     results.push({ name: "validate", status: "skipped" });
   }
 }
@@ -466,7 +466,7 @@ async function main() {
   // Step 4: validate（新規生成されたアプリのみ）
   const appsAfter = listRequirementApps();
   const newApps = appsAfter.filter((app) => !appsBefore.has(app));
-  await runValidation(newApps, results);
+  await runValidation(newApps, results, "[Step 4] validate:");
 
   // サマリー
   await printSummary(results, targetDir, newApps);

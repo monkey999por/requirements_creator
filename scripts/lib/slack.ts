@@ -1,4 +1,5 @@
 import { loadAppConfig } from "./config.js";
+import { formatError } from "./utils.js";
 import "dotenv/config";
 
 const SLACK_API_URL = "https://slack.com/api/chat.postMessage";
@@ -57,7 +58,7 @@ async function postToSlack(token: string, text: string): Promise<SlackNotificati
   } catch (err) {
     return {
       success: false,
-      error: `Slack送信失敗: ${err instanceof Error ? err.message : String(err)}`,
+      error: `Slack送信失敗: ${formatError(err)}`,
     };
   }
 }

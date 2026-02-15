@@ -26,7 +26,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 # --- 対象ディレクトリの決定 ---
-source "${SCRIPT_DIR}/lib/select-source.sh"
 resolve_target_dir "$TARGET_DIR"
 
 DATA_DIR="${DATA_SOURCE_DIR}/${TARGET_DIR}"

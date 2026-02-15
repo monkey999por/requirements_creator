@@ -278,6 +278,34 @@ get_role_agent() {
 }
 
 # =============================================================================
+# 一時ファイル初期化（generate.sh / regenerate.sh 共通）
+# =============================================================================
+init_agent_tmpdir() {
+  TMPDIR_AGENTS=$(mktemp -d)
+  RESEARCH_CONTEXT="${TMPDIR_AGENTS}/research_context.md"
+  DESIGN_CONTEXT="${TMPDIR_AGENTS}/design_context.md"
+  REVIEW_RESULT="${TMPDIR_AGENTS}/review_result.md"
+}
+
+# =============================================================================
+# 新規生成アプリへの設定ファイルコピー（generate.sh 用）
+# 呼び出し元で APPS_BEFORE が設定済みであること
+# =============================================================================
+copy_config_to_new_apps() {
+  local apps_after
+  apps_after=$(ls -1 "${REQUIREMENTS_DIR}" 2>/dev/null || true)
+  local new_apps
+  new_apps=$(comm -13 <(echo "$APPS_BEFORE" | sort) <(echo "$apps_after" | sort) 2>/dev/null || true)
+
+  if [[ -n "$new_apps" ]]; then
+    for app_name in $new_apps; do
+      cp "$CONFIG_FILE" "${REQUIREMENTS_DIR}/${app_name}/_config.yaml"
+      echo "  設定ファイルをコピー: ${app_name}/_config.yaml"
+    done
+  fi
+}
+
+# =============================================================================
 # エージェント設定の表示（generate.sh / regenerate.sh 共通）
 # =============================================================================
 print_agent_settings() {
@@ -398,12 +426,11 @@ run_agent() {
   local prompt="$2"
   local output_file="$3"
 
-  local model
-  model=$(get_agent_model "$agent")
-
   if [[ "$agent" == "gemini" ]]; then
     gemini -p "$prompt" 2>/dev/null > "$output_file" || true
   elif [[ "$agent" == "codex" ]]; then
+    local model
+    model=$(get_agent_model "$agent")
     local sandbox
     sandbox=$(get_agent_sandbox "$agent")
     sandbox="${sandbox:-read-only}"
