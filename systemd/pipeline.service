@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=oneshot
 WorkingDirectory=%h/develop/requirements_creator
 ExecStart=%h/develop/requirements_creator/scripts/scheduler-run.sh
-Environment=PATH=%h/.local/share/pnpm:%h/.nvm/versions/node/v20.9.0/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PATH=%h/.local/share/pnpm:%h/.nvm/versions/node/v22.17.0/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 
 [Install]
 WantedBy=default.target

@@ -806,6 +806,164 @@ app.post("/api/git/switch-branch", async (c) => {
   }
 });
 
+// --- Scheduler API ---
+
+const ALL_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function parseTimerSchedule(): { days: string[]; times: string[] } {
+  const timerPath = resolve(projectRoot, "systemd", "pipeline.timer");
+  if (!existsSync(timerPath)) return { days: [...ALL_DAYS], times: [] };
+  const content = readFileSync(timerPath, "utf-8");
+  const lines = content.split("\n");
+  const times: string[] = [];
+  let days: string[] | null = null;
+
+  for (const line of lines) {
+    const m = line.match(/^OnCalendar=(.+)$/);
+    if (!m) continue;
+    const spec = m[1].trim();
+    // "Mon,Tue *-*-* HH:MM:SS" or "*-*-* HH:MM:SS"
+    const parts = spec.split(/\s+/);
+    if (parts.length === 2) {
+      // No day spec: *-*-* HH:MM:SS
+      const time = parts[1].slice(0, 5); // HH:MM
+      if (!times.includes(time)) times.push(time);
+      if (days === null) days = [...ALL_DAYS];
+    } else if (parts.length === 3) {
+      // Day spec: Mon,Tue *-*-* HH:MM:SS
+      const daySpec = parts[0].replace(/,/g, ",");
+      if (days === null) days = daySpec.split(",").filter((d) => ALL_DAYS.includes(d));
+      const time = parts[2].slice(0, 5);
+      if (!times.includes(time)) times.push(time);
+    }
+  }
+
+  times.sort();
+  return { days: days ?? [...ALL_DAYS], times };
+}
+
+app.get("/api/scheduler/status", async (c) => {
+  try {
+    const { stdout } = await execAsync("bash scripts/scheduler-ctl.sh status 2>&1", {
+      cwd: projectRoot,
+      timeout: 10000,
+    });
+    const timerActive = /Active:\s+active/.test(stdout.split("=== サービス状態 ===")[0] ?? "");
+    const nextMatch = stdout.match(/Next elapse:\s+(.+)/);
+    const nextRun = nextMatch?.[1]?.trim() ?? null;
+    const schedule = parseTimerSchedule();
+    return c.json({ timerActive, nextRun, schedule });
+  } catch {
+    const schedule = parseTimerSchedule();
+    return c.json({ timerActive: false, nextRun: null, schedule });
+  }
+});
+
+app.post("/api/scheduler/enable", async (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  try {
+    const { stdout, stderr } = await execAsync("bash scripts/scheduler-ctl.sh enable 2>&1", {
+      cwd: projectRoot,
+      timeout: 15000,
+    });
+    const output = [stdout, stderr].filter((s) => s?.trim()).join("\n");
+    return c.json({ success: true, output });
+  } catch (err: unknown) {
+    const e = err as { stdout?: string; stderr?: string; message: string };
+    const output = `${e.stdout ?? ""}${e.stderr ?? ""}`.trim() || e.message;
+    return c.json({ success: false, output });
+  }
+});
+
+app.post("/api/scheduler/disable", async (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  try {
+    const { stdout, stderr } = await execAsync("bash scripts/scheduler-ctl.sh disable 2>&1", {
+      cwd: projectRoot,
+      timeout: 15000,
+    });
+    const output = [stdout, stderr].filter((s) => s?.trim()).join("\n");
+    return c.json({ success: true, output });
+  } catch (err: unknown) {
+    const e = err as { stdout?: string; stderr?: string; message: string };
+    const output = `${e.stdout ?? ""}${e.stderr ?? ""}`.trim() || e.message;
+    return c.json({ success: false, output });
+  }
+});
+
+app.post("/api/scheduler/schedule", async (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  const body = await c.req.json<{ days: string[]; times: string[] }>();
+  const { days, times } = body;
+
+  if (!Array.isArray(days) || !Array.isArray(times)) {
+    return c.json({ error: "days and times must be arrays" }, 400);
+  }
+  if (times.length === 0) {
+    return c.json({ error: "少なくとも1つの実行時刻が必要です" }, 400);
+  }
+  if (days.length === 0) {
+    return c.json({ error: "少なくとも1つの曜日を選択してください" }, 400);
+  }
+
+  const timerPath = resolve(projectRoot, "systemd", "pipeline.timer");
+  if (!existsSync(timerPath)) return c.json({ error: "Timer file not found" }, 404);
+
+  const content = readFileSync(timerPath, "utf-8");
+  const lines = content.split("\n");
+
+  // [Timer]セクションのOnCalendar行を除去し、新しいものに置換
+  const newLines: string[] = [];
+  let inTimer = false;
+  let calendarInserted = false;
+
+  for (const line of lines) {
+    if (line.trim() === "[Timer]") {
+      inTimer = true;
+      newLines.push(line);
+      continue;
+    }
+    if (line.trim().startsWith("[") && line.trim() !== "[Timer]") {
+      inTimer = false;
+    }
+    if (inTimer && /^OnCalendar=/.test(line)) {
+      if (!calendarInserted) {
+        // 新しいOnCalendar行を挿入
+        const isAllDays = ALL_DAYS.every((d) => days.includes(d)) && days.length === 7;
+        const sortedTimes = [...times].sort();
+        for (const time of sortedTimes) {
+          if (isAllDays) {
+            newLines.push(`OnCalendar=*-*-* ${time}:00`);
+          } else {
+            newLines.push(`OnCalendar=${days.join(",")} *-*-* ${time}:00`);
+          }
+        }
+        calendarInserted = true;
+      }
+      // 既存のOnCalendar行はスキップ
+      continue;
+    }
+    newLines.push(line);
+  }
+
+  writeFileSync(timerPath, newLines.join("\n"), "utf-8");
+
+  // タイマーが有効な場合のみ daemon-reload
+  try {
+    const { stdout } = await execAsync(
+      "systemctl --user is-active pipeline.timer 2>/dev/null || true",
+      { cwd: projectRoot, timeout: 5000 },
+    );
+    if (stdout.trim() === "active") {
+      await execAsync("systemctl --user daemon-reload", { cwd: projectRoot, timeout: 10000 });
+    }
+  } catch {
+    // daemon-reload failure is non-fatal
+  }
+
+  return c.json({ success: true });
+});
+
 // --- Commands API (dev mode only) ---
 
 const ALLOWED_COMMANDS: Record<string, { bin: string; baseArgs: string[] }> = {
