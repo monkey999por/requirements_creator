@@ -244,7 +244,20 @@ export function AppView({
                     {diagrams.length > 0 ? (
                       <div className="space-y-8">
                         {diagrams.map((d) => (
-                          <section key={d.id}>
+                          <section key={d.id} className="relative">
+                            {isDev && (
+                              <div className="absolute top-0 right-0 z-10">
+                                <DatasetAddButton
+                                  item={{
+                                    appName,
+                                    type: "diagram",
+                                    diagramId: d.id,
+                                    title: d.title,
+                                  }}
+                                  isDev={isDev}
+                                />
+                              </div>
+                            )}
                             <MarkdownPane content={d.content} />
                           </section>
                         ))}
@@ -640,7 +653,20 @@ function MobileLayout({
                 {diagrams.length > 0 ? (
                   <div className="space-y-8">
                     {diagrams.map((d) => (
-                      <section key={d.id}>
+                      <section key={d.id} className="relative">
+                        {isDev && (
+                          <div className="absolute top-0 right-0 z-10">
+                            <DatasetAddButton
+                              item={{
+                                appName,
+                                type: "diagram",
+                                diagramId: d.id,
+                                title: d.title,
+                              }}
+                              isDev={isDev}
+                            />
+                          </div>
+                        )}
                         <MarkdownPane content={d.content} />
                       </section>
                     ))}
