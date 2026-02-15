@@ -15,7 +15,6 @@ import { type AppTab, AppView } from "./components/AppView";
 import { CommandRunner } from "./components/CommandRunner";
 import { ConfigEditor } from "./components/ConfigEditor";
 import { DatasetManager } from "./components/DatasetManager";
-import { FavoritePage } from "./components/FavoritePage";
 import { QueueManager } from "./components/QueueManager";
 import { SchedulerSettings } from "./components/SchedulerSettings";
 import { SearchView } from "./components/SearchView";
@@ -23,7 +22,7 @@ import { Sidebar } from "./components/Sidebar";
 import { ToastProvider } from "./components/Toast";
 import { useIsMobile } from "./hooks/useIsMobile";
 
-type ViewMode = "apps" | "datasets" | "favorites" | "commands" | "config" | "queue" | "scheduler";
+type ViewMode = "apps" | "datasets" | "commands" | "config" | "queue" | "scheduler";
 
 function buildUrl(state: {
   viewMode: ViewMode;
@@ -43,8 +42,6 @@ function buildUrl(state: {
   if (state.viewMode === "datasets") {
     url.searchParams.set("view", "datasets");
     if (state.dataset) url.searchParams.set("dataset", state.dataset);
-  } else if (state.viewMode === "favorites") {
-    url.searchParams.set("view", "favorites");
   } else if (state.viewMode === "commands") {
     url.searchParams.set("view", "commands");
   } else if (state.viewMode === "config") {
@@ -115,12 +112,11 @@ export function App() {
     const params = new URLSearchParams(window.location.search);
     const viewParam = params.get("view");
     const isDatasetView = viewParam === "datasets";
-    const isFavoritesView = viewParam === "favorites";
     const isCommandsView = viewParam === "commands";
     const isConfigView = viewParam === "config";
     const isQueueView = viewParam === "queue";
     const isSchedulerView = viewParam === "scheduler";
-    // URL から datasets/favorites/commands/config/queue/scheduler ビュー復元
+    // URL から datasets/commands/config/queue/scheduler ビュー復元
     if (isSchedulerView) {
       setViewMode("scheduler");
     } else if (isQueueView) {
@@ -129,8 +125,6 @@ export function App() {
       setViewMode("config");
     } else if (isCommandsView) {
       setViewMode("commands");
-    } else if (isFavoritesView) {
-      setViewMode("favorites");
     } else if (isDatasetView) {
       setViewMode("datasets");
       const dsParam = params.get("dataset");
@@ -171,11 +165,9 @@ export function App() {
             ? "config"
             : isCommandsView
               ? "commands"
-              : isFavoritesView
-                ? "favorites"
-                : isDatasetView
-                  ? "datasets"
-                  : "apps";
+              : isDatasetView
+                ? "datasets"
+                : "apps";
       window.history.replaceState(
         {},
         "",
@@ -209,10 +201,6 @@ export function App() {
         setSelectedTab("overview");
       } else if (viewParam === "commands") {
         setViewMode("commands");
-        setSelectedFeature(null);
-        setSelectedTab("overview");
-      } else if (viewParam === "favorites") {
-        setViewMode("favorites");
         setSelectedFeature(null);
         setSelectedTab("overview");
       } else if (viewParam === "datasets") {
@@ -276,14 +264,6 @@ export function App() {
     setSearchActive(false);
     if (isMobile) setMobileSidebarOpen(false);
     window.history.pushState({}, "", buildUrl({ viewMode: "config" }));
-  };
-
-  const handleSelectFavorites = () => {
-    setViewMode("favorites");
-    setSelectedFeature(null);
-    setSearchActive(false);
-    if (isMobile) setMobileSidebarOpen(false);
-    window.history.pushState({}, "", buildUrl({ viewMode: "favorites" }));
   };
 
   const handleSelectQueue = () => {
@@ -501,15 +481,13 @@ export function App() {
                 ? "設定"
                 : viewMode === "commands"
                   ? "コマンド実行"
-                  : viewMode === "favorites"
-                    ? "お気に入り"
-                    : viewMode === "datasets"
-                      ? "データセット"
-                      : viewMode === "queue"
-                        ? "パイプラインキュー"
-                        : viewMode === "scheduler"
-                          ? "スケジューラ"
-                          : (selectedApp ?? "Requirements Viewer")}
+                  : viewMode === "datasets"
+                    ? "データセット"
+                    : viewMode === "queue"
+                      ? "パイプラインキュー"
+                      : viewMode === "scheduler"
+                        ? "スケジューラ"
+                        : (selectedApp ?? "Requirements Viewer")}
             </span>
           </div>
         )}
@@ -525,7 +503,6 @@ export function App() {
           onMobileClose={() => setMobileSidebarOpen(false)}
           viewMode={viewMode}
           onSelectDatasets={handleSelectDatasets}
-          onSelectFavorites={handleSelectFavorites}
           onSelectCommands={handleSelectCommands}
           onSelectConfig={handleSelectConfig}
           onSelectQueue={handleSelectQueue}
@@ -549,14 +526,6 @@ export function App() {
             <ConfigEditor isMobile={isMobile} isDev={isDev} />
           ) : viewMode === "commands" ? (
             <CommandRunner isMobile={isMobile} isDev={isDev} />
-          ) : viewMode === "favorites" ? (
-            <FavoritePage
-              isMobile={isMobile}
-              isDev={isDev}
-              onSelectApp={handleNavigateToApp}
-              onSelectFeature={handleNavigateToFeature}
-              onSelectDiagram={handleNavigateToDiagram}
-            />
           ) : viewMode === "queue" ? (
             <QueueManager isMobile={isMobile} isDev={isDev} />
           ) : viewMode === "datasets" ? (
@@ -564,6 +533,8 @@ export function App() {
               isMobile={isMobile}
               isDev={isDev}
               onSelectApp={handleNavigateToApp}
+              onSelectFeature={handleNavigateToFeature}
+              onSelectDiagram={handleNavigateToDiagram}
               initialSelected={selectedDataset}
               generating={generating}
               generatingDataset={generatingDataset}
