@@ -2,21 +2,19 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import { staggerContainerVariants, staggerItemVariants } from "../animations";
 import {
-  addFavorite,
   type DiagramFile,
   type FavoriteItem,
   type Feature,
   fetchAppGenerationConfig,
   fetchDiagrams,
-  fetchFavorites,
   fetchFeatureDetail,
   fetchFeatures,
   fetchMode,
   fetchOverview,
   fetchSourceInfo,
-  removeFavorite,
   type SourceInfo,
 } from "../api";
+import { useFavorites } from "../hooks/useFavorites";
 import { type SwipeDirection, useSwipeTab } from "../hooks/useSwipeTab";
 import { DatasetAddButton } from "./DatasetAddButton";
 import { MarkdownPane } from "./MarkdownPane";
@@ -78,51 +76,10 @@ export function AppView({
   const mobileTab: AppTab = selectedTab;
   const [loading, setLoading] = useState(true);
   const [isDev, setIsDev] = useState(false);
-  const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
+  const { isFavorited, toggleFavorite: handleToggleFavorite } = useFavorites(appName);
   useEffect(() => {
     fetchMode().then((r) => setIsDev(r.isDev));
   }, []);
-
-  useEffect(() => {
-    fetchFavorites().then(setFavorites);
-  }, []);
-
-  const isFavorited = useCallback(
-    (type: FavoriteItem["type"], featureId?: string, diagramId?: string) => {
-      return favorites.some(
-        (f) =>
-          f.appName === appName &&
-          f.type === type &&
-          f.featureId === featureId &&
-          f.diagramId === diagramId,
-      );
-    },
-    [appName, favorites],
-  );
-
-  const handleToggleFavorite = useCallback(
-    async (type: FavoriteItem["type"], title?: string, featureId?: string, diagramId?: string) => {
-      const item: FavoriteItem = { appName, type, featureId, diagramId, title };
-      if (isFavorited(type, featureId, diagramId)) {
-        await removeFavorite(item);
-        setFavorites((prev) =>
-          prev.filter(
-            (f) =>
-              !(
-                f.appName === appName &&
-                f.type === type &&
-                f.featureId === featureId &&
-                f.diagramId === diagramId
-              ),
-          ),
-        );
-      } else {
-        await addFavorite(item);
-        setFavorites((prev) => [...prev, item]);
-      }
-    },
-    [appName, isFavorited],
-  );
 
   useEffect(() => {
     setFeatureContent("");

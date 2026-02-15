@@ -8,6 +8,8 @@ import {
   type QueueItem,
   updateQueueItem,
 } from "../api";
+import { useMessageToast } from "../hooks/useMessageToast";
+import { CreateButton } from "./shared/CreateButton";
 import { EmptyState } from "./shared/EmptyState";
 import { LoadingSpinner } from "./shared/LoadingSpinner";
 import { MessageToast } from "./shared/MessageToast";
@@ -32,7 +34,7 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(() => getQueueItemFromUrl());
   const [creating, setCreating] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const { message, showMessage } = useMessageToast();
 
   const reload = useCallback(() => {
     fetchQueueItems()
@@ -63,11 +65,6 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
   }, []);
 
   const selectedItem = items.find((i) => i.id === selected);
-
-  const showMessage = useCallback((msg: string) => {
-    setMessage(msg);
-    setTimeout(() => setMessage(null), 3000);
-  }, []);
 
   const handleCreate = useCallback(
     async (title: string, content: string) => {
@@ -201,6 +198,8 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
                 setSelected(null);
                 pushQueueUrl("__new__");
               }}
+              title="新規キューアイテム作成"
+              hoverClassName="hover:text-orange-400 hover:bg-orange-500/10"
             />
           )}
         </div>
@@ -244,6 +243,8 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
                 setSelected(null);
                 pushQueueUrl("__new__");
               }}
+              title="新規キューアイテム作成"
+              hoverClassName="hover:text-orange-400 hover:bg-orange-500/10"
             />
           )}
         </div>
@@ -294,27 +295,6 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
       </div>
       <MessageToast message={message} />
     </motion.div>
-  );
-}
-
-function CreateButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      className="p-1.5 rounded-lg text-gray-400 hover:text-orange-400 hover:bg-orange-500/10 transition-colors"
-      onClick={onClick}
-      title="新規キューアイテム作成"
-    >
-      <svg
-        aria-hidden="true"
-        className="size-4"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-      </svg>
-    </button>
   );
 }
 
