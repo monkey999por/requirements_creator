@@ -136,8 +136,10 @@ export function SchedulerSettings({ isMobile, isDev }: SchedulerSettingsProps) {
   }
 
   return (
-    <div className={`h-full overflow-y-auto dark-scrollbar ${isMobile ? "px-4 py-4" : "p-8"}`}>
-      <div className="max-w-3xl mx-auto space-y-6">
+    <div
+      className={`h-full min-h-0 overflow-y-auto dark-scrollbar ${isMobile ? "px-4 py-4" : "p-8"}`}
+    >
+      <div className={`max-w-3xl mx-auto space-y-6 ${isMobile ? "pb-24" : ""}`}>
         {/* Header */}
         <div>
           <h1 className="text-xl font-bold text-gray-100">スケジューラ設定</h1>
@@ -229,21 +231,41 @@ export function SchedulerSettings({ isMobile, isDev }: SchedulerSettingsProps) {
           {/* Times */}
           <div className="space-y-3">
             <h2 className="text-sm font-semibold text-gray-300">実行時刻</h2>
-            <div className="space-y-2">
+
+            {isDev && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="time"
+                  value={newTime}
+                  onChange={(e) => setNewTime(e.target.value)}
+                  className="px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-300 focus:outline-none focus:border-blue-500/50"
+                />
+                <button
+                  type="button"
+                  className="px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-800 text-gray-400 hover:text-gray-200 border border-gray-700 hover:border-gray-600 transition-colors"
+                  onClick={addTime}
+                >
+                  + 時刻を追加
+                </button>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2">
               {times.map((time) => (
-                <div key={time} className="flex items-center gap-2">
-                  <span className="px-3 py-1.5 bg-gray-800/50 border border-gray-700/50 rounded-lg text-sm text-gray-300 font-mono">
-                    {time}
-                  </span>
+                <div
+                  key={time}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-800/50 border border-gray-700/50 rounded-lg text-sm text-gray-300 font-mono"
+                >
+                  {time}
                   {isDev && (
                     <button
                       type="button"
-                      className="p-1 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      className="p-0.5 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                       onClick={() => removeTime(time)}
                       title="削除"
                     >
                       <svg
-                        className="size-4"
+                        className="size-3.5"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -263,24 +285,6 @@ export function SchedulerSettings({ isMobile, isDev }: SchedulerSettingsProps) {
                 </div>
               ))}
             </div>
-
-            {isDev && (
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="time"
-                  value={newTime}
-                  onChange={(e) => setNewTime(e.target.value)}
-                  className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-300 focus:outline-none focus:border-blue-500/50"
-                />
-                <button
-                  type="button"
-                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-800 text-gray-400 hover:text-gray-200 border border-gray-700 hover:border-gray-600 transition-colors"
-                  onClick={addTime}
-                >
-                  + 時刻を追加
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Save Button */}
