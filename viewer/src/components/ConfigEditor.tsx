@@ -466,25 +466,6 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
           </AnimatePresence>
         </div>
 
-        {/* --- 共通設定 --- */}
-        <section className="rounded-xl border border-gray-800 bg-gray-900/50 p-5">
-          <SectionHeader title="共通設定" description="複数フェーズから参照される基本設定" />
-          <div>
-            <FieldLabel
-              label="output_base_dir"
-              description="生成データの出力先ベースディレクトリ"
-              htmlFor="output_base_dir"
-            />
-            <TextField
-              id="output_base_dir"
-              value={config.output_base_dir ?? "gen"}
-              onChange={(v) => persistConfig({ ...config, output_base_dir: v })}
-              disabled={disabled}
-              placeholder="gen"
-            />
-          </div>
-        </section>
-
         {/* --- Collect フェーズ --- */}
         <section className="rounded-xl border border-gray-800 bg-gray-900/50 p-5 space-y-6">
           <SectionHeader
