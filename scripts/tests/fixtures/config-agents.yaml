@@ -1,0 +1,21 @@
+output_base_dir: gen
+
+collect:
+  sources:
+    newsapi:
+      enabled: true
+
+generate:
+  agents:
+    codex:
+      enabled: true
+      model: o4-mini
+      sandbox: read-only
+      roles:
+        - designer
+        - reviewer
+    gemini:
+      enabled: true
+      model: gemini-2.5-pro
+      roles:
+        - researcher

@@ -1,0 +1,13 @@
+output_base_dir: gen
+
+collect:
+  sources:
+    newsapi:
+      enabled: true
+
+generate:
+  perspectives:
+    mode: single
+    items:
+      - dopamine
+      - cunning

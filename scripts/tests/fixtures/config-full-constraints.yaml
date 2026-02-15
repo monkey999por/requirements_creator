@@ -1,0 +1,22 @@
+output_base_dir: gen
+
+collect:
+  sources:
+    newsapi:
+      enabled: true
+
+generate:
+  constraints:
+    platform: mobile-android
+    budget: free
+    difficulty: medium
+    team_size: solo
+    tech_stack:
+      frontend: React Native
+      backend: Firebase
+      database: Firestore
+      hosting: Firebase Hosting
+      auth: Firebase Auth
+      other:
+        - Stripe
+        - SendGrid

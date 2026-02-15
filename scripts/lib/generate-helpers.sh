@@ -121,6 +121,7 @@ read_perspectives() {
       i && /^[[:space:]]*- /{gsub(/^[[:space:]]*- */, ""); items=items sep $0; sep=" "; next}
       i && !/^[[:space:]]*-/{i=0}
       p && /^[[:space:]]{4}[a-z]/ && !/items:/ && !/mode:/{p=0}
+      END{print items}
     ' | tr -d '"'"'" || true)
   fi
 }

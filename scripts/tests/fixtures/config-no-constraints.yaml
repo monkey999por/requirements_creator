@@ -1,0 +1,13 @@
+output_base_dir: gen
+
+collect:
+  sources:
+    newsapi:
+      enabled: true
+
+generate:
+  agents:
+    codex:
+      enabled: false
+    gemini:
+      enabled: false
