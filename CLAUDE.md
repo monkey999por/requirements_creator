@@ -36,10 +36,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │       ├── create-skill/
 │       ├── extract-keywords/
 │       ├── fix-issue/
-│       └── generate-requirements/
+│       ├── generate-requirements/
+│       └── refactor-dedup/
 ├── gen/                      # 生成データ出力先（.gitignore対象）
 │   ├── tags.json             # タグ定義（generateごとに自由に追加可能）
-│   ├── favorite.json         # お気に入りデータ（FavoriteItem配列）
 │   ├── data_source/          # 外部APIから取得した生データ（タイムスタンプ付きサブディレクトリ）
 │   │   └── yyyy_mm_dd_hh_mm_ss/
 │   │       ├── news.json
@@ -64,38 +64,60 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │   ├── regenerate.sh         # 既存アプリの再生成
 │   ├── validate-requirements.ts  # バリデーション
 │   ├── pipeline.ts           # パイプライン一括実行
-│   ├── process-queue.ts      # パイプラインキュー処理（キュー内アイテムを順次pipeline実行）
+│   ├── process-queue.ts      # パイプラインキュー処理（先頭1件のみpipeline実行）
 │   ├── scheduler-run.sh      # systemdタイマー用ラッパー（キュー優先で分岐実行）
 │   ├── scheduler-ctl.sh      # systemdスケジューラの有効/無効/状態確認
+│   ├── test-slack-notify.ts  # Slack通知テスト
 │   └── lib/                  # 共通ライブラリ
+│       ├── agents.ts         # マルチエージェント管理
+│       ├── claude-stream-filter.ts  # Claude CLIストリーム処理
 │       ├── cli.ts            # CLIオプションパーサー
 │       ├── config.ts         # app.config.yaml読み込み
 │       ├── data-source.ts    # data_source操作ユーティリティ
 │       ├── fetchers.ts       # API呼び出し（NewsAPI等）
+│       ├── generate-helpers.sh  # 生成ヘルパー（シェル）
 │       ├── paths.ts          # パス定数
+│       ├── select-source.sh  # データソース選択（シェル）
+│       ├── slack.ts          # Slack通知
 │       ├── storage.ts        # ファイル出力
 │       └── tags.ts           # タグ管理（gen/tags.jsonから動的読み込み・バリデーション）
 ├── viewer/                   # Webビューワー（pnpmワークスペースパッケージ）
 │   ├── server.ts             # Hono APIサーバ + Vite dev middleware
 │   ├── vite.config.ts
 │   └── src/
-│       ├── App.tsx
+│       ├── App.tsx           # ViewMode: "apps" | "datasets" | "commands" | "config" | "queue" | "scheduler"
+│       ├── animations.ts     # 共通アニメーション定義
 │       ├── api.ts
 │       ├── index.css
 │       ├── main.tsx
+│       ├── hooks/            # カスタムフック
+│       │   ├── useIsMobile.ts     # モバイル判定
+│       │   ├── useMessageToast.ts # トースト通知管理
+│       │   ├── useSwipeTab.ts     # スワイプによるタブ切替
+│       │   └── useZoomPan.ts      # ズーム・パン操作
 │       └── components/
 │           ├── AppView.tsx        # メインビュー（overview + features + diagrams + memo表示）
 │           ├── DatasetAddButton.tsx  # データセットへのアイテム追加ボタン
-│           ├── DatasetManager.tsx # データセット管理画面
-│           ├── FavoritePage.tsx   # お気に入り一覧ページ（解除・データセット追加機能付き）
+│           ├── DatasetManager.tsx # データセット管理画面（プレビューペイン・ナビゲーション付き）
 │           ├── MarkdownPane.tsx   # Markdownレンダリング
 │           ├── MemoTab.tsx        # メモ編集タブ
-│           ├── QueueManager.tsx   # パイプラインキュー管理画面（CRUD操作）
+│           ├── QueueManager.tsx   # パイプラインキュー管理画面（CRUD操作・個別実行）
+│           ├── SchedulerSettings.tsx  # スケジューラ設定画面（有効/無効・スケジュール編集）
 │           ├── SearchView.tsx     # 検索結果表示
 │           ├── Sidebar.tsx        # アプリ選択サイドバー（タグフィルタ・検索機能付き）
 │           ├── CommandRunner.tsx  # コマンド実行UI（パイプライン操作等）
 │           ├── ConfigEditor.tsx   # app.config.yaml編集UI
-│           └── Toast.tsx          # トースト通知
+│           ├── Toast.tsx          # トースト通知
+│           └── shared/            # 共通UIコンポーネント
+│               ├── BackButton.tsx     # 戻るボタン
+│               ├── CreateButton.tsx   # 作成ボタン
+│               ├── EmptyState.tsx     # 空状態表示
+│               ├── FormControls.tsx   # フォームコントロール
+│               ├── Icons.tsx          # 共通アイコン（SVG）
+│               ├── LoadingSpinner.tsx  # ローディング表示
+│               ├── MessageToast.tsx   # メッセージトースト
+│               ├── SaveButton.tsx     # 保存ボタン
+│               └── TypeBadge.tsx      # タイプバッジ
 ├── todo/                     # 開発タスク管理（フェーズ別）
 ├── app.config.yaml           # アプリケーション設定（フェーズ別の設定を階層管理）
 ├── biome.jsonc               # Biome設定（フォーマッター・リンター）
@@ -108,7 +130,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **ランタイム・言語**:
 
-- Node.js + TypeScript 5.9
+- Node.js >= 22 + TypeScript 5.9
 - tsx（TypeScript実行）
 
 **データ収集・処理**:
@@ -123,6 +145,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - フロントエンド: React 19 + Vite 6
 - スタイリング: Tailwind CSS 4 + @tailwindcss/typography
 - Markdownレンダリング: react-markdown + remark-gfm
+- 図解: mermaid（Mermaidダイアグラムのレンダリング）
 - アニメーション: motion (framer-motion)
 - 開発サーバ: Vite dev middleware統合（APIとフロントエンドを同一ポートで提供）
 
@@ -144,7 +167,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `pnpm generate:validate` | 要件構造のバリデーション |
 | `pnpm pipeline` | 上記を一括実行（`--skip-collect`, `--skip-extract`, `--source <dir>` オプション対応） |
 | `pnpm regenerate` | 既存アプリの要件を再生成 |
-| `pnpm queue:process` | パイプラインキュー内のアイテムを順次処理 |
+| `pnpm queue:process` | パイプラインキュー内の先頭1件を処理 |
 
 ### スケジューラ
 
@@ -170,6 +193,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `pnpm lint` | Biomeでリント |
 | `pnpm check` | Biomeでフォーマット+リントの一括チェック・修正 |
 
+### テスト・ユーティリティ
+
+| コマンド | 説明 |
+| --------- | ------ |
+| `pnpm test:slack` | Slack通知のテスト送信 |
+
 ## コーディング規約
 
 ### Biome設定（`biome.jsonc`）
@@ -192,9 +221,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `.env` に以下のAPIキーを設定:
 
 - `NEWS_API_KEY` - NewsAPI用
-- `YOUTUBE_API_KEY` - YouTube Data API用（`app.config.yaml`で`enabled: false`がデフォルト）
-- `X_API_BEARER_TOKEN` - X (Twitter) API用（`app.config.yaml`で`enabled: false`がデフォルト）
-- `THREADS_ACCESS_TOKEN` - Threads API用（`app.config.yaml`で`enabled: false`がデフォルト）
+- `YOUTUBE_DATA_API_KEY` - YouTube Data API用
+- `X_API_BEARER_TOKEN` - X (Twitter) API用（トレンド・人気投稿取得）
+- `THREADS_ACCESS_TOKEN` - Threads API用（キーワード検索）
+- `SLACK_BOT_USER_OAUTH_TOKEN` - Slack通知用
 
 ## アプリケーション設定（`app.config.yaml`）
 
@@ -204,8 +234,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `collect.sources` 配下にデータソースごとの有効/無効、APIエンドポイント、パラメータ、出力ファイル名を定義。対応ソース:
 
-- **NewsAPI**: 有効（デフォルト）。USビジネスニュースのトップヘッドライン取得
-- **YouTube Data API**: 無効（デフォルト）。人気動画ランキング取得
+- **NewsAPI**: ニューストップヘッドライン取得
+- **YouTube Data API**: カテゴリ指定・全体ランキングの人気動画取得（複数ソース設定可能）
+- **X (Twitter)**: トレンド取得（`x`）+ 人気投稿取得（`x_popular_posts`）
+- **Threads**: キーワード検索による投稿取得
 - TikTok、RSSフィード: 今後追加予定（設定テンプレートのみ）
 
 ### キーワード抽出（`extract`）
@@ -221,6 +253,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `deep`: 3段階以上の連想（異分野の組み合わせ・創造的な飛躍まで）
 
 連想モード設定は `scripts/extract.sh` がClaude Code CLIに渡し、生成された `keyword.json` に記録される。各キーワードには `"source": "direct"` または `"source": "association"` が付与される。
+
+### 要件生成（`generate`）
+
+- **`constraints`**: 生成アプリの技術的制約（platform, budget, difficulty, team_size, tech_stack）
+- **`perspectives`**: アプリ案の体験設計・マネタイズ戦略（mode: single/combine/random、items: kindness/cunning/frustration/dopamine/target-focus）
+- **`agents`**: マルチエージェント設定（Codex: designer+reviewer、Gemini: designer+researcher）
+
+### 通知（`notifications`）
+
+`notifications.slack` でSlack通知を制御。
+
+- **`enabled`**: Slack通知の有効/無効
+- **`token_env`**: Bot Token環境変数名
+- **`viewer_host`**: Viewerへのリンク生成用ホスト（通知メッセージにアプリへのリンクを含める）
+- **`mention`**: メンション設定（Slack User IDまたは`channel`）
 
 ## タグシステム
 
@@ -244,6 +291,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `fix-issue` - GitHub Issueの内容確認→対応方針合意→Issueコメント→コード修正→PR作成のワークフロー
 - `create-agent` - 会話内容をClaude Codeサブエージェント（`.claude/agents/*.md`）として永続化
 - `create-skill` - 会話内容をClaude Codeスキル（`.claude/skills/*/SKILL.md`）として永続化
+- `refactor-dedup` - コードの重複を検出・共通化するリファクタリング
 
 ## Viewer API仕様
 
@@ -263,14 +311,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `POST /api/apps/:name/memo` | メモ内容の保存（dev modeのみ） |
 | `GET /api/tags` | 定義済みタグ一覧（`gen/tags.json`） |
 | `GET /api/mode` | 動作モード（isDev）の取得 |
-
-### お気に入り
-
-| エンドポイント | 説明 |
-| -------------- | ------ |
-| `GET /api/favorites` | お気に入り一覧取得（`gen/favorite.json`） |
-| `POST /api/favorites` | お気に入り追加（body: `{appName, type, featureId?, diagramId?, title?}`） |
-| `DELETE /api/favorites` | お気に入り削除（body: 同上） |
 
 ### データセット
 
@@ -301,6 +341,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `POST /api/queue` | キューアイテム作成（dev modeのみ、body: `{title, content}`） |
 | `PUT /api/queue/:id` | キューアイテム更新（dev modeのみ、body: `{title?, content?}`） |
 | `DELETE /api/queue/:id` | キューアイテム削除（dev modeのみ） |
+| `POST /api/queue/:id/execute` | キューアイテムを個別実行（dev modeのみ） |
+
+### スケジューラ
+
+| エンドポイント | 説明 |
+| -------------- | ------ |
+| `GET /api/scheduler/status` | スケジューラの状態取得 |
+| `POST /api/scheduler/enable` | スケジューラを有効化（dev modeのみ） |
+| `POST /api/scheduler/disable` | スケジューラを無効化（dev modeのみ） |
+| `POST /api/scheduler/schedule` | スケジュール設定変更（dev modeのみ、body: `{days, times}`） |
 
 ### 設定
 

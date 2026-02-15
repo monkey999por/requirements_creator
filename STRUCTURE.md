@@ -23,7 +23,7 @@
 | `pnpm generate:validate` | `scripts/validate-requirements.ts` | **全て Script** | 要件構造のバリデーション |
 | `pnpm pipeline` | `scripts/pipeline.ts` | **Script（オーケストレータ）** | collect→extract→generate→validateの一括実行 |
 | `pnpm regenerate` | `scripts/regenerate.sh` | **Script + AI:Claude + AI:外部** | 既存アプリの要件再生成 |
-| `pnpm queue:process` | `scripts/process-queue.ts` | **Script（オーケストレータ）** | キューアイテムを順次pipeline実行 |
+| `pnpm queue:process` | `scripts/process-queue.ts` | **Script（オーケストレータ）** | キュー先頭1件をpipeline実行 |
 
 ---
 
@@ -36,7 +36,7 @@
 | # | 処理 | タイプ | 説明 |
 |---|------|--------|------|
 | 1 | 設定読み込み | [Script] | `app.config.yaml` から有効なデータソースを判定 |
-| 2 | API呼び出し | [Script] | NewsAPI・YouTube等の外部APIを呼び出し（`scripts/lib/fetchers.ts`） |
+| 2 | API呼び出し | [Script] | NewsAPI・YouTube・X (Twitter)・Threads等の外部APIを呼び出し（`scripts/lib/fetchers.ts`） |
 | 3 | データ保存 | [Script] | `gen/data_source/yyyy_mm_dd_hh_mm_ss/` にJSON保存 |
 
 ---
@@ -128,6 +128,7 @@
 | 4 | generate 実行 | [Script] → **AI:Claude + AI:外部** | `bash scripts/generate.sh` |
 | 5 | validate 実行 | [Script] → Script | `tsx scripts/validate-requirements.ts` |
 | 6 | プロセス管理 | [Script] | 子プロセス管理・SIGINT/SIGTERM ハンドリング |
+| 7 | Slack通知 | [Script] | パイプライン結果をSlackに通知（`app.config.yaml` で有効時のみ） |
 
 **動作モード別の違い**:
 
@@ -161,12 +162,30 @@
 
 **AI関与: 自身はなし（pipeline に委譲）**
 
+**重要**: キュー内の **先頭1件のみ** を処理する。複数件ある場合は次回のスケジューラ実行で順次処理される。
+
 | # | 処理 | タイプ | 説明 |
 |---|------|--------|------|
-| 1 | キュー読み込み | [Script] | `gen/pipeline_queue/` から最古のアイテムを取得 |
+| 1 | キュー読み込み | [Script] | `gen/pipeline_queue/` から `createdAt` 昇順で最古のアイテム1件を取得 |
 | 2 | data_source 準備 | [Script] | タイムスタンプ付きディレクトリ作成、`user_proposal.md` を書き込み |
 | 3 | pipeline 実行 | [Script] → **AI含む** | `pnpm pipeline --skip-collect --source {timestamp}` |
-| 4 | キュー管理 | [Script] | 成功時はアイテムを `rejected/` に移動、失敗時はキューに残留 |
+| 4 | キュー管理 | [Script] | 成功時はアイテムを `pipeline_queue_rejected/` に移動、失敗時はキューに残留 |
+
+---
+
+### 8. `scheduler-run.sh` — スケジューラ実行ラッパー
+
+**AI関与: 自身はなし（サブコマンドに委譲）**
+
+systemd タイマーから呼び出されるエントリポイント。キューの有無で処理を分岐する。
+
+| # | 処理 | タイプ | 説明 |
+|---|------|--------|------|
+| 1 | 環境初期化 | [Script] | NVM読み込み、ログディレクトリ作成 |
+| 2 | キュー判定 | [Script] | `gen/pipeline_queue/` 内に `.json` ファイルがあるか確認 |
+| 3a | キューあり | [Script] → **AI含む** | `pnpm queue:process` を実行（先頭1件のみ処理） |
+| 3b | キューなし | [Script] → **AI含む** | `pnpm pipeline` を通常実行 |
+| 4 | ログ記録 | [Script] | `logs/scheduler/` にタイムスタンプ付きログを保存 |
 
 ---
 
@@ -178,8 +197,9 @@
 - 設定ファイルの読み込み・解析
 - ファイルI/O（ディレクトリ作成・保存・移動）
 - バリデーション（構造・スキーマ・命名規則）
-- プロセスオーケストレーション（パイプライン・キュー管理）
+- プロセスオーケストレーション（パイプライン・キュー管理・スケジューラ分岐）
 - CLI引数の解析
+- Slack通知（パイプライン結果）
 
 ### AI（Claude Code Skills）が担う領域
 
@@ -200,16 +220,23 @@
 ## アーキテクチャ図
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                  pnpm pipeline                       │
-│               [Script: オーケストレータ]               │
-└──┬──────────┬──────────────┬───────────────┬────────┘
-   │          │              │               │
-   ▼          ▼              ▼               ▼
-┌──────┐  ┌───────┐  ┌───────────┐  ┌───────────┐
-│collect│  │extract│  │ generate  │  │ validate  │
-│[全Script]│  │       │  │           │  │[全Script] │
-└──────┘  │[Script]│  │ [Script]  │  └───────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                   scheduler-run.sh                           │
+│              [Script: systemdタイマー連携]                     │
+└──┬──────────────────────────────────┬────────────────────────┘
+   │ キューあり                         │ キューなし
+   ▼                                   ▼
+┌──────────────┐            ┌─────────────────────────────────┐
+│queue:process │            │          pnpm pipeline           │
+│[先頭1件のみ]  │            │       [Script: オーケストレータ]   │
+└──────┬───────┘            └──┬──────┬──────────┬──────┬──────┘
+       │                       │      │          │      │
+       └───────────────────────┘      │          │      │
+                                      ▼          ▼      ▼
+┌──────┐  ┌───────┐  ┌───────────┐  ┌───────────┐  ┌───────┐
+│collect│  │extract│  │ generate  │  │ validate  │  │ Slack │
+│[全Script]│  │       │  │           │  │[全Script] │  │[通知]  │
+└──────┘  │[Script]│  │ [Script]  │  └───────────┘  └───────┘
           │   +    │  │    +      │
           │[Claude]│  │ [Claude]  │
           └───────┘  │    +      │
