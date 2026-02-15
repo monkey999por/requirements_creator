@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
+import { staggerContainerVariants, staggerItemVariants } from "../animations";
 import {
   addFavorite,
   type DiagramFile,
@@ -20,6 +21,7 @@ import { type SwipeDirection, useSwipeTab } from "../hooks/useSwipeTab";
 import { DatasetAddButton } from "./DatasetAddButton";
 import { MarkdownPane } from "./MarkdownPane";
 import { MemoTab } from "./MemoTab";
+import { LoadingSpinner } from "./shared/LoadingSpinner";
 
 export type AppTab = "overview" | "source-info" | "diagrams" | "features" | "memo";
 type LeftTab = "overview" | "source-info" | "diagrams" | "memo";
@@ -42,16 +44,6 @@ function slideVariants(dir: SwipeDirection) {
     exit: { opacity: 0, x: dir * -offset },
   };
 }
-
-const cardContainerVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.06 } },
-};
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
-};
 
 export function AppView({
   appName,
@@ -158,23 +150,7 @@ export function AppView({
   }, [appName, selectedFeature]);
 
   if (loading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <motion.div
-          className="flex flex-col items-center gap-3"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        >
-          <motion.div
-            className="size-8 rounded-full border-2 border-indigo-800 border-t-indigo-400"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-          />
-          <p className="text-xs text-gray-500">読み込み中...</p>
-        </motion.div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   /* ── Mobile layout ── */
@@ -370,7 +346,7 @@ export function AppView({
           <div className="flex-1 overflow-y-auto dark-scrollbar p-6 pb-16 bg-gray-900">
             <motion.div
               className="space-y-2"
-              variants={cardContainerVariants}
+              variants={staggerContainerVariants}
               initial="hidden"
               animate="visible"
             >
@@ -378,7 +354,7 @@ export function AppView({
                 <motion.button
                   type="button"
                   key={f.id}
-                  variants={cardVariants}
+                  variants={staggerItemVariants}
                   whileHover={{
                     y: -2,
                     boxShadow: "0 10px 25px -5px rgba(99, 102, 241, 0.15)",

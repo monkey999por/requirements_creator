@@ -1,6 +1,8 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useState } from "react";
+import { sidebarContainerVariants, sidebarItemVariants } from "../animations";
 import type { AppInfo } from "../api";
+import { EmptyState } from "./shared/EmptyState";
 
 interface SidebarProps {
   apps: AppInfo[];
@@ -23,16 +25,6 @@ interface SidebarProps {
   isSearchActive: boolean;
   allTags: string[];
 }
-
-const containerVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.02 } },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, x: -8 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.15, ease: "easeOut" } },
-};
 
 const SIDEBAR_WIDTH = 256;
 const STRIP_WIDTH = 48;
@@ -501,8 +493,8 @@ export function Sidebar({
                     </button>
                   ))}
                   {apps.length === 0 && (
-                    <div className="px-3 py-8 text-center">
-                      <div className="size-10 mx-auto mb-3 rounded-full bg-gray-800 flex items-center justify-center">
+                    <EmptyState
+                      icon={
                         <svg
                           aria-hidden="true"
                           className="size-5 text-gray-600"
@@ -517,9 +509,10 @@ export function Sidebar({
                             d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
                           />
                         </svg>
-                      </div>
-                      <p className="text-gray-600 text-xs">アプリがありません</p>
-                    </div>
+                      }
+                      message="アプリがありません"
+                      className="px-3 py-8 text-center"
+                    />
                   )}
                 </div>
               </nav>
@@ -760,7 +753,7 @@ export function Sidebar({
           <motion.div
             key={apps.length}
             className="space-y-0.5"
-            variants={containerVariants}
+            variants={sidebarContainerVariants}
             initial="hidden"
             animate="visible"
           >
@@ -768,7 +761,7 @@ export function Sidebar({
               <motion.button
                 type="button"
                 key={app.name}
-                variants={itemVariants}
+                variants={sidebarItemVariants}
                 whileHover={{ x: 2 }}
                 className={`
                   group w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-[14px] text-left
@@ -810,8 +803,8 @@ export function Sidebar({
               </motion.button>
             ))}
             {apps.length === 0 && (
-              <div className="px-3 py-8 text-center">
-                <div className="size-10 mx-auto mb-3 rounded-full bg-gray-800 flex items-center justify-center">
+              <EmptyState
+                icon={
                   <svg
                     aria-hidden="true"
                     className="size-5 text-gray-600"
@@ -826,9 +819,10 @@ export function Sidebar({
                       d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
                     />
                   </svg>
-                </div>
-                <p className="text-gray-600 text-xs">アプリがありません</p>
-              </div>
+                }
+                message="アプリがありません"
+                className="px-3 py-8 text-center"
+              />
             )}
           </motion.div>
         </nav>

@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import {
   createQueueItem,
@@ -8,6 +8,9 @@ import {
   type QueueItem,
   updateQueueItem,
 } from "../api";
+import { EmptyState } from "./shared/EmptyState";
+import { LoadingSpinner } from "./shared/LoadingSpinner";
+import { MessageToast } from "./shared/MessageToast";
 
 function pushQueueUrl(queueItem?: string | null) {
   const url = new URL(window.location.href);
@@ -132,23 +135,7 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
   );
 
   if (loading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <motion.div
-          className="flex flex-col items-center gap-3"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        >
-          <motion.div
-            className="size-8 rounded-full border-2 border-indigo-800 border-t-indigo-400"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-          />
-          <p className="text-xs text-gray-500">読み込み中...</p>
-        </motion.div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   /* Mobile layout */
@@ -348,8 +335,8 @@ function QueueList({
 }) {
   if (items.length === 0) {
     return (
-      <div className="py-12 text-center">
-        <div className="size-12 mx-auto mb-3 rounded-full bg-gray-800 flex items-center justify-center">
+      <EmptyState
+        icon={
           <svg
             aria-hidden="true"
             className="size-6 text-gray-600"
@@ -364,12 +351,10 @@ function QueueList({
               d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z"
             />
           </svg>
-        </div>
-        <p className="text-gray-600 text-xs">キューは空です</p>
-        <p className="text-gray-700 text-[11px] mt-1">
-          アプリのアイデアを追加して定期実行に備えましょう
-        </p>
-      </div>
+        }
+        message="キューは空です"
+        submessage="アプリのアイデアを追加して定期実行に備えましょう"
+      />
     );
   }
 
@@ -547,23 +532,5 @@ function QueueForm({
         </div>
       </div>
     </motion.div>
-  );
-}
-
-function MessageToast({ message }: { message: string | null }) {
-  return (
-    <AnimatePresence>
-      {message && (
-        <motion.div
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-gray-700 text-sm text-gray-200 shadow-xl border border-gray-600"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 10 }}
-          transition={{ duration: 0.2 }}
-        >
-          {message}
-        </motion.div>
-      )}
-    </AnimatePresence>
   );
 }
