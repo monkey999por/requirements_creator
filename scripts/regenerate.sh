@@ -2,20 +2,10 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-cd "$PROJECT_ROOT"
-
-CONFIG_FILE="app.config.yaml"
-
-# --- 出力先ベースディレクトリの読み込み ---
-OUTPUT_BASE=$(grep '^output_base_dir:' "$CONFIG_FILE" 2>/dev/null | sed 's/^output_base_dir:[[:space:]]*//' | tr -d ' "'"'" || true)
-if [[ -z "$OUTPUT_BASE" ]]; then OUTPUT_BASE="gen"; fi
-DATA_SOURCE_DIR="${OUTPUT_BASE}/data_source"
-REQUIREMENTS_DIR="${OUTPUT_BASE}/requirements"
+source "${SCRIPT_DIR}/lib/common.sh"
 
 # --- 一時ファイル管理 ---
 TMPDIR_AGENTS=$(mktemp -d)
-trap 'rm -rf "$TMPDIR_AGENTS"' EXIT
 RESEARCH_CONTEXT="${TMPDIR_AGENTS}/research_context.md"
 DESIGN_CONTEXT="${TMPDIR_AGENTS}/design_context.md"
 REVIEW_RESULT="${TMPDIR_AGENTS}/review_result.md"
@@ -157,25 +147,14 @@ fi
 # プロンプトファイル作成
 # =============================================================================
 PROMPT_FILE=$(mktemp)
-trap 'rm -rf "$TMPDIR_AGENTS" "$PROMPT_FILE"' EXIT
+setup_cleanup_trap "rm -rf \"$TMPDIR_AGENTS\" \"$PROMPT_FILE\""
 
 create_prompt_file "$PROMPT_FILE"
 
 # =============================================================================
 # エージェント設定の表示
 # =============================================================================
-if ! $SKIP_AGENTS; then
-  echo "--- エージェント設定 ---"
-  for agent in codex gemini; do
-    if get_agent_enabled "$agent"; then
-      local_model=$(get_agent_model "$agent")
-      echo "  ${agent}: enabled (model: ${local_model:-default})"
-    else
-      echo "  ${agent}: disabled"
-    fi
-  done
-  echo ""
-fi
+print_agent_settings
 
 # =============================================================================
 # Phase 1-2: 外部エージェント（keyword.jsonがある場合のみ）
@@ -197,21 +176,7 @@ fi
 # =============================================================================
 echo "--- Phase 3: Regenerate (Claude Code) ---"
 
-# 外部エージェントのコンテキストをプロンプトに統合
-EXTRA_CONTEXT=""
-if [[ -f "$RESEARCH_CONTEXT" ]]; then
-  EXTRA_CONTEXT="${EXTRA_CONTEXT}
-
-## 外部リサーチ結果（参考情報）
-$(cat "$RESEARCH_CONTEXT")"
-fi
-
-if [[ -f "$DESIGN_CONTEXT" ]]; then
-  EXTRA_CONTEXT="${EXTRA_CONTEXT}
-
-## 外部エージェントによる設計提案（参考情報）
-$(cat "$DESIGN_CONTEXT")"
-fi
+EXTRA_CONTEXT=$(build_agent_extra_context)
 
 # keyword.json コンテキスト
 KEYWORD_CONTEXT=""
@@ -277,8 +242,6 @@ ${PERSPECTIVES_PROMPT}"; fi)
 
 生成完了後、以下のバリデーションスクリプトを実行して構造を検証してください:
 tsx scripts/validate-requirements.ts ${APP_NAME}"
-
-STREAM_FILTER="${SCRIPT_DIR}/lib/claude-stream-filter.ts"
 
 claude -p "$PROMPT" \
   --output-format stream-json --verbose \

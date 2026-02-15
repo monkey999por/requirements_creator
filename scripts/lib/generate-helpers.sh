@@ -278,7 +278,155 @@ get_role_agent() {
 }
 
 # =============================================================================
-# エージェント実行関数
+# エージェント設定の表示（generate.sh / regenerate.sh 共通）
+# =============================================================================
+print_agent_settings() {
+  if $SKIP_AGENTS; then return; fi
+  echo "--- エージェント設定 ---"
+  for agent in codex gemini; do
+    if get_agent_enabled "$agent"; then
+      local local_model
+      local_model=$(get_agent_model "$agent")
+      echo "  ${agent}: enabled (model: ${local_model:-default})"
+    else
+      echo "  ${agent}: disabled"
+    fi
+  done
+  echo ""
+}
+
+# =============================================================================
+# 制約条件の表示（generate.sh のダイレクト・通常モード共通）
+# =============================================================================
+print_constraints() {
+  local has_constraints=false
+  [[ -n "$CONSTRAINT_PLATFORM" || -n "$CONSTRAINT_BUDGET" || -n "$CONSTRAINT_DIFFICULTY" || -n "$CONSTRAINT_TEAM_SIZE" ]] && has_constraints=true
+  [[ -n "$CONSTRAINT_TS_FRONTEND" || -n "$CONSTRAINT_TS_BACKEND" || -n "$CONSTRAINT_TS_DATABASE" || -n "$CONSTRAINT_TS_HOSTING" || -n "$CONSTRAINT_TS_AUTH" || -n "$CONSTRAINT_TS_OTHER" ]] && has_constraints=true
+
+  if $has_constraints; then
+    echo "--- 制約条件 ---"
+    [[ -n "$CONSTRAINT_PLATFORM" ]] && echo "  platform: ${CONSTRAINT_PLATFORM}"
+    [[ -n "$CONSTRAINT_BUDGET" ]] && echo "  budget: ${CONSTRAINT_BUDGET}"
+    [[ -n "$CONSTRAINT_DIFFICULTY" ]] && echo "  difficulty: ${CONSTRAINT_DIFFICULTY}"
+    [[ -n "$CONSTRAINT_TEAM_SIZE" ]] && echo "  team_size: ${CONSTRAINT_TEAM_SIZE}"
+    if [[ -n "$CONSTRAINT_TS_FRONTEND" || -n "$CONSTRAINT_TS_BACKEND" || -n "$CONSTRAINT_TS_DATABASE" || -n "$CONSTRAINT_TS_HOSTING" || -n "$CONSTRAINT_TS_AUTH" || -n "$CONSTRAINT_TS_OTHER" ]]; then
+      echo "  tech_stack:"
+      [[ -n "$CONSTRAINT_TS_FRONTEND" ]] && echo "    frontend: ${CONSTRAINT_TS_FRONTEND}"
+      [[ -n "$CONSTRAINT_TS_BACKEND" ]] && echo "    backend: ${CONSTRAINT_TS_BACKEND}"
+      [[ -n "$CONSTRAINT_TS_DATABASE" ]] && echo "    database: ${CONSTRAINT_TS_DATABASE}"
+      [[ -n "$CONSTRAINT_TS_HOSTING" ]] && echo "    hosting: ${CONSTRAINT_TS_HOSTING}"
+      [[ -n "$CONSTRAINT_TS_AUTH" ]] && echo "    auth: ${CONSTRAINT_TS_AUTH}"
+      [[ -n "$CONSTRAINT_TS_OTHER" ]] && echo "    other: ${CONSTRAINT_TS_OTHER}"
+    fi
+    echo ""
+  fi
+}
+
+# =============================================================================
+# 生成観点の表示
+# =============================================================================
+print_perspectives() {
+  if [[ -n "$PERSPECTIVE_MODE" ]]; then
+    echo "--- 生成観点 ---"
+    echo "  mode: ${PERSPECTIVE_MODE}"
+    if [[ -n "${RESOLVED_PERSPECTIVES:-}" ]]; then
+      echo "  items: ${RESOLVED_PERSPECTIVES}"
+    elif [[ -n "$PERSPECTIVE_ITEMS" ]]; then
+      echo "  items: ${PERSPECTIVE_ITEMS}"
+    fi
+    echo ""
+  fi
+}
+
+# =============================================================================
+# 制約/観点のプロンプトコンテキスト生成（generate.sh 共通）
+# =============================================================================
+build_constraints_context() {
+  if [[ -n "$CONSTRAINTS_PROMPT" ]]; then
+    echo "
+## 制約条件
+以下の制約条件が設定されています。アプリ案の構想・技術スタック選定・機能スコープに反映してください。
+${CONSTRAINTS_PROMPT}"
+  fi
+}
+
+build_perspectives_context() {
+  if [[ -n "$PERSPECTIVES_PROMPT" ]]; then
+    echo "
+## 生成観点
+以下の生成観点が設定されています。アプリの体験設計・機能設計・マネタイズ戦略に深く反映してください。
+また、_source_info.json の perspectives フィールドに適用した観点を記録してください。
+${PERSPECTIVES_PROMPT}"
+  fi
+}
+
+# =============================================================================
+# 外部エージェントコンテキスト統合（generate.sh / regenerate.sh 共通）
+# =============================================================================
+build_agent_extra_context() {
+  local extra=""
+  if [[ -f "$RESEARCH_CONTEXT" ]]; then
+    extra="${extra}
+
+## 外部リサーチ結果（参考情報）
+以下は外部エージェントによるトレンド・市場調査の結果です。アプリ案の構想に活用してください。
+
+$(cat "$RESEARCH_CONTEXT")"
+  fi
+
+  if [[ -f "$DESIGN_CONTEXT" ]]; then
+    extra="${extra}
+
+## 外部エージェントによる設計提案（参考情報）
+以下は外部エージェントによるアプリコンセプト提案です。参考にしつつ、独自の視点で要件を生成してください。
+そのまま採用する必要はありません。より良いアイデアがあれば自由に変更してください。
+
+$(cat "$DESIGN_CONTEXT")"
+  fi
+
+  echo "$extra"
+}
+
+# =============================================================================
+# エージェント実行共通関数
+# =============================================================================
+
+# 指定エージェント（codex/gemini）でプロンプトを実行し、結果をファイルに保存
+# 引数: agent prompt output_file
+run_agent() {
+  local agent="$1"
+  local prompt="$2"
+  local output_file="$3"
+
+  local model
+  model=$(get_agent_model "$agent")
+
+  if [[ "$agent" == "gemini" ]]; then
+    gemini -p "$prompt" 2>/dev/null > "$output_file" || true
+  elif [[ "$agent" == "codex" ]]; then
+    local sandbox
+    sandbox=$(get_agent_sandbox "$agent")
+    sandbox="${sandbox:-read-only}"
+    codex exec --model "${model:-o4-mini}" --sandbox "$sandbox" --full-auto "$prompt" 2>/dev/null > "$output_file" || true
+  fi
+}
+
+# エージェント実行結果の表示
+# 引数: label output_file
+print_agent_result() {
+  local label="$1"
+  local output_file="$2"
+
+  if [[ -s "$output_file" ]]; then
+    echo "  ${label}: $(wc -l < "$output_file") 行"
+  else
+    echo "  ${label}: なし（スキップ）"
+    rm -f "$output_file"
+  fi
+}
+
+# =============================================================================
+# フェーズ実行関数
 # =============================================================================
 
 run_research_phase() {
@@ -287,14 +435,11 @@ run_research_phase() {
   agent=$(get_role_agent "researcher") || return 0
 
   echo "--- Phase 1: Research ($agent) ---"
-  local model
-  model=$(get_agent_model "$agent")
 
   local keywords
   keywords=$(cat "$keyword_file")
 
-  if [[ "$agent" == "gemini" ]]; then
-    gemini -p "
+  run_agent "$agent" "
 You are a trend research analyst. Analyze these extracted keywords for current technology trends and market opportunities.
 
 Keywords data:
@@ -308,35 +453,9 @@ Research and provide:
 5. Potential market opportunities
 
 Output: Structured analysis in markdown format.
-" 2>/dev/null > "$RESEARCH_CONTEXT" || true
+" "$RESEARCH_CONTEXT"
 
-  elif [[ "$agent" == "codex" ]]; then
-    local sandbox
-    sandbox=$(get_agent_sandbox "$agent")
-    sandbox="${sandbox:-read-only}"
-    codex exec --model "${model:-o4-mini}" --sandbox "$sandbox" --full-auto "
-You are a trend research analyst. Analyze these extracted keywords for current technology trends and market opportunities.
-
-Keywords data:
-${keywords}
-
-Research and provide:
-1. Current market trends related to these keywords
-2. Existing apps/services in these spaces and their gaps
-3. Technology trends that could be leveraged
-4. User pain points that current solutions don't address
-5. Potential market opportunities
-
-Output: Structured analysis in markdown format.
-" 2>/dev/null > "$RESEARCH_CONTEXT" || true
-  fi
-
-  if [[ -s "$RESEARCH_CONTEXT" ]]; then
-    echo "  リサーチ結果: $(wc -l < "$RESEARCH_CONTEXT") 行"
-  else
-    echo "  リサーチ結果: なし（スキップ）"
-    rm -f "$RESEARCH_CONTEXT"
-  fi
+  print_agent_result "リサーチ結果" "$RESEARCH_CONTEXT"
 }
 
 run_design_phase() {
@@ -345,8 +464,6 @@ run_design_phase() {
   agent=$(get_role_agent "designer") || return 0
 
   echo "--- Phase 2: Design ($agent) ---"
-  local model
-  model=$(get_agent_model "$agent")
 
   local keywords
   keywords=$(cat "$keyword_file")
@@ -359,11 +476,7 @@ Additional research context:
 $(cat "$RESEARCH_CONTEXT")"
   fi
 
-  if [[ "$agent" == "codex" ]]; then
-    local sandbox
-    sandbox=$(get_agent_sandbox "$agent")
-    sandbox="${sandbox:-read-only}"
-    codex exec --model "${model:-o4-mini}" --sandbox "$sandbox" --full-auto "
+  run_agent "$agent" "
 You are an innovative app designer. Given these keywords from trend analysis, brainstorm a creative and viable app concept.
 
 Keywords data:
@@ -382,37 +495,9 @@ Provide:
 6. Monetization strategy
 
 Output: Structured markdown format.
-" 2>/dev/null > "$DESIGN_CONTEXT" || true
+" "$DESIGN_CONTEXT"
 
-  elif [[ "$agent" == "gemini" ]]; then
-    gemini -p "
-You are an innovative app designer. Given these keywords from trend analysis, brainstorm a creative and viable app concept.
-
-Keywords data:
-${keywords}
-${research_input}
-${CONSTRAINTS_PROMPT}
-
-IMPORTANT: Don't suggest obvious apps. Use association thinking - jump 1-2 conceptual levels from the keywords to find innovative ideas.
-
-Provide:
-1. App name (English, kebab-case)
-2. Core concept (1-2 sentences)
-3. Target users and their pain points
-4. 5-8 core features with descriptions and priorities
-5. Suggested technology stack with rationale
-6. Monetization strategy
-
-Output: Structured markdown format.
-" 2>/dev/null > "$DESIGN_CONTEXT" || true
-  fi
-
-  if [[ -s "$DESIGN_CONTEXT" ]]; then
-    echo "  設計提案: $(wc -l < "$DESIGN_CONTEXT") 行"
-  else
-    echo "  設計提案: なし（スキップ）"
-    rm -f "$DESIGN_CONTEXT"
-  fi
+  print_agent_result "設計提案" "$DESIGN_CONTEXT"
 }
 
 run_review_phase() {
@@ -427,8 +512,6 @@ run_review_phase() {
   fi
 
   echo "--- Phase 4: Review ($agent) ---"
-  local model
-  model=$(get_agent_model "$agent")
 
   # overview.mdとfeatureファイルを読み取り
   local overview=""
@@ -446,11 +529,7 @@ $(cat "$f")"
     fi
   done
 
-  if [[ "$agent" == "codex" ]]; then
-    local sandbox
-    sandbox=$(get_agent_sandbox "$agent")
-    sandbox="${sandbox:-read-only}"
-    codex exec --model "${model:-o4-mini}" --sandbox "$sandbox" --full-auto "
+  run_agent "$agent" "
 Review these app requirements for quality and completeness.
 
 ## overview.md
@@ -472,33 +551,7 @@ Output format:
 ### Strengths
 ### Issues (table: #, Severity, File, Issue, Suggestion)
 ### Recommendations
-" 2>/dev/null > "$REVIEW_RESULT" || true
-
-  elif [[ "$agent" == "gemini" ]]; then
-    gemini -p "
-Review these app requirements for quality and completeness.
-
-## overview.md
-${overview}
-
-## Feature Specs
-${features}
-
-Evaluate:
-1. Is the concept clear and the scope realistic?
-2. Do the features comprehensively cover user needs?
-3. Is the technical stack feasible and well-chosen?
-4. Are there consistency issues between overview and features?
-5. Are non-functional requirements adequately addressed?
-
-Output format:
-## Review Summary
-### Score: A/B/C
-### Strengths
-### Issues (table: #, Severity, File, Issue, Suggestion)
-### Recommendations
-" 2>/dev/null > "$REVIEW_RESULT" || true
-  fi
+" "$REVIEW_RESULT"
 
   if [[ -s "$REVIEW_RESULT" ]]; then
     echo "  レビュー結果: $(wc -l < "$REVIEW_RESULT") 行"
