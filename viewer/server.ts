@@ -307,7 +307,11 @@ app.post("/api/datasets/:name/items", async (c) => {
   const dataset = JSON.parse(readFileSync(filePath, "utf-8")) as Dataset;
   const item = await c.req.json<DatasetItem>();
   const exists = dataset.items.some(
-    (i) => i.appName === item.appName && i.type === item.type && i.featureId === item.featureId,
+    (i) =>
+      i.appName === item.appName &&
+      i.type === item.type &&
+      i.featureId === item.featureId &&
+      i.diagramId === item.diagramId,
   );
   if (exists) return c.json({ error: "このアイテムは既にデータセットに含まれています" }, 409);
   dataset.items.push(item);
@@ -323,7 +327,13 @@ app.delete("/api/datasets/:name/items", async (c) => {
   const dataset = JSON.parse(readFileSync(filePath, "utf-8")) as Dataset;
   const item = await c.req.json<DatasetItem>();
   dataset.items = dataset.items.filter(
-    (i) => !(i.appName === item.appName && i.type === item.type && i.featureId === item.featureId),
+    (i) =>
+      !(
+        i.appName === item.appName &&
+        i.type === item.type &&
+        i.featureId === item.featureId &&
+        i.diagramId === item.diagramId
+      ),
   );
   writeFileSync(filePath, JSON.stringify(dataset, null, 2), "utf-8");
   return c.json({ success: true });
