@@ -3,8 +3,8 @@ import {
   disableScheduler,
   enableScheduler,
   fetchSchedulerStatus,
-  fetchServiceConfig,
-  fetchTimerConfig,
+  type SchedulerSchedule,
+  saveSchedule,
 } from "../api";
 
 interface SchedulerSettingsProps {
@@ -12,41 +12,59 @@ interface SchedulerSettingsProps {
   isDev: boolean;
 }
 
+const ALL_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+const DAY_LABELS: Record<string, string> = {
+  Mon: "月",
+  Tue: "火",
+  Wed: "水",
+  Thu: "木",
+  Fri: "金",
+  Sat: "土",
+  Sun: "日",
+};
+
 export function SchedulerSettings({ isMobile, isDev }: SchedulerSettingsProps) {
   const [timerActive, setTimerActive] = useState(false);
   const [nextRun, setNextRun] = useState<string | null>(null);
-  const [statusOutput, setStatusOutput] = useState("");
-  const [timerConfig, setTimerConfig] = useState("");
-  const [serviceConfig, setServiceConfig] = useState("");
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [configTab, setConfigTab] = useState<"timer" | "service">("timer");
+
+  // Schedule editing state
+  const [days, setDays] = useState<string[]>([...ALL_DAYS]);
+  const [times, setTimes] = useState<string[]>(["02:00"]);
+  const [newTime, setNewTime] = useState("12:00");
+
+  // Track if schedule has been modified
+  const [originalSchedule, setOriginalSchedule] = useState<SchedulerSchedule | null>(null);
+
+  const showMessage = useCallback((type: "success" | "error", text: string) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage(null), 5000);
+  }, []);
 
   const loadStatus = useCallback(async () => {
     try {
       const status = await fetchSchedulerStatus();
       setTimerActive(status.timerActive);
       setNextRun(status.nextRun);
-      setStatusOutput(status.output);
+      setDays(status.schedule.days);
+      setTimes(status.schedule.times.length > 0 ? status.schedule.times : ["02:00"]);
+      setOriginalSchedule(status.schedule);
     } catch {
-      setStatusOutput("ステータスの取得に失敗しました");
+      showMessage("error", "ステータスの取得に失敗しました");
     }
-  }, []);
-
-  const loadConfigs = useCallback(async () => {
-    try {
-      const [timer, service] = await Promise.all([fetchTimerConfig(), fetchServiceConfig()]);
-      setTimerConfig(timer.content);
-      setServiceConfig(service.content);
-    } catch {
-      // ignore
-    }
-  }, []);
+  }, [showMessage]);
 
   useEffect(() => {
-    Promise.all([loadStatus(), loadConfigs()]).finally(() => setLoading(false));
-  }, [loadStatus, loadConfigs]);
+    loadStatus().finally(() => setLoading(false));
+  }, [loadStatus]);
+
+  const hasChanges =
+    originalSchedule &&
+    (JSON.stringify([...days].sort()) !== JSON.stringify([...originalSchedule.days].sort()) ||
+      JSON.stringify([...times].sort()) !== JSON.stringify([...originalSchedule.times].sort()));
 
   const handleToggle = async () => {
     setToggling(true);
@@ -54,26 +72,59 @@ export function SchedulerSettings({ isMobile, isDev }: SchedulerSettingsProps) {
     try {
       const result = timerActive ? await disableScheduler() : await enableScheduler();
       if (result.success) {
-        setMessage({
-          type: "success",
-          text: timerActive ? "スケジューラを無効化しました" : "スケジューラを有効化しました",
-        });
+        showMessage(
+          "success",
+          timerActive ? "スケジューラを無効化しました" : "スケジューラを有効化しました",
+        );
       } else {
-        setMessage({ type: "error", text: result.output || "操作に失敗しました" });
+        showMessage("error", result.output || "操作に失敗しました");
       }
       await loadStatus();
     } catch {
-      setMessage({ type: "error", text: "操作に失敗しました" });
+      showMessage("error", "操作に失敗しました");
     } finally {
       setToggling(false);
-      setTimeout(() => setMessage(null), 5000);
     }
   };
 
-  const handleRefresh = async () => {
-    setLoading(true);
-    await loadStatus();
-    setLoading(false);
+  const toggleDay = (day: string) => {
+    setDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
+  };
+
+  const removeTime = (time: string) => {
+    setTimes((prev) => prev.filter((t) => t !== time));
+  };
+
+  const addTime = () => {
+    if (newTime && !times.includes(newTime)) {
+      setTimes((prev) => [...prev, newTime].sort());
+    }
+  };
+
+  const handleSave = async () => {
+    if (times.length === 0) {
+      showMessage("error", "少なくとも1つの実行時刻が必要です");
+      return;
+    }
+    if (days.length === 0) {
+      showMessage("error", "少なくとも1つの曜日を選択してください");
+      return;
+    }
+    setSaving(true);
+    setMessage(null);
+    try {
+      const result = await saveSchedule({ days, times });
+      if (result.success) {
+        showMessage("success", "スケジュールを保存しました");
+        await loadStatus();
+      } else {
+        showMessage("error", result.error || "保存に失敗しました");
+      }
+    } catch {
+      showMessage("error", "保存に失敗しました");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
@@ -90,9 +141,7 @@ export function SchedulerSettings({ isMobile, isDev }: SchedulerSettingsProps) {
         {/* Header */}
         <div>
           <h1 className="text-xl font-bold text-gray-100">スケジューラ設定</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            パイプラインスケジューラ（systemdタイマー）の管理
-          </p>
+          <p className="text-sm text-gray-500 mt-1">パイプラインの自動実行スケジュール</p>
         </div>
 
         {/* Message */}
@@ -108,33 +157,8 @@ export function SchedulerSettings({ isMobile, isDev }: SchedulerSettingsProps) {
           </div>
         )}
 
-        {/* Status Card */}
+        {/* Status + Toggle */}
         <section className="rounded-xl border border-gray-800 bg-gray-900/50 p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-300">タイマー状態</h2>
-            <button
-              type="button"
-              className="p-1.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-700/30 transition-colors"
-              onClick={handleRefresh}
-              title="更新"
-            >
-              <svg
-                className="size-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182"
-                />
-              </svg>
-            </button>
-          </div>
-
           <div className="flex items-center gap-3">
             <span
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -149,12 +173,11 @@ export function SchedulerSettings({ isMobile, isDev }: SchedulerSettingsProps) {
 
             {nextRun && (
               <span className="text-xs text-gray-500">
-                次回実行: <span className="text-gray-300">{nextRun}</span>
+                次回: <span className="text-gray-300">{nextRun}</span>
               </span>
             )}
           </div>
 
-          {/* Toggle Button */}
           {isDev && (
             <button
               type="button"
@@ -179,53 +202,98 @@ export function SchedulerSettings({ isMobile, isDev }: SchedulerSettingsProps) {
           )}
         </section>
 
-        {/* Config Files */}
-        <section className="rounded-xl border border-gray-800 bg-gray-900/50 p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-300">設定ファイル</h2>
-
-          {/* Tabs */}
-          <div className="flex gap-1 bg-gray-800/50 p-0.5 rounded-lg w-fit">
-            <button
-              type="button"
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                configTab === "timer"
-                  ? "bg-gray-700 text-gray-200"
-                  : "text-gray-500 hover:text-gray-300"
-              }`}
-              onClick={() => setConfigTab("timer")}
-            >
-              pipeline.timer
-            </button>
-            <button
-              type="button"
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                configTab === "service"
-                  ? "bg-gray-700 text-gray-200"
-                  : "text-gray-500 hover:text-gray-300"
-              }`}
-              onClick={() => setConfigTab("service")}
-            >
-              pipeline.service
-            </button>
+        {/* Schedule Editor */}
+        <section className="rounded-xl border border-gray-800 bg-gray-900/50 p-5 space-y-5">
+          {/* Days */}
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold text-gray-300">実行曜日</h2>
+            <div className="flex flex-wrap gap-2">
+              {ALL_DAYS.map((day) => (
+                <button
+                  key={day}
+                  type="button"
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    days.includes(day)
+                      ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                      : "bg-gray-800/50 text-gray-600 border border-gray-700/50 hover:text-gray-400"
+                  } ${!isDev ? "cursor-default" : ""}`}
+                  onClick={() => isDev && toggleDay(day)}
+                  disabled={!isDev}
+                >
+                  {DAY_LABELS[day]}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <pre className="p-4 bg-gray-950/50 rounded-lg text-xs text-gray-400 overflow-x-auto font-mono leading-relaxed border border-gray-800/50">
-            {configTab === "timer" ? timerConfig : serviceConfig}
-          </pre>
+          {/* Times */}
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold text-gray-300">実行時刻</h2>
+            <div className="space-y-2">
+              {times.map((time) => (
+                <div key={time} className="flex items-center gap-2">
+                  <span className="px-3 py-1.5 bg-gray-800/50 border border-gray-700/50 rounded-lg text-sm text-gray-300 font-mono">
+                    {time}
+                  </span>
+                  {isDev && (
+                    <button
+                      type="button"
+                      className="p-1 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      onClick={() => removeTime(time)}
+                      title="削除"
+                    >
+                      <svg
+                        className="size-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        role="img"
+                        aria-label="削除"
+                      >
+                        <title>削除</title>
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
 
-          <p className="text-[11px] text-gray-600">
-            ファイルパス: systemd/pipeline.{configTab === "timer" ? "timer" : "service"}
-          </p>
-        </section>
-
-        {/* Status Detail */}
-        <section className="rounded-xl border border-gray-800 bg-gray-900/50 p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-300">詳細ステータス</h2>
+            {isDev && (
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="time"
+                  value={newTime}
+                  onChange={(e) => setNewTime(e.target.value)}
+                  className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-300 focus:outline-none focus:border-blue-500/50"
+                />
+                <button
+                  type="button"
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-800 text-gray-400 hover:text-gray-200 border border-gray-700 hover:border-gray-600 transition-colors"
+                  onClick={addTime}
+                >
+                  + 時刻を追加
+                </button>
+              </div>
+            )}
           </div>
-          <pre className="p-4 bg-gray-950/50 rounded-lg text-xs text-gray-400 overflow-x-auto font-mono leading-relaxed border border-gray-800/50 max-h-80 overflow-y-auto dark-scrollbar whitespace-pre-wrap">
-            {statusOutput || "ステータスなし"}
-          </pre>
+
+          {/* Save Button */}
+          {isDev && (
+            <button
+              type="button"
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border border-blue-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleSave}
+              disabled={saving || !hasChanges}
+            >
+              {saving ? "保存中..." : "保存"}
+            </button>
+          )}
         </section>
       </div>
     </div>

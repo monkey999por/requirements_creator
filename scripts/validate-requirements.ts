@@ -12,7 +12,7 @@ function repairJson(raw: string): string | null {
   // 末尾カンマ除去（}, ] の直前のカンマ）
   s = s.replace(/,\s*([}\]])/g, "$1");
   // シングルクォートをダブルクォートに（値の中のアポストロフィは対象外にするため、キー・値囲みのみ）
-  s = s.replace(/(?<=[\[{,:\s])'/g, '"').replace(/'(?=\s*[,\]}:])/g, '"');
+  s = s.replace(/(?<=[[{,:\s])'/g, '"').replace(/'(?=\s*[,\]}:])/g, '"');
   try {
     const parsed = JSON.parse(s);
     return JSON.stringify(parsed, null, 2);
