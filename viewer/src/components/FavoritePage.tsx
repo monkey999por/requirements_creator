@@ -210,6 +210,7 @@ export function FavoritePage({
     <>
       {favorites.length === 0 ? (
         <EmptyState
+          iconClassName="size-14 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center"
           icon={
             <svg
               className="size-7 text-gray-600"

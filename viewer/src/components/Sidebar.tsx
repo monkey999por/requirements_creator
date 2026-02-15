@@ -494,6 +494,7 @@ export function Sidebar({
                   ))}
                   {apps.length === 0 && (
                     <EmptyState
+                      iconClassName="size-10 mx-auto mb-3 rounded-full bg-gray-800 flex items-center justify-center"
                       icon={
                         <svg
                           aria-hidden="true"
@@ -804,6 +805,7 @@ export function Sidebar({
             ))}
             {apps.length === 0 && (
               <EmptyState
+                iconClassName="size-10 mx-auto mb-3 rounded-full bg-gray-800 flex items-center justify-center"
                 icon={
                   <svg
                     aria-hidden="true"

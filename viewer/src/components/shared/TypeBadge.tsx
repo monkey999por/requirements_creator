@@ -11,11 +11,13 @@ interface TypeBadgeProps {
   className?: string;
 }
 
+const DEFAULT_SIZE = "rounded text-[10px] px-1.5 py-0.5";
+
 export function TypeBadge({ type, className }: TypeBadgeProps) {
   const config = TYPE_CONFIG[type];
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center rounded text-[10px] font-bold px-1.5 py-0.5 ${config.className} ${className ?? ""}`}
+      className={`inline-flex shrink-0 items-center justify-center font-bold ${config.className} ${className ?? DEFAULT_SIZE}`}
     >
       {config.label}
     </span>
