@@ -1,6 +1,16 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type AppConfig, fetchConfig, saveConfig } from "../api";
+import {
+  CheckboxGroup,
+  FieldLabel,
+  NumberField,
+  SectionHeader,
+  SelectField,
+  SourceCard,
+  TextField,
+  Toggle,
+} from "./shared/FormControls";
 
 interface ConfigEditorProps {
   isMobile: boolean;
@@ -118,193 +128,6 @@ const ASSOCIATION_DEPTH_OPTIONS = [
   { value: "moderate", label: "moderate (2段階 - 関連分野・応用領域まで)" },
   { value: "deep", label: "deep (3段階以上 - 異分野の組み合わせ・創造的な飛躍)" },
 ];
-
-// --- UI部品 ---
-
-function SectionHeader({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="mb-4">
-      <h2 className="text-base font-bold text-gray-100">{title}</h2>
-      <p className="text-xs text-gray-500 mt-0.5">{description}</p>
-    </div>
-  );
-}
-
-function FieldLabel({
-  label,
-  description,
-  htmlFor,
-}: {
-  label: string;
-  description: string;
-  htmlFor?: string;
-}) {
-  return (
-    <div className="mb-1.5">
-      <label htmlFor={htmlFor} className="text-sm font-medium text-gray-300">
-        {label}
-      </label>
-      <p className="text-[12px] text-gray-500 mt-0.5">{description}</p>
-    </div>
-  );
-}
-
-function Toggle({
-  checked,
-  onChange,
-  disabled,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors ${
-        checked ? "bg-indigo-500" : "bg-gray-700"
-      } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-      onClick={() => !disabled && onChange(!checked)}
-    >
-      <span
-        className={`inline-block size-5 rounded-full bg-white shadow transform transition-transform mt-0.5 ${
-          checked ? "translate-x-5.5" : "translate-x-0.5"
-        }`}
-      />
-    </button>
-  );
-}
-
-function SelectField({
-  value,
-  options,
-  onChange,
-  disabled,
-  allowEmpty,
-  id,
-}: {
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (v: string) => void;
-  disabled?: boolean;
-  allowEmpty?: boolean;
-  id?: string;
-}) {
-  return (
-    <select
-      id={id}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      disabled={disabled}
-      className="w-full px-3 py-1.5 text-sm bg-gray-800 border border-gray-700/50 rounded-lg text-gray-200 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      {allowEmpty && <option value="">未設定</option>}
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-function NumberField({
-  value,
-  onChange,
-  disabled,
-  min,
-  max,
-  id,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-  disabled?: boolean;
-  min?: number;
-  max?: number;
-  id?: string;
-}) {
-  return (
-    <input
-      id={id}
-      type="number"
-      value={value}
-      onChange={(e) => onChange(Number(e.target.value))}
-      disabled={disabled}
-      min={min}
-      max={max}
-      className="w-full px-3 py-1.5 text-sm bg-gray-800 border border-gray-700/50 rounded-lg text-gray-200 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-    />
-  );
-}
-
-function TextField({
-  value,
-  onChange,
-  disabled,
-  placeholder,
-  id,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  disabled?: boolean;
-  placeholder?: string;
-  id?: string;
-}) {
-  return (
-    <input
-      id={id}
-      type="text"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      disabled={disabled}
-      placeholder={placeholder}
-      className="w-full px-3 py-1.5 text-sm bg-gray-800 border border-gray-700/50 rounded-lg text-gray-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-    />
-  );
-}
-
-function CheckboxGroup({
-  options,
-  selected,
-  onChange,
-  disabled,
-}: {
-  options: { value: string; desc: string }[];
-  selected: string[];
-  onChange: (values: string[]) => void;
-  disabled?: boolean;
-}) {
-  const toggle = (val: string) => {
-    if (disabled) return;
-    onChange(selected.includes(val) ? selected.filter((v) => v !== val) : [...selected, val]);
-  };
-  return (
-    <div className="space-y-1.5">
-      {options.map((o) => (
-        <label
-          key={o.value}
-          className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border transition-colors ${
-            selected.includes(o.value)
-              ? "border-indigo-500/40 bg-indigo-500/10"
-              : "border-gray-700/30 bg-gray-800/50"
-          } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-gray-800/80"}`}
-        >
-          <input
-            type="checkbox"
-            checked={selected.includes(o.value)}
-            onChange={() => toggle(o.value)}
-            disabled={disabled}
-            className="accent-indigo-500"
-          />
-          <div>
-            <span className="text-sm text-gray-200 font-medium">{o.value}</span>
-            <span className="text-xs text-gray-500 ml-2">{o.desc}</span>
-          </div>
-        </label>
-      ))}
-    </div>
-  );
-}
 
 // --- メインコンポーネント ---
 
@@ -504,18 +327,13 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
           />
 
           {/* NewsAPI */}
-          <div className="rounded-lg border border-gray-800/50 bg-gray-800/30 p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-200">NewsAPI</h3>
-                <p className="text-[12px] text-gray-500">ニュースのトップヘッドラインを取得</p>
-              </div>
-              <Toggle
-                checked={newsapi?.enabled ?? false}
-                onChange={(v) => updateSource("newsapi", (s) => ({ ...s, enabled: v }))}
-                disabled={disabled}
-              />
-            </div>
+          <SourceCard
+            title="NewsAPI"
+            description="ニュースのトップヘッドラインを取得"
+            enabled={newsapi?.enabled ?? false}
+            onToggle={(v) => updateSource("newsapi", (s) => ({ ...s, enabled: v }))}
+            disabled={disabled}
+          >
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <FieldLabel
@@ -556,71 +374,36 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <FieldLabel
-                  label="pageSize"
-                  description="取得する記事数（最大100）"
-                  htmlFor="newsapi-pagesize"
-                />
-                <NumberField
-                  id="newsapi-pagesize"
-                  value={Number(newsapi?.params?.pageSize ?? 20)}
-                  onChange={(v) =>
-                    updateSource("newsapi", (s) => ({
-                      ...s,
-                      params: { ...s.params, pageSize: v },
-                    }))
-                  }
-                  disabled={disabled}
-                  min={1}
-                  max={100}
-                />
-              </div>
-              <div>
-                <FieldLabel
-                  label="output_file"
-                  description="出力ファイル名"
-                  htmlFor="newsapi-output"
-                />
-                <TextField
-                  id="newsapi-output"
-                  value={newsapi?.output_file ?? "news.json"}
-                  onChange={(v) => updateSource("newsapi", (s) => ({ ...s, output_file: v }))}
-                  disabled={disabled}
-                />
-              </div>
-            </div>
             <div>
               <FieldLabel
-                label="api_key_env"
-                description="APIキーの環境変数名（.envに定義）"
-                htmlFor="newsapi-apikey"
+                label="pageSize"
+                description="取得する記事数（最大100）"
+                htmlFor="newsapi-pagesize"
               />
-              <TextField
-                id="newsapi-apikey"
-                value={newsapi?.api_key_env ?? "NEWS_API_KEY"}
-                onChange={(v) => updateSource("newsapi", (s) => ({ ...s, api_key_env: v }))}
+              <NumberField
+                id="newsapi-pagesize"
+                value={Number(newsapi?.params?.pageSize ?? 20)}
+                onChange={(v) =>
+                  updateSource("newsapi", (s) => ({
+                    ...s,
+                    params: { ...s.params, pageSize: v },
+                  }))
+                }
                 disabled={disabled}
+                min={1}
+                max={100}
               />
             </div>
-          </div>
+          </SourceCard>
 
           {/* YouTube（カテゴリ指定） */}
-          <div className="rounded-lg border border-gray-800/50 bg-gray-800/30 p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-200">
-                  YouTube Data API（カテゴリ指定）
-                </h3>
-                <p className="text-[12px] text-gray-500">指定カテゴリの人気動画ランキングを取得</p>
-              </div>
-              <Toggle
-                checked={youtube?.enabled ?? false}
-                onChange={(v) => updateSource("youtube", (s) => ({ ...s, enabled: v }))}
-                disabled={disabled}
-              />
-            </div>
+          <SourceCard
+            title="YouTube Data API（カテゴリ指定）"
+            description="指定カテゴリの人気動画ランキングを取得"
+            enabled={youtube?.enabled ?? false}
+            onToggle={(v) => updateSource("youtube", (s) => ({ ...s, enabled: v }))}
+            disabled={disabled}
+          >
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <FieldLabel
@@ -661,71 +444,36 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <FieldLabel
-                  label="maxResults"
-                  description="取得する動画数（最大50）"
-                  htmlFor="youtube-maxresults"
-                />
-                <NumberField
-                  id="youtube-maxresults"
-                  value={Number(youtube?.params?.maxResults ?? 20)}
-                  onChange={(v) =>
-                    updateSource("youtube", (s) => ({
-                      ...s,
-                      params: { ...s.params, maxResults: v },
-                    }))
-                  }
-                  disabled={disabled}
-                  min={1}
-                  max={50}
-                />
-              </div>
-              <div>
-                <FieldLabel
-                  label="output_file"
-                  description="出力ファイル名"
-                  htmlFor="youtube-output"
-                />
-                <TextField
-                  id="youtube-output"
-                  value={youtube?.output_file ?? "youtube.json"}
-                  onChange={(v) => updateSource("youtube", (s) => ({ ...s, output_file: v }))}
-                  disabled={disabled}
-                />
-              </div>
-            </div>
             <div>
               <FieldLabel
-                label="api_key_env"
-                description="APIキーの環境変数名（.envに定義）"
-                htmlFor="youtube-apikey"
+                label="maxResults"
+                description="取得する動画数（最大50）"
+                htmlFor="youtube-maxresults"
               />
-              <TextField
-                id="youtube-apikey"
-                value={youtube?.api_key_env ?? "YOUTUBE_DATA_API_KEY"}
-                onChange={(v) => updateSource("youtube", (s) => ({ ...s, api_key_env: v }))}
+              <NumberField
+                id="youtube-maxresults"
+                value={Number(youtube?.params?.maxResults ?? 20)}
+                onChange={(v) =>
+                  updateSource("youtube", (s) => ({
+                    ...s,
+                    params: { ...s.params, maxResults: v },
+                  }))
+                }
                 disabled={disabled}
+                min={1}
+                max={50}
               />
             </div>
-          </div>
+          </SourceCard>
 
           {/* YouTube（全体） */}
-          <div className="rounded-lg border border-gray-800/50 bg-gray-800/30 p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-200">YouTube Data API（全体）</h3>
-                <p className="text-[12px] text-gray-500">
-                  カテゴリ指定なしの全体人気動画ランキングを取得
-                </p>
-              </div>
-              <Toggle
-                checked={youtubeAll?.enabled ?? false}
-                onChange={(v) => updateSource("youtube_all", (s) => ({ ...s, enabled: v }))}
-                disabled={disabled}
-              />
-            </div>
+          <SourceCard
+            title="YouTube Data API（全体）"
+            description="カテゴリ指定なしの全体人気動画ランキングを取得"
+            enabled={youtubeAll?.enabled ?? false}
+            onToggle={(v) => updateSource("youtube_all", (s) => ({ ...s, enabled: v }))}
+            disabled={disabled}
+          >
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <FieldLabel
@@ -767,103 +515,41 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <FieldLabel
-                  label="output_file"
-                  description="出力ファイル名"
-                  htmlFor="youtube-all-output"
-                />
-                <TextField
-                  id="youtube-all-output"
-                  value={youtubeAll?.output_file ?? "youtube_all.json"}
-                  onChange={(v) => updateSource("youtube_all", (s) => ({ ...s, output_file: v }))}
-                  disabled={disabled}
-                />
-              </div>
-              <div>
-                <FieldLabel
-                  label="api_key_env"
-                  description="APIキーの環境変数名（.envに定義）"
-                  htmlFor="youtube-all-apikey"
-                />
-                <TextField
-                  id="youtube-all-apikey"
-                  value={youtubeAll?.api_key_env ?? "YOUTUBE_DATA_API_KEY"}
-                  onChange={(v) => updateSource("youtube_all", (s) => ({ ...s, api_key_env: v }))}
-                  disabled={disabled}
-                />
-              </div>
-            </div>
-          </div>
+          </SourceCard>
 
           {/* X (Twitter) Trends */}
-          <div className="rounded-lg border border-gray-800/50 bg-gray-800/30 p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-200">X (Twitter) Trends API</h3>
-                <p className="text-[12px] text-gray-500">地域別のトレンドトピックを取得</p>
-              </div>
-              <Toggle
-                checked={xTrends?.enabled ?? false}
-                onChange={(v) => updateSource("x", (s) => ({ ...s, enabled: v }))}
-                disabled={disabled}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <FieldLabel label="woeid" description="地域コード (WOEID)" htmlFor="x-woeid" />
-                <SelectField
-                  id="x-woeid"
-                  value={String(xTrends?.params?.woeid ?? "23424856")}
-                  options={WOEID_OPTIONS}
-                  onChange={(v) =>
-                    updateSource("x", (s) => ({
-                      ...s,
-                      params: { ...s.params, woeid: Number(v) },
-                    }))
-                  }
-                  disabled={disabled}
-                />
-              </div>
-              <div>
-                <FieldLabel label="output_file" description="出力ファイル名" htmlFor="x-output" />
-                <TextField
-                  id="x-output"
-                  value={xTrends?.output_file ?? "x_trends.json"}
-                  onChange={(v) => updateSource("x", (s) => ({ ...s, output_file: v }))}
-                  disabled={disabled}
-                />
-              </div>
-            </div>
+          <SourceCard
+            title="X (Twitter) Trends API"
+            description="地域別のトレンドトピックを取得"
+            enabled={xTrends?.enabled ?? false}
+            onToggle={(v) => updateSource("x", (s) => ({ ...s, enabled: v }))}
+            disabled={disabled}
+          >
             <div>
-              <FieldLabel
-                label="api_key_env"
-                description="Bearer Tokenの環境変数名（.envに定義）"
-                htmlFor="x-apikey"
-              />
-              <TextField
-                id="x-apikey"
-                value={xTrends?.api_key_env ?? "X_API_BEARER_TOKEN"}
-                onChange={(v) => updateSource("x", (s) => ({ ...s, api_key_env: v }))}
+              <FieldLabel label="woeid" description="地域コード (WOEID)" htmlFor="x-woeid" />
+              <SelectField
+                id="x-woeid"
+                value={String(xTrends?.params?.woeid ?? "23424856")}
+                options={WOEID_OPTIONS}
+                onChange={(v) =>
+                  updateSource("x", (s) => ({
+                    ...s,
+                    params: { ...s.params, woeid: Number(v) },
+                  }))
+                }
                 disabled={disabled}
               />
             </div>
-          </div>
+          </SourceCard>
 
           {/* X (Twitter) Popular Posts */}
-          <div className="rounded-lg border border-gray-800/50 bg-gray-800/30 p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-200">X (Twitter) Popular Posts</h3>
-                <p className="text-[12px] text-gray-500">バズったツイートをrelevancy順で取得</p>
-              </div>
-              <Toggle
-                checked={xPopularPosts?.enabled ?? false}
-                onChange={(v) => updateSource("x_popular_posts", (s) => ({ ...s, enabled: v }))}
-                disabled={disabled}
-              />
-            </div>
+          <SourceCard
+            title="X (Twitter) Popular Posts"
+            description="バズったツイートをrelevancy順で取得"
+            enabled={xPopularPosts?.enabled ?? false}
+            onToggle={(v) => updateSource("x_popular_posts", (s) => ({ ...s, enabled: v }))}
+            disabled={disabled}
+          >
             <div>
               <FieldLabel
                 label="query"
@@ -886,67 +572,36 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
                 placeholder="(話題 OR トレンド) lang:ja -is:retweet -is:reply"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <FieldLabel
-                  label="maxResults"
-                  description="取得するツイート数（10〜100）"
-                  htmlFor="xpp-maxresults"
-                />
-                <NumberField
-                  id="xpp-maxresults"
-                  value={Number(xPopularPosts?.params?.maxResults ?? 20)}
-                  onChange={(v) =>
-                    updateSource("x_popular_posts", (s) => ({
-                      ...s,
-                      params: { ...s.params, maxResults: v },
-                    }))
-                  }
-                  disabled={disabled}
-                  min={10}
-                  max={100}
-                />
-              </div>
-              <div>
-                <FieldLabel label="output_file" description="出力ファイル名" htmlFor="xpp-output" />
-                <TextField
-                  id="xpp-output"
-                  value={xPopularPosts?.output_file ?? "x_popular_posts.json"}
-                  onChange={(v) =>
-                    updateSource("x_popular_posts", (s) => ({ ...s, output_file: v }))
-                  }
-                  disabled={disabled}
-                />
-              </div>
-            </div>
             <div>
               <FieldLabel
-                label="api_key_env"
-                description="Bearer Tokenの環境変数名（.envに定義）"
-                htmlFor="xpp-apikey"
+                label="maxResults"
+                description="取得するツイート数（10〜100）"
+                htmlFor="xpp-maxresults"
               />
-              <TextField
-                id="xpp-apikey"
-                value={xPopularPosts?.api_key_env ?? "X_API_BEARER_TOKEN"}
-                onChange={(v) => updateSource("x_popular_posts", (s) => ({ ...s, api_key_env: v }))}
+              <NumberField
+                id="xpp-maxresults"
+                value={Number(xPopularPosts?.params?.maxResults ?? 20)}
+                onChange={(v) =>
+                  updateSource("x_popular_posts", (s) => ({
+                    ...s,
+                    params: { ...s.params, maxResults: v },
+                  }))
+                }
                 disabled={disabled}
+                min={10}
+                max={100}
               />
             </div>
-          </div>
+          </SourceCard>
 
           {/* Threads */}
-          <div className="rounded-lg border border-gray-800/50 bg-gray-800/30 p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-200">Threads API</h3>
-                <p className="text-[12px] text-gray-500">キーワード検索でThreadsの投稿を取得</p>
-              </div>
-              <Toggle
-                checked={threads?.enabled ?? false}
-                onChange={(v) => updateSource("threads", (s) => ({ ...s, enabled: v }))}
-                disabled={disabled}
-              />
-            </div>
+          <SourceCard
+            title="Threads API"
+            description="キーワード検索でThreadsの投稿を取得"
+            enabled={threads?.enabled ?? false}
+            onToggle={(v) => updateSource("threads", (s) => ({ ...s, enabled: v }))}
+            disabled={disabled}
+          >
             <div>
               <FieldLabel label="q" description="検索キーワード" htmlFor="threads-query" />
               <TextField
@@ -962,56 +617,26 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
                 placeholder="トレンド"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <FieldLabel
-                  label="search_type"
-                  description="検索結果のソート順"
-                  htmlFor="threads-search-type"
-                />
-                <SelectField
-                  id="threads-search-type"
-                  value={String(threads?.params?.search_type ?? "TOP")}
-                  options={THREADS_SEARCH_TYPE_OPTIONS}
-                  onChange={(v) =>
-                    updateSource("threads", (s) => ({
-                      ...s,
-                      params: { ...s.params, search_type: v },
-                    }))
-                  }
-                  disabled={disabled}
-                />
-              </div>
+            <div>
+              <FieldLabel
+                label="search_type"
+                description="検索結果のソート順"
+                htmlFor="threads-search-type"
+              />
+              <SelectField
+                id="threads-search-type"
+                value={String(threads?.params?.search_type ?? "TOP")}
+                options={THREADS_SEARCH_TYPE_OPTIONS}
+                onChange={(v) =>
+                  updateSource("threads", (s) => ({
+                    ...s,
+                    params: { ...s.params, search_type: v },
+                  }))
+                }
+                disabled={disabled}
+              />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <FieldLabel
-                  label="output_file"
-                  description="出力ファイル名"
-                  htmlFor="threads-output"
-                />
-                <TextField
-                  id="threads-output"
-                  value={threads?.output_file ?? "threads.json"}
-                  onChange={(v) => updateSource("threads", (s) => ({ ...s, output_file: v }))}
-                  disabled={disabled}
-                />
-              </div>
-              <div>
-                <FieldLabel
-                  label="api_key_env"
-                  description="アクセストークンの環境変数名（.envに定義）"
-                  htmlFor="threads-apikey"
-                />
-                <TextField
-                  id="threads-apikey"
-                  value={threads?.api_key_env ?? "THREADS_ACCESS_TOKEN"}
-                  onChange={(v) => updateSource("threads", (s) => ({ ...s, api_key_env: v }))}
-                  disabled={disabled}
-                />
-              </div>
-            </div>
-          </div>
+          </SourceCard>
         </section>
 
         {/* --- Extract フェーズ --- */}
@@ -1264,20 +889,6 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
                   />
                 </div>
                 <div>
-                  <FieldLabel
-                    label="model"
-                    description="使用するモデル名"
-                    htmlFor={`agent-${name}-model`}
-                  />
-                  <TextField
-                    id={`agent-${name}-model`}
-                    value={agent.model ?? ""}
-                    onChange={(v) => updateAgent(name, (a) => ({ ...a, model: v }))}
-                    disabled={disabled}
-                    placeholder="例: o4-mini, gemini-2.5-pro"
-                  />
-                </div>
-                <div>
                   <FieldLabel label="roles" description="割り当てる役割" />
                   <CheckboxGroup
                     options={AGENT_ROLE_OPTIONS}
@@ -1362,30 +973,6 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
                 placeholder="例: U01ABCDEF または channel"
               />
             </div>
-          </div>
-        </section>
-
-        {/* --- Pipeline --- */}
-        <section className="rounded-xl border border-gray-800 bg-gray-900/50 p-5">
-          <SectionHeader title="Pipeline" description="パイプライン共通の設定" />
-          <div>
-            <FieldLabel
-              label="default_source"
-              description="デフォルトのdata_sourceディレクトリ名（空欄で最新を自動検出）"
-              htmlFor="pipeline-source"
-            />
-            <TextField
-              id="pipeline-source"
-              value={config.pipeline?.default_source ?? ""}
-              onChange={(v) =>
-                persistConfig({
-                  ...config,
-                  pipeline: v ? { ...config.pipeline, default_source: v } : undefined,
-                })
-              }
-              disabled={disabled}
-              placeholder="例: 2026_02_10_01_54_10（空欄で自動検出）"
-            />
           </div>
         </section>
 

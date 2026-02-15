@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import {
   createDataset,
@@ -9,6 +9,10 @@ import {
   fetchGeneratedAppsFromDataset,
   removeDatasetItem,
 } from "../api";
+import { EmptyState } from "./shared/EmptyState";
+import { LoadingSpinner } from "./shared/LoadingSpinner";
+import { MessageToast } from "./shared/MessageToast";
+import { TypeBadge } from "./shared/TypeBadge";
 
 export function DatasetManager({
   isMobile,
@@ -91,23 +95,7 @@ export function DatasetManager({
   }, [selected, onGenerate]);
 
   if (loading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <motion.div
-          className="flex flex-col items-center gap-3"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        >
-          <motion.div
-            className="size-8 rounded-full border-2 border-indigo-800 border-t-indigo-400"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-          />
-          <p className="text-xs text-gray-500">読み込み中...</p>
-        </motion.div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   /* Mobile layout */
@@ -324,8 +312,8 @@ function DatasetList({
 }) {
   if (datasets.length === 0) {
     return (
-      <div className="py-12 text-center">
-        <div className="size-12 mx-auto mb-3 rounded-full bg-gray-800 flex items-center justify-center">
+      <EmptyState
+        icon={
           <svg
             aria-hidden="true"
             className="size-6 text-gray-600"
@@ -340,12 +328,10 @@ function DatasetList({
               d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
             />
           </svg>
-        </div>
-        <p className="text-gray-600 text-xs">データセットがありません</p>
-        <p className="text-gray-700 text-[11px] mt-1">
-          アプリ要件のOverviewやFeatureを組み合わせて保存できます
-        </p>
-      </div>
+        }
+        message="データセットがありません"
+        submessage="アプリ要件のOverviewやFeatureを組み合わせて保存できます"
+      />
     );
   }
 
@@ -577,15 +563,7 @@ function DatasetItemList({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <span
-                      className={`inline-flex shrink-0 items-center justify-center rounded-lg text-[11px] font-bold px-2 py-1 ${
-                        item.type === "overview"
-                          ? "bg-blue-900/40 text-blue-400"
-                          : "bg-purple-900/40 text-purple-400"
-                      }`}
-                    >
-                      {item.type === "overview" ? "OVR" : "FTR"}
-                    </span>
+                    <TypeBadge type={item.type} className="rounded-lg text-[11px] px-2 py-1" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-gray-200 truncate">
                         {item.title ?? item.featureId ?? "Overview"}
@@ -659,23 +637,5 @@ function DatasetItemList({
         )}
       </motion.div>
     </div>
-  );
-}
-
-function MessageToast({ message }: { message: string | null }) {
-  return (
-    <AnimatePresence>
-      {message && (
-        <motion.div
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-gray-700 text-sm text-gray-200 shadow-xl border border-gray-600"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 10 }}
-          transition={{ duration: 0.2 }}
-        >
-          {message}
-        </motion.div>
-      )}
-    </AnimatePresence>
   );
 }

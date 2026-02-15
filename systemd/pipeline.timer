@@ -8,6 +8,7 @@ OnCalendar=*-*-* 03:00:00
 OnCalendar=*-*-* 03:30:00
 OnCalendar=*-*-* 04:00:00
 OnCalendar=*-*-* 05:00:00
+OnCalendar=*-*-* 12:03:00
 TimezoneOfTimer=Asia/Tokyo
 Persistent=true
 
