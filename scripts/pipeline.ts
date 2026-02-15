@@ -10,6 +10,7 @@ import {
 } from "./lib/data-source.js";
 import { DATA_SOURCE_DIR, DATASETS_DIR, REQUIREMENTS_DIR } from "./lib/paths.js";
 import { notifyPipelineResult, type PipelineStepResult } from "./lib/slack.js";
+import { formatError } from "./lib/utils.js";
 
 // --- 型定義 ---
 interface PipelineOptions {
@@ -172,6 +173,30 @@ function listRequirementApps(): string[] {
     .sort();
 }
 
+// --- バリデーション実行ヘルパー ---
+async function runValidation(
+  newApps: string[],
+  results: StepResult[],
+  prefix = "[validate]",
+): Promise<void> {
+  if (newApps.length > 0) {
+    console.log(`${prefix} ${newApps.join(", ")} を検証...\n`);
+    try {
+      for (const app of newApps) {
+        await runStep("tsx", ["scripts/validate-requirements.ts", app]);
+      }
+      console.log("");
+      results.push({ name: "validate", status: "success" });
+    } catch (err) {
+      console.error(`\nvalidate 失敗: ${formatError(err)}`);
+      results.push({ name: "validate", status: "failed" });
+    }
+  } else {
+    console.log(`${prefix} 新規アプリが検出されませんでした（スキップ）\n`);
+    results.push({ name: "validate", status: "skipped" });
+  }
+}
+
 // --- データセットからソースファイルを生成 ---
 function buildDatasetSource(datasetName: string): string {
   const datasetPath = join(DATASETS_DIR, `${datasetName}.json`);
@@ -244,7 +269,7 @@ async function main() {
       console.log("");
       results.push({ name: "regenerate", status: "success" });
     } catch (err) {
-      console.error(`\nregenerate 失敗: ${err instanceof Error ? err.message : err}`);
+      console.error(`\nregenerate 失敗: ${formatError(err)}`);
       results.push({ name: "regenerate", status: "failed" });
       await printSummary(results, undefined, undefined, "再生成");
       process.exit(1);
@@ -257,7 +282,7 @@ async function main() {
       console.log("");
       results.push({ name: "validate", status: "success" });
     } catch (err) {
-      console.error(`\nvalidate 失敗: ${err instanceof Error ? err.message : err}`);
+      console.error(`\nvalidate 失敗: ${formatError(err)}`);
       results.push({ name: "validate", status: "failed" });
     }
 
@@ -293,7 +318,7 @@ async function main() {
       console.log("");
       results.push({ name: "generate", status: "success" });
     } catch (err) {
-      console.error(`\ngenerate 失敗: ${err instanceof Error ? err.message : err}`);
+      console.error(`\ngenerate 失敗: ${formatError(err)}`);
       results.push({ name: "generate", status: "failed" });
       await printSummary(results, undefined, undefined, "データセット");
       process.exit(1);
@@ -302,23 +327,7 @@ async function main() {
     // validate
     const appsAfter = listRequirementApps();
     const newApps = appsAfter.filter((app) => !appsBefore.has(app));
-
-    if (newApps.length > 0) {
-      console.log(`[validate] ${newApps.join(", ")} を検証...\n`);
-      try {
-        for (const app of newApps) {
-          await runStep("tsx", ["scripts/validate-requirements.ts", app]);
-        }
-        console.log("");
-        results.push({ name: "validate", status: "success" });
-      } catch (err) {
-        console.error(`\nvalidate 失敗: ${err instanceof Error ? err.message : err}`);
-        results.push({ name: "validate", status: "failed" });
-      }
-    } else {
-      console.log("[validate] 新規アプリが検出されませんでした（スキップ）\n");
-      results.push({ name: "validate", status: "skipped" });
-    }
+    await runValidation(newApps, results);
 
     await printSummary(results, undefined, newApps, "データセット");
     return;
@@ -338,7 +347,7 @@ async function main() {
       console.log("");
       results.push({ name: "collect", status: "success" });
     } catch (err) {
-      console.error(`\ncollect 失敗: ${err instanceof Error ? err.message : err}`);
+      console.error(`\ncollect 失敗: ${formatError(err)}`);
       results.push({ name: "collect", status: "failed" });
       await printSummary(results);
       process.exit(1);
@@ -422,9 +431,7 @@ async function main() {
         extractSuccess = true;
         break;
       } catch (err) {
-        console.error(
-          `\nextract 試行 ${attempt} 失敗: ${err instanceof Error ? err.message : err}`,
-        );
+        console.error(`\nextract 試行 ${attempt} 失敗: ${formatError(err)}`);
         if (attempt === maxRetries) {
           results.push({ name: "extract", status: "failed" });
           await printSummary(results);
@@ -450,7 +457,7 @@ async function main() {
     console.log("");
     results.push({ name: "generate", status: "success" });
   } catch (err) {
-    console.error(`\ngenerate 失敗: ${err instanceof Error ? err.message : err}`);
+    console.error(`\ngenerate 失敗: ${formatError(err)}`);
     results.push({ name: "generate", status: "failed" });
     await printSummary(results);
     process.exit(1);
@@ -459,23 +466,7 @@ async function main() {
   // Step 4: validate（新規生成されたアプリのみ）
   const appsAfter = listRequirementApps();
   const newApps = appsAfter.filter((app) => !appsBefore.has(app));
-
-  if (newApps.length > 0) {
-    console.log(`[Step 4] validate: ${newApps.join(", ")} を検証...\n`);
-    try {
-      for (const app of newApps) {
-        await runStep("tsx", ["scripts/validate-requirements.ts", app]);
-      }
-      console.log("");
-      results.push({ name: "validate", status: "success" });
-    } catch (err) {
-      console.error(`\nvalidate 失敗: ${err instanceof Error ? err.message : err}`);
-      results.push({ name: "validate", status: "failed" });
-    }
-  } else {
-    console.log("[Step 4] validate: 新規アプリが検出されませんでした（スキップ）\n");
-    results.push({ name: "validate", status: "skipped" });
-  }
+  await runValidation(newApps, results, "[Step 4] validate:");
 
   // サマリー
   await printSummary(results, targetDir, newApps);

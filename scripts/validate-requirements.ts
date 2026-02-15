@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { REQUIREMENTS_DIR } from "./lib/paths.js";
 import { validateTags } from "./lib/tags.js";
+import { formatError } from "./lib/utils.js";
 
 // --- JSON修復 ---
 function repairJson(raw: string): string | null {
@@ -169,7 +170,7 @@ function validate(appName: string): ValidationError[] {
         data = JSON.parse(repaired) as SourceInfoJson;
         console.log("  ℹ _source_info.json のJSON構文を自動修復しました");
       } else {
-        const msg = e instanceof Error ? e.message : String(e);
+        const msg = formatError(e);
         errors.push({
           file: "_source_info.json",
           message: `JSON構文エラー: ${msg}（自動修復にも失敗しました）`,

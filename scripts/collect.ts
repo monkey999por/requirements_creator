@@ -2,6 +2,7 @@ import { parseArgs } from "./lib/cli.js";
 import { getApiKey, loadAppConfig } from "./lib/config.js";
 import { getFetcher } from "./lib/fetchers.js";
 import { createOutputDir, saveJson } from "./lib/storage.js";
+import { formatError } from "./lib/utils.js";
 
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
@@ -56,7 +57,7 @@ async function main() {
       console.log(`[${name}] ✓ 保存完了: ${filePath}`);
       successCount++;
     } catch (err) {
-      console.error(`[${name}] ✗ エラー: ${err instanceof Error ? err.message : err}`);
+      console.error(`[${name}] ✗ エラー: ${formatError(err)}`);
     }
   }
 
