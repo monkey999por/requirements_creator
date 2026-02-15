@@ -10,8 +10,10 @@ import {
   removeDatasetItem,
 } from "../api";
 import { useMessageToast } from "../hooks/useMessageToast";
+import { BackButton } from "./shared/BackButton";
 import { CreateButton } from "./shared/CreateButton";
 import { EmptyState } from "./shared/EmptyState";
+import { TrashIcon, XIcon } from "./shared/Icons";
 import { LoadingSpinner } from "./shared/LoadingSpinner";
 import { MessageToast } from "./shared/MessageToast";
 import { TypeBadge } from "./shared/TypeBadge";
@@ -355,20 +357,7 @@ function DatasetList({
               }}
               title="削除"
             >
-              <svg
-                aria-hidden="true"
-                className="size-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
+              <TrashIcon />
             </button>
           )}
         </button>
@@ -394,28 +383,7 @@ function DatasetDetailHeader({
 }) {
   return (
     <div className="flex items-center gap-2 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0">
-      {isMobile && onBack && (
-        <button
-          type="button"
-          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-700/50 transition-colors"
-          onClick={onBack}
-        >
-          <svg
-            aria-hidden="true"
-            className="size-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
-      )}
+      {isMobile && onBack && <BackButton onClick={onBack} />}
       <span className="px-3 py-2.5 text-xs font-medium text-indigo-400 truncate">
         {dataset.name}
       </span>
@@ -556,20 +524,7 @@ function DatasetItemList({
                         onClick={() => onRemove(item)}
                         title="削除"
                       >
-                        <svg
-                          aria-hidden="true"
-                          className="size-3.5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
+                        <XIcon className="size-3.5" />
                       </button>
                     )}
                   </motion.div>

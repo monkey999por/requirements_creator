@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { XIcon } from "./shared/Icons";
 
 interface ToastData {
   title: string;
@@ -71,20 +72,7 @@ function ToastComponent({ toast, onDismiss }: { toast: ToastData; onDismiss: () 
           className="p-1 rounded-md text-gray-500 hover:text-gray-300 hover:bg-gray-700/50 transition-colors"
           onClick={onDismiss}
         >
-          <svg
-            className="size-3.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
+          <XIcon className="size-3.5" />
         </button>
       </div>
       {/* Output */}

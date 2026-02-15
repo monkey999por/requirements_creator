@@ -10,7 +10,9 @@ import {
 } from "../api";
 import { DatasetAddButton } from "./DatasetAddButton";
 import { MarkdownPane } from "./MarkdownPane";
+import { BackButton } from "./shared/BackButton";
 import { EmptyState } from "./shared/EmptyState";
+import { ChevronRightIcon, XIcon } from "./shared/Icons";
 import { LoadingSpinner } from "./shared/LoadingSpinner";
 import { typeBadgeClass, typeLabel } from "./shared/TypeBadge";
 
@@ -160,26 +162,7 @@ export function FavoritePage({
         transition={{ duration: 0.25, ease: "easeOut" }}
       >
         <div className="flex items-center gap-2 px-4 bg-gray-900 border-b border-gray-800 shrink-0">
-          <button
-            type="button"
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-700/50 transition-colors"
-            onClick={closePreview}
-          >
-            <svg
-              className="size-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-          </button>
+          <BackButton onClick={closePreview} />
           <span
             className={`inline-flex shrink-0 items-center justify-center rounded text-[10px] font-bold px-1.5 py-0.5 ${typeBadgeClass(previewItem.type)}`}
           >
@@ -255,20 +238,7 @@ export function FavoritePage({
                   <span className="text-sm font-semibold text-gray-200 group-hover:text-indigo-300 transition-colors truncate">
                     {group.appName}
                   </span>
-                  <svg
-                    className="size-3.5 text-gray-600 group-hover:text-indigo-400 transition-colors"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
+                  <ChevronRightIcon className="size-3.5 text-gray-600 group-hover:text-indigo-400 transition-colors" />
                 </button>
 
                 {/* Items */}
@@ -351,20 +321,7 @@ export function FavoritePage({
                               onClick={() => handleRemove(item)}
                               title="お気に入りから削除"
                             >
-                              <svg
-                                className="size-4"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                aria-hidden="true"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M6 18L18 6M6 6l12 12"
-                                />
-                              </svg>
+                              <XIcon />
                             </button>
                           </div>
                         </motion.div>
@@ -443,20 +400,7 @@ export function FavoritePage({
                     onClick={closePreview}
                     title="閉じる"
                   >
-                    <svg
-                      className="size-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
+                    <XIcon />
                   </button>
                 </div>
                 {/* Preview content */}

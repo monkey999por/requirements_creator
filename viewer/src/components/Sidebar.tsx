@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { sidebarContainerVariants, sidebarItemVariants } from "../animations";
 import type { AppInfo } from "../api";
 import { EmptyState } from "./shared/EmptyState";
+import { XIcon } from "./shared/Icons";
 
 interface ViewModeButtonsDef {
   mode: SidebarProps["viewMode"];
@@ -199,20 +200,7 @@ function SearchInput({
               className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
               onClick={handleClear}
             >
-              <svg
-                className="size-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <XIcon className="size-3.5" />
             </button>
           )}
         </div>
@@ -241,20 +229,7 @@ function SearchInput({
                 onClick={() => toggleTag(tag)}
               >
                 {tag}
-                <svg
-                  className="size-2.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <XIcon className="size-2.5" />
               </button>
             ))}
           </div>
@@ -375,20 +350,7 @@ export function Sidebar({
                         onClick={onMobileClose}
                         title="閉じる"
                       >
-                        <svg
-                          className="size-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          aria-hidden="true"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
+                        <XIcon />
                       </button>
                     }
                   />
