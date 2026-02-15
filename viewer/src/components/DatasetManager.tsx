@@ -534,7 +534,7 @@ function DatasetList({
               className="p-1 rounded-md text-gray-700 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all shrink-0"
               onClick={(e) => {
                 e.stopPropagation();
-                onDelete(ds.name);
+                if (window.confirm(`データセット「${ds.name}」を削除しますか？`)) onDelete(ds.name);
               }}
               title="削除"
             >
@@ -704,15 +704,15 @@ function DatasetItemList({
                     transition={{ duration: 0.2 }}
                   >
                     <TypeBadge type={item.type} className="rounded-lg text-[11px] px-2 py-1" />
-                    <button
-                      type="button"
-                      className="flex-1 min-w-0 text-left"
-                      onClick={() => onNavigateItem(item)}
-                    >
-                      <p className="text-xs font-medium text-gray-200 truncate hover:text-indigo-300 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <button
+                        type="button"
+                        className="text-xs font-medium text-gray-200 hover:text-indigo-300 transition-colors truncate max-w-full text-left"
+                        onClick={() => onNavigateItem(item)}
+                      >
                         {item.title ?? item.featureId ?? "Overview"}
-                      </p>
-                    </button>
+                      </button>
+                    </div>
                     <div className="flex items-center gap-1 shrink-0">
                       {/* Preview button */}
                       <button
@@ -750,7 +750,10 @@ function DatasetItemList({
                         <button
                           type="button"
                           className="p-1 rounded-md text-gray-700 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all shrink-0"
-                          onClick={() => onRemove(item)}
+                          onClick={() => {
+                            if (window.confirm("このアイテムをデータセットから削除しますか？"))
+                              onRemove(item);
+                          }}
                           title="削除"
                         >
                           <XIcon className="size-3.5" />
