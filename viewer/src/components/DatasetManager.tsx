@@ -317,7 +317,7 @@ export function DatasetManager({
       </div>
 
       {/* Center: selected dataset detail */}
-      <div className="flex flex-col min-w-0" style={{ flex: previewItem ? "0 0 50%" : "1 1 100%" }}>
+      <div className="flex flex-col min-w-0" style={{ flex: previewItem ? "0 0 35%" : "1 1 100%" }}>
         {selectedDataset ? (
           <>
             <DatasetDetailHeader
@@ -350,7 +350,7 @@ export function DatasetManager({
             key="preview"
             className="flex flex-col min-w-0 border-l border-gray-700/50 bg-gray-900"
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "50%", opacity: 1 }}
+            animate={{ width: "65%", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
           >
