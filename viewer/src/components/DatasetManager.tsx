@@ -1,15 +1,19 @@
-import { motion } from "motion/react";
-import { useCallback, useEffect, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createDataset,
   type Dataset,
   type DatasetItem,
   deleteDataset,
   fetchDatasets,
+  fetchDiagrams,
+  fetchFeatureDetail,
   fetchGeneratedAppsFromDataset,
+  fetchOverview,
   removeDatasetItem,
 } from "../api";
 import { useMessageToast } from "../hooks/useMessageToast";
+import { MarkdownPane } from "./MarkdownPane";
 import { BackButton } from "./shared/BackButton";
 import { CreateButton } from "./shared/CreateButton";
 import { EmptyState } from "./shared/EmptyState";
@@ -18,10 +22,36 @@ import { LoadingSpinner } from "./shared/LoadingSpinner";
 import { MessageToast } from "./shared/MessageToast";
 import { TypeBadge } from "./shared/TypeBadge";
 
+function itemKey(item: DatasetItem): string {
+  return `${item.appName}-${item.type}-${item.featureId ?? ""}-${item.diagramId ?? ""}`;
+}
+
+async function fetchPreviewContent(item: DatasetItem): Promise<string> {
+  switch (item.type) {
+    case "overview": {
+      const res = await fetchOverview(item.appName);
+      return res.content;
+    }
+    case "feature": {
+      if (!item.featureId) return "";
+      const res = await fetchFeatureDetail(item.appName, item.featureId);
+      return res.content;
+    }
+    case "diagram": {
+      if (!item.diagramId) return "";
+      const diagrams = await fetchDiagrams(item.appName);
+      const found = diagrams.find((d) => d.id === item.diagramId);
+      return found?.content ?? "";
+    }
+  }
+}
+
 export function DatasetManager({
   isMobile,
   isDev,
   onSelectApp,
+  onSelectFeature,
+  onSelectDiagram,
   initialSelected,
   generating,
   generatingDataset,
@@ -31,6 +61,8 @@ export function DatasetManager({
   isMobile: boolean;
   isDev: boolean;
   onSelectApp?: (appName: string) => void;
+  onSelectFeature?: (appName: string, featureId: string) => void;
+  onSelectDiagram?: (appName: string) => void;
   initialSelected?: string | null;
   generating: boolean;
   generatingDataset: string | null;
@@ -43,6 +75,12 @@ export function DatasetManager({
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const { message, showMessage } = useMessageToast();
+
+  // Preview state
+  const [previewItem, setPreviewItem] = useState<DatasetItem | null>(null);
+  const [previewContent, setPreviewContent] = useState("");
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const previewHistoryPushed = useRef(false);
 
   const reload = useCallback(() => {
     fetchDatasets()
@@ -86,9 +124,78 @@ export function DatasetManager({
     async (item: DatasetItem) => {
       if (!selected) return;
       await removeDatasetItem(selected, item);
+      if (previewItem && itemKey(previewItem) === itemKey(item)) {
+        setPreviewItem(null);
+        setPreviewContent("");
+      }
       reload();
     },
-    [selected, reload],
+    [selected, reload, previewItem],
+  );
+
+  const handlePreview = useCallback(
+    async (item: DatasetItem) => {
+      if (previewItem && itemKey(previewItem) === itemKey(item)) {
+        // トグルで閉じる場合はブラウザバックで戻す
+        if (previewHistoryPushed.current) {
+          previewHistoryPushed.current = false;
+          window.history.back();
+        }
+        setPreviewItem(null);
+        setPreviewContent("");
+        return;
+      }
+      // 既にプレビュー中なら追加pushしない（差し替え）
+      if (!previewItem) {
+        window.history.pushState({ datasetPreview: true }, "");
+        previewHistoryPushed.current = true;
+      }
+      setPreviewItem(item);
+      setPreviewContent("");
+      setPreviewLoading(true);
+      try {
+        const content = await fetchPreviewContent(item);
+        setPreviewContent(content);
+      } finally {
+        setPreviewLoading(false);
+      }
+    },
+    [previewItem],
+  );
+
+  const closePreview = useCallback(() => {
+    if (previewHistoryPushed.current) {
+      previewHistoryPushed.current = false;
+      window.history.back();
+    }
+    setPreviewItem(null);
+    setPreviewContent("");
+  }, []);
+
+  // ブラウザバックでプレビューだけ閉じる
+  useEffect(() => {
+    const handlePopState = () => {
+      if (previewItem) {
+        previewHistoryPushed.current = false;
+        setPreviewItem(null);
+        setPreviewContent("");
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [previewItem]);
+
+  const handleNavigateItem = useCallback(
+    (item: DatasetItem) => {
+      if (item.type === "feature" && item.featureId && onSelectFeature) {
+        onSelectFeature(item.appName, item.featureId);
+      } else if (item.type === "diagram" && onSelectDiagram) {
+        onSelectDiagram(item.appName);
+      } else if (onSelectApp) {
+        onSelectApp(item.appName);
+      }
+    },
+    [onSelectApp, onSelectFeature, onSelectDiagram],
   );
 
   const isGeneratingThis = generating && generatingDataset === selected;
@@ -103,6 +210,39 @@ export function DatasetManager({
 
   /* Mobile layout */
   if (isMobile) {
+    // Mobile preview
+    if (previewItem) {
+      return (
+        <motion.div
+          className="flex flex-col h-full"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.25 }}
+        >
+          <div className="flex items-center gap-2 px-4 bg-gray-900 border-b border-gray-800 shrink-0">
+            <BackButton onClick={closePreview} />
+            <TypeBadge type={previewItem.type} />
+            <span className="text-xs font-medium text-gray-300 py-2.5 truncate">
+              {previewItem.title ?? previewItem.appName}
+            </span>
+          </div>
+          <div className="flex-1 overflow-y-auto dark-scrollbar p-4 pb-32 bg-gray-900">
+            {previewLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <motion.div
+                  className="size-6 rounded-full border-2 border-gray-700 border-t-gray-400"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                />
+              </div>
+            ) : (
+              <MarkdownPane content={previewContent} />
+            )}
+          </div>
+        </motion.div>
+      );
+    }
+
     if (selectedDataset) {
       return (
         <motion.div
@@ -124,6 +264,9 @@ export function DatasetManager({
             onRemove={handleRemoveItem}
             isDev={isDev}
             onSelectApp={onSelectApp}
+            onPreview={handlePreview}
+            previewItem={previewItem}
+            onNavigateItem={handleNavigateItem}
           />
           <MessageToast message={generatingMessage ?? message} />
         </motion.div>
@@ -173,57 +316,135 @@ export function DatasetManager({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
     >
-      {/* Left: dataset list */}
-      <div className="w-72 flex flex-col border-r border-gray-700/50 shrink-0">
-        <div className="flex items-center gap-2 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0">
-          <span className="px-3 py-2.5 text-xs font-medium text-indigo-400">データセット</span>
-          <div className="flex-1" />
-          {isDev && <CreateButton onClick={() => setCreating(true)} title="新規データセット作成" />}
-        </div>
-        <div className="flex-1 overflow-y-auto dark-scrollbar p-3 bg-gray-900">
-          <CreateForm
-            show={creating}
-            name={newName}
-            onNameChange={setNewName}
-            onCreate={handleCreate}
-            onCancel={() => {
-              setCreating(false);
-              setNewName("");
-            }}
-          />
-          <DatasetList
-            datasets={datasets}
-            selected={selected}
-            onSelect={setSelected}
-            onDelete={handleDelete}
-            isDev={isDev}
-          />
-        </div>
-      </div>
-
-      {/* Right: selected dataset detail */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {selectedDataset ? (
-          <>
-            <DatasetDetailHeader
-              dataset={selectedDataset}
-              onGenerate={handleGenerateClick}
-              generating={isGeneratingThis}
-              isDev={isDev}
-            />
-            <DatasetItemList
-              dataset={selectedDataset}
-              onRemove={handleRemoveItem}
-              isDev={isDev}
-              onSelectApp={onSelectApp}
-            />
-          </>
-        ) : (
-          <div className="flex h-full items-center justify-center text-gray-500 text-sm">
-            データセットを選択してください
+      {/* Left + Center: click to close preview */}
+      <motion.div
+        className="flex min-w-0"
+        animate={{ flex: previewItem ? "0 0 35%" : "1 1 100%" }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        onClick={() => {
+          if (previewItem) closePreview();
+        }}
+      >
+        {/* Left: dataset list */}
+        <div className="w-72 flex flex-col border-r border-gray-700/50 shrink-0">
+          <div className="flex items-center gap-2 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0">
+            <span className="px-3 py-2.5 text-xs font-medium text-indigo-400">データセット</span>
+            <div className="flex-1" />
+            {isDev && (
+              <CreateButton onClick={() => setCreating(true)} title="新規データセット作成" />
+            )}
           </div>
+          <div className="flex-1 overflow-y-auto dark-scrollbar p-3 bg-gray-900">
+            <CreateForm
+              show={creating}
+              name={newName}
+              onNameChange={setNewName}
+              onCreate={handleCreate}
+              onCancel={() => {
+                setCreating(false);
+                setNewName("");
+              }}
+            />
+            <DatasetList
+              datasets={datasets}
+              selected={selected}
+              onSelect={setSelected}
+              onDelete={handleDelete}
+              isDev={isDev}
+            />
+          </div>
+        </div>
+
+        {/* Center: selected dataset detail */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {selectedDataset ? (
+            <>
+              <DatasetDetailHeader
+                dataset={selectedDataset}
+                onGenerate={handleGenerateClick}
+                generating={isGeneratingThis}
+                isDev={isDev}
+              />
+              <DatasetItemList
+                dataset={selectedDataset}
+                onRemove={handleRemoveItem}
+                isDev={isDev}
+                onSelectApp={onSelectApp}
+                onPreview={handlePreview}
+                previewItem={previewItem}
+                onNavigateItem={handleNavigateItem}
+              />
+            </>
+          ) : (
+            <div className="flex h-full items-center justify-center text-gray-500 text-sm">
+              データセットを選択してください
+            </div>
+          )}
+        </div>
+      </motion.div>
+
+      {/* Right: preview pane (desktop only) */}
+      <AnimatePresence>
+        {previewItem && (
+          <motion.div
+            key="preview"
+            className="flex flex-col min-w-0 border-l border-gray-700/50 bg-gray-900"
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: "65%", opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+          >
+            <div className="flex items-center gap-2 px-4 bg-gray-800/50 border-b border-gray-700/50 shrink-0">
+              <TypeBadge type={previewItem.type} />
+              <span className="flex-1 text-xs font-medium text-gray-300 py-2.5 truncate">
+                {previewItem.title ?? previewItem.appName}
+              </span>
+              <button
+                type="button"
+                className="p-1.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-700/50 transition-colors"
+                onClick={closePreview}
+                title="閉じる"
+              >
+                <XIcon />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto dark-scrollbar p-6 pb-16 bg-gray-900">
+              <AnimatePresence mode="wait">
+                {previewLoading ? (
+                  <motion.div
+                    key="loading"
+                    className="flex items-center justify-center py-12"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <motion.div
+                      className="size-6 rounded-full border-2 border-gray-700 border-t-gray-400"
+                      animate={{ rotate: 360 }}
+                      transition={{
+                        duration: 1,
+                        repeat: Number.POSITIVE_INFINITY,
+                        ease: "linear",
+                      }}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key={itemKey(previewItem)}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                  >
+                    <MarkdownPane content={previewContent} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
+
       <MessageToast message={generatingMessage ?? message} />
     </motion.div>
   );
@@ -353,7 +574,13 @@ function DatasetList({
               className="p-1 rounded-md text-gray-700 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all shrink-0"
               onClick={(e) => {
                 e.stopPropagation();
-                onDelete(ds.name);
+                if (
+                  window.confirm(
+                    `データセット「${ds.name}」(${ds.items.length}件) を削除しますか？`,
+                  )
+                ) {
+                  onDelete(ds.name);
+                }
               }}
               title="削除"
             >
@@ -445,11 +672,17 @@ function DatasetItemList({
   onRemove,
   isDev,
   onSelectApp,
+  onPreview,
+  previewItem,
+  onNavigateItem,
 }: {
   dataset: Dataset;
   onRemove: (item: DatasetItem) => void;
   isDev: boolean;
   onSelectApp?: (appName: string) => void;
+  onPreview: (item: DatasetItem) => void;
+  previewItem: DatasetItem | null;
+  onNavigateItem: (item: DatasetItem) => void;
 }) {
   const [generatedApps, setGeneratedApps] = useState<string[]>([]);
 
@@ -491,7 +724,10 @@ function DatasetItemList({
               <button
                 type="button"
                 className="text-[11px] font-semibold uppercase tracking-wider text-gray-600 hover:text-indigo-400 mb-2 px-1 transition-colors"
-                onClick={() => onSelectApp(appName)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectApp(appName);
+                }}
               >
                 {appName}
               </button>
@@ -502,31 +738,85 @@ function DatasetItemList({
             )}
             <div className="space-y-1">
               {items.map((item) => {
-                const key = `${item.appName}-${item.type}-${item.featureId ?? ""}`;
+                const key = itemKey(item);
+                const isActive = previewItem != null && itemKey(previewItem) === key;
                 return (
                   <motion.div
                     key={key}
-                    className="group flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-700/50 bg-gray-800/60"
+                    className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl border ${
+                      isActive
+                        ? "bg-indigo-500/10 border-indigo-500/30"
+                        : "border-gray-700/50 bg-gray-800/60"
+                    }`}
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2 }}
                   >
                     <TypeBadge type={item.type} className="rounded-lg text-[11px] px-2 py-1" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-gray-200 truncate">
-                        {item.title ?? item.featureId ?? "Overview"}
-                      </p>
-                    </div>
-                    {isDev && (
                       <button
                         type="button"
-                        className="p-1 rounded-md text-gray-700 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all shrink-0"
-                        onClick={() => onRemove(item)}
-                        title="削除"
+                        className="text-xs font-medium text-gray-200 hover:text-indigo-300 transition-colors truncate max-w-full text-left"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onNavigateItem(item);
+                        }}
                       >
-                        <XIcon className="size-3.5" />
+                        {item.title ?? item.featureId ?? "Overview"}
                       </button>
-                    )}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {/* Preview button */}
+                      <button
+                        type="button"
+                        className={`p-1 rounded-md transition-colors ${
+                          isActive
+                            ? "text-indigo-400 bg-indigo-400/10"
+                            : "text-gray-600 hover:text-indigo-400 hover:bg-indigo-400/10"
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onPreview(item);
+                        }}
+                        title="プレビュー"
+                      >
+                        <svg
+                          className="size-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          aria-hidden="true"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                        </svg>
+                      </button>
+                      {isDev && (
+                        <button
+                          type="button"
+                          className="p-1 rounded-md text-gray-700 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const label = item.title ?? item.featureId ?? "Overview";
+                            if (window.confirm(`「${label}」(${item.appName}) を削除しますか？`))
+                              onRemove(item);
+                          }}
+                          title="削除"
+                        >
+                          <XIcon className="size-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </motion.div>
                 );
               })}
@@ -557,7 +847,10 @@ function DatasetItemList({
                       <button
                         type="button"
                         className="text-xs font-medium text-gray-200 hover:text-indigo-300 hover:underline transition-colors truncate"
-                        onClick={() => onSelectApp(appName)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectApp(appName);
+                        }}
                       >
                         {appName}
                       </button>
