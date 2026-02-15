@@ -515,15 +515,24 @@ Output format:
 # =============================================================================
 # プロンプトファイル作成
 # =============================================================================
-# SKILL.md のフロントマターを除去し、templates.md を結合したプロンプトファイルを作成
-# 引数: 出力先ファイルパス
+# SKILL.md（またはプロファイル用.md）と templates.md を結合したプロンプトファイルを作成
+# 引数1: 出力先ファイルパス
+# 引数2: プロファイルスキルファイルパス（省略時はベースSKILL.mdを使用）
 # 呼び出し元で PROJECT_ROOT が設定済みであること
 create_prompt_file() {
   local output_path="$1"
-  local skill_file="${PROJECT_ROOT}/.claude/skills/generate-requirements/SKILL.md"
+  local profile_skill="${2:-}"
   local templates_file="${PROJECT_ROOT}/.claude/skills/generate-requirements/templates.md"
 
-  awk 'BEGIN{n=0} /^---/{n++; next} n>=2{print}' "$skill_file" > "$output_path"
+  if [[ -n "$profile_skill" ]]; then
+    # プロファイル使用: プロファイルのmdをそのまま使用（フロントマターなし）
+    cat "${PROJECT_ROOT}/${profile_skill}" > "$output_path"
+  else
+    # フォールバック: SKILL.md のフロントマターを除去
+    local skill_file="${PROJECT_ROOT}/.claude/skills/generate-requirements/SKILL.md"
+    awk 'BEGIN{n=0} /^---/{n++; next} n>=2{print}' "$skill_file" > "$output_path"
+  fi
+
   echo "" >> "$output_path"
   echo "---" >> "$output_path"
   echo "" >> "$output_path"

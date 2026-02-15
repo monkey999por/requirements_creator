@@ -3,6 +3,17 @@
 # --- 共通設定（複数フェーズから参照） ---
 output_base_dir: gen
 
+# --- プロファイル設定 ---
+# アクティブプロファイル名（profiles配下のキー）
+# プロファイル指定時: .claude/skills/{skill}/profiles/{profile}.md を使用（設定ベイクイン済み）
+# 未指定/コメントアウト時: 従来どおり SKILL.md + 本ファイルの設定を使用
+profile: mobile-free
+
+# プロファイル定義
+profiles:
+  mobile-free:
+    description: "Androidモバイルアプリ、無料予算、マルチエージェント"
+
 # --- collect フェーズ設定 ---
 collect:
   sources:

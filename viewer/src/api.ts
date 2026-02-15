@@ -297,6 +297,8 @@ export async function saveSchedule(
 // --- Config API ---
 
 export interface AppConfig {
+  profile?: string;
+  profiles?: Record<string, { description?: string }>;
   output_base_dir?: string;
   collect?: {
     sources?: Record<

@@ -7,6 +7,16 @@ cd "$PROJECT_ROOT"
 
 CONFIG_FILE="app.config.yaml"
 
+# --- プロファイル解決 ---
+PROFILE=$(grep '^profile:' "$CONFIG_FILE" 2>/dev/null | sed 's/^profile:[[:space:]]*//' | tr -d ' "'"'" || true)
+PROFILE_SKILL=""
+if [[ -n "$PROFILE" ]]; then
+  CANDIDATE=".claude/skills/generate-requirements/profiles/${PROFILE}.md"
+  if [[ -f "$CANDIDATE" ]]; then
+    PROFILE_SKILL="$CANDIDATE"
+  fi
+fi
+
 # --- 出力先ベースディレクトリの読み込み ---
 OUTPUT_BASE=$(grep '^output_base_dir:' "$CONFIG_FILE" 2>/dev/null | sed 's/^output_base_dir:[[:space:]]*//' | tr -d ' "'"'" || true)
 if [[ -z "$OUTPUT_BASE" ]]; then OUTPUT_BASE="gen"; fi
@@ -111,11 +121,32 @@ done
 source "${SCRIPT_DIR}/lib/select-source.sh"
 source "${SCRIPT_DIR}/lib/generate-helpers.sh"
 
-read_constraints
-CONSTRAINTS_PROMPT=$(format_constraints_prompt)
+if [[ -n "$PROFILE_SKILL" ]]; then
+  # プロファイル使用時: config解析をスキップ（設定はスキルファイルにベイクイン済み）
+  CONSTRAINTS_PROMPT=""
+  PERSPECTIVES_PROMPT=""
+  PERSPECTIVE_MODE=""
+  PERSPECTIVE_ITEMS=""
+  CONSTRAINT_PLATFORM=""
+  CONSTRAINT_BUDGET=""
+  CONSTRAINT_DIFFICULTY=""
+  CONSTRAINT_TEAM_SIZE=""
+  CONSTRAINT_TS_FRONTEND=""
+  CONSTRAINT_TS_BACKEND=""
+  CONSTRAINT_TS_DATABASE=""
+  CONSTRAINT_TS_HOSTING=""
+  CONSTRAINT_TS_AUTH=""
+  CONSTRAINT_TS_OTHER=""
+  echo "プロファイル: ${PROFILE}"
+  echo "スキル: ${PROFILE_SKILL}"
+  echo ""
+else
+  read_constraints
+  CONSTRAINTS_PROMPT=$(format_constraints_prompt)
 
-read_perspectives
-PERSPECTIVES_PROMPT=$(format_perspectives_prompt)
+  read_perspectives
+  PERSPECTIVES_PROMPT=$(format_perspectives_prompt)
+fi
 
 # =============================================================================
 # スキル内容とテンプレートを結合してシステムプロンプトファイルを作成
@@ -123,7 +154,7 @@ PERSPECTIVES_PROMPT=$(format_perspectives_prompt)
 PROMPT_FILE=$(mktemp)
 trap 'rm -rf "$TMPDIR_AGENTS" "$PROMPT_FILE"' EXIT
 
-create_prompt_file "$PROMPT_FILE"
+create_prompt_file "$PROMPT_FILE" "$PROFILE_SKILL"
 
 # --- 生成前のアプリ一覧を記録（新規アプリ検出用、全モード共通） ---
 APPS_BEFORE=$(ls -1 "${REQUIREMENTS_DIR}" 2>/dev/null || true)

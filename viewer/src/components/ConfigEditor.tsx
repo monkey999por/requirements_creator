@@ -456,6 +456,46 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
           </div>
         </section>
 
+        {/* --- プロファイル設定 --- */}
+        <section className="rounded-xl border border-gray-800 bg-gray-900/50 p-5 space-y-4">
+          <SectionHeader
+            title="プロファイル設定"
+            description="プロファイル指定時はExtract/Generateの設定がスキルファイル側の値で上書きされます"
+          />
+          <div>
+            <FieldLabel
+              label="profile"
+              description="アクティブプロファイル（未設定で従来モード）"
+              htmlFor="profile-select"
+            />
+            <SelectField
+              id="profile-select"
+              value={config.profile ?? ""}
+              options={Object.entries(config.profiles ?? {}).map(([key, val]) => ({
+                value: key,
+                label: `${key}${val.description ? ` — ${val.description}` : ""}`,
+              }))}
+              onChange={(v) => persistConfig({ ...config, profile: v || undefined })}
+              disabled={disabled}
+              allowEmpty
+            />
+          </div>
+          {config.profile && config.profiles?.[config.profile]?.description && (
+            <div className="rounded-lg bg-indigo-500/10 border border-indigo-500/20 px-4 py-3">
+              <p className="text-xs text-indigo-300">
+                <span className="font-semibold">{config.profile}</span>:{" "}
+                {config.profiles[config.profile].description}
+              </p>
+            </div>
+          )}
+          {!Object.keys(config.profiles ?? {}).length && (
+            <p className="text-xs text-gray-500 italic">
+              プロファイルが定義されていません。app.config.yaml の profiles
+              セクションに追加してください。
+            </p>
+          )}
+        </section>
+
         {/* --- Collect フェーズ --- */}
         <section className="rounded-xl border border-gray-800 bg-gray-900/50 p-5 space-y-6">
           <SectionHeader
@@ -980,6 +1020,14 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
             title="Extract フェーズ"
             description="収集データからキーワードを抽出する際の設定"
           />
+          {config.profile && (
+            <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-4 py-2.5">
+              <p className="text-xs text-amber-300">
+                プロファイル「{config.profile}
+                」が適用中のため、以下の設定はスキルファイル側の値で上書きされる場合があります
+              </p>
+            </div>
+          )}
 
           <div className="rounded-lg border border-gray-800/50 bg-gray-800/30 p-4 space-y-4">
             <div className="flex items-center justify-between">
@@ -1034,6 +1082,14 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
             title="Generate フェーズ"
             description="キーワードからアプリ案を生成する際の制約・観点を設定"
           />
+          {config.profile && (
+            <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-4 py-2.5">
+              <p className="text-xs text-amber-300">
+                プロファイル「{config.profile}
+                」が適用中のため、以下の設定はスキルファイル側の値で上書きされる場合があります
+              </p>
+            </div>
+          )}
 
           {/* Constraints */}
           <div className="rounded-lg border border-gray-800/50 bg-gray-800/30 p-4 space-y-4">
