@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "description": "各種データから連想方式でアプリケーション設計を行うためのツール",
   "scripts": {
     "collect": "tsx scripts/collect.ts",

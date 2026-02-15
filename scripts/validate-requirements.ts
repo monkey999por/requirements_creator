@@ -1,7 +1,25 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { REQUIREMENTS_DIR } from "./lib/paths.js";
 import { validateTags } from "./lib/tags.js";
+
+// --- JSON修復 ---
+function repairJson(raw: string): string | null {
+  let s = raw;
+  // コメント除去（// ... と /* ... */）
+  s = s.replace(/\/\/.*$/gm, "");
+  s = s.replace(/\/\*[\s\S]*?\*\//g, "");
+  // 末尾カンマ除去（}, ] の直前のカンマ）
+  s = s.replace(/,\s*([}\]])/g, "$1");
+  // シングルクォートをダブルクォートに（値の中のアポストロフィは対象外にするため、キー・値囲みのみ）
+  s = s.replace(/(?<=[\[{,:\s])'/g, '"').replace(/'(?=\s*[,\]}:])/g, '"');
+  try {
+    const parsed = JSON.parse(s);
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    return null;
+  }
+}
 
 // --- 必須セクション定義 ---
 const OVERVIEW_REQUIRED_SECTIONS = [
@@ -144,11 +162,19 @@ function validate(appName: string): ValidationError[] {
     try {
       data = JSON.parse(raw) as SourceInfoJson;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      errors.push({
-        file: "_source_info.json",
-        message: `JSON構文エラー: ${msg}（未エスケープのダブルクォートや末尾カンマ等がないか確認してください）`,
-      });
+      // 自動修復を試みる
+      const repaired = repairJson(raw);
+      if (repaired) {
+        writeFileSync(sourceInfoPath, repaired, "utf-8");
+        data = JSON.parse(repaired) as SourceInfoJson;
+        console.log("  ℹ _source_info.json のJSON構文を自動修復しました");
+      } else {
+        const msg = e instanceof Error ? e.message : String(e);
+        errors.push({
+          file: "_source_info.json",
+          message: `JSON構文エラー: ${msg}（自動修復にも失敗しました）`,
+        });
+      }
     }
 
     // 5b. スキーマバリデーション（JSON構文が正常な場合のみ）
