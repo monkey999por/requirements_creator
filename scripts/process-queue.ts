@@ -47,43 +47,46 @@ function main() {
     process.exit(0);
   }
 
-  console.log(`キューに ${items.length} 件のアイテムがあります。`);
+  const item = items[0];
+  if (!item) {
+    console.error("キューアイテムの取得に失敗しました。");
+    process.exit(1);
+  }
 
-  for (const item of items) {
-    console.log(`\n--- 処理中: ${item.title} (${item.id}) ---`);
+  console.log(`キューに ${items.length} 件のアイテムがあります。先頭1件を処理します。`);
+  console.log(`\n--- 処理中: ${item.title} (${item.id}) ---`);
 
-    // data_source にディレクトリを作成し user_proposal.md を配置
-    const ts = timestamp();
-    const sourceDir = join(DATA_SOURCE_DIR, ts);
-    mkdirSync(sourceDir, { recursive: true });
+  // data_source にディレクトリを作成し user_proposal.md を配置
+  const ts = timestamp();
+  const sourceDir = join(DATA_SOURCE_DIR, ts);
+  mkdirSync(sourceDir, { recursive: true });
 
-    const proposalContent = `# ${item.title}\n\n${item.content}`;
-    writeFileSync(join(sourceDir, "user_proposal.md"), proposalContent, "utf-8");
-    console.log(`data_source/${ts}/user_proposal.md を作成しました。`);
+  const proposalContent = `# ${item.title}\n\n${item.content}`;
+  writeFileSync(join(sourceDir, "user_proposal.md"), proposalContent, "utf-8");
+  console.log(`data_source/${ts}/user_proposal.md を作成しました。`);
 
-    // パイプライン実行（skip-collect）
-    try {
-      console.log(`pnpm pipeline --skip-collect --source ${ts} を実行中...`);
-      execSync(`pnpm pipeline --skip-collect --source ${ts}`, {
-        stdio: "inherit",
-        cwd: join(import.meta.dirname, ".."),
-      });
-      console.log("パイプライン完了（成功）");
+  // パイプライン実行（skip-collect）
+  try {
+    console.log(`pnpm pipeline --skip-collect --source ${ts} を実行中...`);
+    execSync(`pnpm pipeline --skip-collect --source ${ts}`, {
+      stdio: "inherit",
+      cwd: join(import.meta.dirname, ".."),
+    });
+    console.log("パイプライン完了（成功）");
 
-      // 成功したらキューアイテムを処理済みディレクトリに移動
-      const queueFilePath = join(PIPELINE_QUEUE_DIR, `${item.id}.json`);
-      if (existsSync(queueFilePath)) {
-        if (!existsSync(PIPELINE_QUEUE_REJECTED_DIR)) {
-          mkdirSync(PIPELINE_QUEUE_REJECTED_DIR, { recursive: true });
-        }
-        renameSync(queueFilePath, join(PIPELINE_QUEUE_REJECTED_DIR, `${item.id}.json`));
-        console.log(`キューアイテムを処理済みに移動しました: ${item.id}`);
+    // 成功したらキューアイテムを処理済みディレクトリに移動
+    const queueFilePath = join(PIPELINE_QUEUE_DIR, `${item.id}.json`);
+    if (existsSync(queueFilePath)) {
+      if (!existsSync(PIPELINE_QUEUE_REJECTED_DIR)) {
+        mkdirSync(PIPELINE_QUEUE_REJECTED_DIR, { recursive: true });
       }
-    } catch (err) {
-      console.error(`パイプライン失敗: ${item.title} (${item.id})`);
-      console.error(err);
-      // 失敗してもキューには残す（次回再実行される）
+      renameSync(queueFilePath, join(PIPELINE_QUEUE_REJECTED_DIR, `${item.id}.json`));
+      console.log(`キューアイテムを処理済みに移動しました: ${item.id}`);
     }
+  } catch (err) {
+    console.error(`パイプライン失敗: ${item.title} (${item.id})`);
+    console.error(err);
+    // 失敗してもキューには残す（次回再実行される）
   }
 
   console.log("\nキュー処理完了。");
