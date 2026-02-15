@@ -406,19 +406,34 @@ async function main() {
     results.push({ name: "extract", status: "skipped" });
   } else {
     console.log("[Step 2] extract: キーワード抽出を開始...\n");
-    try {
-      await runStep("bash", ["scripts/extract.sh", "--target", targetDir]);
-      console.log("");
-      const keywordPath = resolve(DATA_SOURCE_DIR, targetDir, "keyword.json");
-      if (!existsSync(keywordPath)) {
-        throw new Error("keyword.json が生成されませんでした");
+    const maxRetries = 2;
+    let extractSuccess = false;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 1) {
+          console.log(`\n[extract] リトライ ${attempt}/${maxRetries}...\n`);
+        }
+        await runStep("bash", ["scripts/extract.sh", "--target", targetDir]);
+        console.log("");
+        const keywordPath = resolve(DATA_SOURCE_DIR, targetDir, "keyword.json");
+        if (!existsSync(keywordPath)) {
+          throw new Error("keyword.json が生成されませんでした");
+        }
+        extractSuccess = true;
+        break;
+      } catch (err) {
+        console.error(
+          `\nextract 試行 ${attempt} 失敗: ${err instanceof Error ? err.message : err}`,
+        );
+        if (attempt === maxRetries) {
+          results.push({ name: "extract", status: "failed" });
+          await printSummary(results);
+          process.exit(1);
+        }
       }
+    }
+    if (extractSuccess) {
       results.push({ name: "extract", status: "success" });
-    } catch (err) {
-      console.error(`\nextract 失敗: ${err instanceof Error ? err.message : err}`);
-      results.push({ name: "extract", status: "failed" });
-      await printSummary(results);
-      process.exit(1);
     }
   }
 
