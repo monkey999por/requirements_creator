@@ -1,8 +1,103 @@
 import { AnimatePresence, motion } from "motion/react";
+import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
 import { sidebarContainerVariants, sidebarItemVariants } from "../animations";
 import type { AppInfo } from "../api";
 import { EmptyState } from "./shared/EmptyState";
+import { XIcon } from "./shared/Icons";
+
+interface ViewModeButtonsDef {
+  mode: SidebarProps["viewMode"];
+  activeColor: string;
+  inactiveHover: string;
+  title: string;
+  path: string;
+  fillWhenActive?: boolean;
+}
+
+const VIEW_MODE_BUTTONS: ViewModeButtonsDef[] = [
+  {
+    mode: "favorites",
+    activeColor: "text-pink-400 bg-pink-400/10",
+    inactiveHover: "text-gray-500 hover:text-pink-400 hover:bg-pink-400/10",
+    title: "お気に入り",
+    path: "M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z",
+    fillWhenActive: true,
+  },
+  {
+    mode: "commands",
+    activeColor: "text-cyan-400 bg-cyan-400/10",
+    inactiveHover: "text-gray-500 hover:text-cyan-400 hover:bg-cyan-400/10",
+    title: "コマンド実行",
+    path: "m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z",
+  },
+  {
+    mode: "datasets",
+    activeColor: "text-amber-400 bg-amber-400/10",
+    inactiveHover: "text-gray-500 hover:text-amber-400 hover:bg-amber-400/10",
+    title: "データセット",
+    path: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10",
+  },
+  {
+    mode: "queue",
+    activeColor: "text-orange-400 bg-orange-400/10",
+    inactiveHover: "text-gray-500 hover:text-orange-400 hover:bg-orange-400/10",
+    title: "パイプラインキュー",
+    path: "M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z",
+  },
+  {
+    mode: "scheduler",
+    activeColor: "text-purple-400 bg-purple-400/10",
+    inactiveHover: "text-gray-500 hover:text-purple-400 hover:bg-purple-400/10",
+    title: "スケジューラ",
+    path: "M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
+  },
+  {
+    mode: "config",
+    activeColor: "text-gray-300 bg-gray-700/50",
+    inactiveHover: "text-gray-500 hover:text-gray-300 hover:bg-gray-700/30",
+    title: "設定",
+    path: "M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
+  },
+];
+
+function ViewModeButtons({
+  viewMode,
+  handlers,
+  trailing,
+}: {
+  viewMode: SidebarProps["viewMode"];
+  handlers: Record<string, () => void>;
+  trailing: ReactNode;
+}) {
+  return (
+    <>
+      {VIEW_MODE_BUTTONS.map((btn) => (
+        <button
+          key={btn.mode}
+          type="button"
+          className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+            viewMode === btn.mode ? btn.activeColor : btn.inactiveHover
+          }`}
+          onClick={handlers[btn.mode]}
+          title={btn.title}
+        >
+          <svg
+            className="size-5"
+            viewBox="0 0 24 24"
+            fill={btn.fillWhenActive && viewMode === btn.mode ? "currentColor" : "none"}
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={btn.path} />
+          </svg>
+        </button>
+      ))}
+      <div className="flex-1" />
+      {trailing}
+    </>
+  );
+}
 
 interface SidebarProps {
   apps: AppInfo[];
@@ -105,20 +200,7 @@ function SearchInput({
               className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
               onClick={handleClear}
             >
-              <svg
-                className="size-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <XIcon className="size-3.5" />
             </button>
           )}
         </div>
@@ -147,20 +229,7 @@ function SearchInput({
                 onClick={() => toggleTag(tag)}
               >
                 {tag}
-                <svg
-                  className="size-2.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <XIcon className="size-2.5" />
               </button>
             ))}
           </div>
@@ -236,6 +305,15 @@ export function Sidebar({
   const [hovered, setHovered] = useState(false);
   const expanded = !collapsed || hovered;
 
+  const modeHandlers: Record<string, () => void> = {
+    favorites: onSelectFavorites,
+    commands: onSelectCommands,
+    datasets: onSelectDatasets,
+    queue: onSelectQueue,
+    scheduler: onSelectScheduler,
+    config: onSelectConfig,
+  };
+
   /* ── Mobile: overlay sidebar ── */
   if (isMobile) {
     return (
@@ -262,178 +340,20 @@ export function Sidebar({
               {/* Header */}
               <div className="px-4 pt-4 pb-3">
                 <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    className={`p-1.5 rounded-lg transition-colors shrink-0 ${
-                      viewMode === "favorites"
-                        ? "text-pink-400 bg-pink-400/10"
-                        : "text-gray-500 hover:text-pink-400 hover:bg-pink-400/10"
-                    }`}
-                    onClick={onSelectFavorites}
-                    title="お気に入り"
-                  >
-                    <svg
-                      className="size-5"
-                      viewBox="0 0 24 24"
-                      fill={viewMode === "favorites" ? "currentColor" : "none"}
-                      stroke="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    className={`p-1.5 rounded-lg transition-colors shrink-0 ${
-                      viewMode === "commands"
-                        ? "text-cyan-400 bg-cyan-400/10"
-                        : "text-gray-500 hover:text-cyan-400 hover:bg-cyan-400/10"
-                    }`}
-                    onClick={onSelectCommands}
-                    title="コマンド実行"
-                  >
-                    <svg
-                      className="size-5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    className={`p-1.5 rounded-lg transition-colors shrink-0 ${
-                      viewMode === "datasets"
-                        ? "text-amber-400 bg-amber-400/10"
-                        : "text-gray-500 hover:text-amber-400 hover:bg-amber-400/10"
-                    }`}
-                    onClick={onSelectDatasets}
-                    title="データセット"
-                  >
-                    <svg
-                      className="size-5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    className={`p-1.5 rounded-lg transition-colors shrink-0 ${
-                      viewMode === "queue"
-                        ? "text-orange-400 bg-orange-400/10"
-                        : "text-gray-500 hover:text-orange-400 hover:bg-orange-400/10"
-                    }`}
-                    onClick={onSelectQueue}
-                    title="パイプラインキュー"
-                  >
-                    <svg
-                      className="size-5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    className={`p-1.5 rounded-lg transition-colors shrink-0 ${
-                      viewMode === "scheduler"
-                        ? "text-purple-400 bg-purple-400/10"
-                        : "text-gray-500 hover:text-purple-400 hover:bg-purple-400/10"
-                    }`}
-                    onClick={onSelectScheduler}
-                    title="スケジューラ"
-                  >
-                    <svg
-                      className="size-5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    className={`p-1.5 rounded-lg transition-colors shrink-0 ${
-                      viewMode === "config"
-                        ? "text-gray-300 bg-gray-700/50"
-                        : "text-gray-500 hover:text-gray-300 hover:bg-gray-700/30"
-                    }`}
-                    onClick={onSelectConfig}
-                    title="設定"
-                  >
-                    <svg
-                      className="size-5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                      />
-                    </svg>
-                  </button>
-                  <div className="flex-1" />
-                  <button
-                    type="button"
-                    className="p-1.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-white/[0.06] transition-colors shrink-0"
-                    onClick={onMobileClose}
-                    title="閉じる"
-                  >
-                    <svg
-                      className="size-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
+                  <ViewModeButtons
+                    viewMode={viewMode}
+                    handlers={modeHandlers}
+                    trailing={
+                      <button
+                        type="button"
+                        className="p-1.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-white/[0.06] transition-colors shrink-0"
+                        onClick={onMobileClose}
+                        title="閉じる"
+                      >
+                        <XIcon />
+                      </button>
+                    }
+                  />
                 </div>
               </div>
 
@@ -546,187 +466,42 @@ export function Sidebar({
             animate={{ opacity: expanded ? 1 : 0 }}
             transition={{ duration: 0.2 }}
           >
-            <button
-              type="button"
-              className={`p-1.5 rounded-lg transition-colors shrink-0 ${
-                viewMode === "favorites"
-                  ? "text-pink-400 bg-pink-400/10"
-                  : "text-gray-500 hover:text-pink-400 hover:bg-pink-400/10"
-              }`}
-              onClick={onSelectFavorites}
-              title="お気に入り"
-            >
-              <svg
-                className="size-5"
-                viewBox="0 0 24 24"
-                fill={viewMode === "favorites" ? "currentColor" : "none"}
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-                />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className={`p-1.5 rounded-lg transition-colors shrink-0 ${
-                viewMode === "commands"
-                  ? "text-cyan-400 bg-cyan-400/10"
-                  : "text-gray-500 hover:text-cyan-400 hover:bg-cyan-400/10"
-              }`}
-              onClick={onSelectCommands}
-              title="コマンド実行"
-            >
-              <svg
-                className="size-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z"
-                />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className={`p-1.5 rounded-lg transition-colors shrink-0 ${
-                viewMode === "datasets"
-                  ? "text-amber-400 bg-amber-400/10"
-                  : "text-gray-500 hover:text-amber-400 hover:bg-amber-400/10"
-              }`}
-              onClick={onSelectDatasets}
-              title="データセット"
-            >
-              <svg
-                className="size-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className={`p-1.5 rounded-lg transition-colors shrink-0 ${
-                viewMode === "queue"
-                  ? "text-orange-400 bg-orange-400/10"
-                  : "text-gray-500 hover:text-orange-400 hover:bg-orange-400/10"
-              }`}
-              onClick={onSelectQueue}
-              title="パイプラインキュー"
-            >
-              <svg
-                className="size-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z"
-                />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className={`p-1.5 rounded-lg transition-colors shrink-0 ${
-                viewMode === "scheduler"
-                  ? "text-purple-400 bg-purple-400/10"
-                  : "text-gray-500 hover:text-purple-400 hover:bg-purple-400/10"
-              }`}
-              onClick={onSelectScheduler}
-              title="スケジューラ"
-            >
-              <svg
-                className="size-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className={`p-1.5 rounded-lg transition-colors shrink-0 ${
-                viewMode === "config"
-                  ? "text-gray-300 bg-gray-700/50"
-                  : "text-gray-500 hover:text-gray-300 hover:bg-gray-700/30"
-              }`}
-              onClick={onSelectConfig}
-              title="設定"
-            >
-              <svg
-                className="size-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                />
-              </svg>
-            </button>
-            <div className="flex-1" />
-            <motion.button
-              type="button"
-              className="p-1.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-white/[0.06] transition-colors shrink-0"
-              onClick={onToggleCollapse}
-              title={collapsed ? "サイドバーを開く" : "サイドバーを閉じる"}
-            >
-              <svg
-                aria-hidden="true"
-                className="size-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                {collapsed ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                )}
-              </svg>
-            </motion.button>
+            <ViewModeButtons
+              viewMode={viewMode}
+              handlers={modeHandlers}
+              trailing={
+                <motion.button
+                  type="button"
+                  className="p-1.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-white/[0.06] transition-colors shrink-0"
+                  onClick={onToggleCollapse}
+                  title={collapsed ? "サイドバーを開く" : "サイドバーを閉じる"}
+                >
+                  <svg
+                    aria-hidden="true"
+                    className="size-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    {collapsed ? (
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    ) : (
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 19l-7-7 7-7"
+                      />
+                    )}
+                  </svg>
+                </motion.button>
+              }
+            />
           </motion.div>
         </div>
 

@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import type { GrepSearchResult, TagSearchResult } from "../api";
+import { ChevronLeftIcon } from "./shared/Icons";
 
 interface SearchViewProps {
   query: string;
@@ -179,20 +180,7 @@ function GrepResultsView({
               className="flex items-center gap-1 text-xs text-indigo-400 mb-3"
               onClick={() => onSelectItem(null)}
             >
-              <svg
-                className="size-3"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
+              <ChevronLeftIcon className="size-3" />
               戻る
             </button>
             <DetailPane item={selectedItem} query={query} />
