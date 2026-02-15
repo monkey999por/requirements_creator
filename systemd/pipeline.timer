@@ -2,12 +2,12 @@
 Description=Requirements Creator パイプライン 毎日JST実行
 
 [Timer]
-OnCalendar=Mon,Thu,Fri,Sat,Sun *-*-* 02:00:00
-OnCalendar=Mon,Thu,Fri,Sat,Sun *-*-* 02:30:00
-OnCalendar=Mon,Thu,Fri,Sat,Sun *-*-* 03:00:00
-OnCalendar=Mon,Thu,Fri,Sat,Sun *-*-* 03:30:00
-OnCalendar=Mon,Thu,Fri,Sat,Sun *-*-* 04:00:00
-OnCalendar=Mon,Thu,Fri,Sat,Sun *-*-* 05:00:00
+OnCalendar=*-*-* 02:00:00
+OnCalendar=*-*-* 02:30:00
+OnCalendar=*-*-* 03:00:00
+OnCalendar=*-*-* 03:30:00
+OnCalendar=*-*-* 04:00:00
+OnCalendar=*-*-* 05:00:00
 TimezoneOfTimer=Asia/Tokyo
 Persistent=true
 

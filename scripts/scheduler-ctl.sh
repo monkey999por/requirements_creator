@@ -31,6 +31,36 @@ case "${1:-}" in
     echo "無効化完了。"
     ;;
   status)
+    # サマリー表示
+    TIMER_STATE=$(systemctl --user is-active pipeline.timer 2>/dev/null || true)
+    if [[ "$TIMER_STATE" == "active" ]]; then
+      echo "スケジューラ: 有効"
+    else
+      echo "スケジューラ: 無効"
+    fi
+
+    # 次回実行
+    NEXT=$(systemctl --user list-timers pipeline.timer --no-pager 2>/dev/null | grep pipeline || true)
+    if [[ -n "$NEXT" ]]; then
+      NEXT_TIME=$(echo "$NEXT" | awk '{print $1, $2, $3}')
+      echo "次回実行:     $NEXT_TIME"
+    fi
+
+    # スケジュール（OnCalendar）
+    TIMER_FILE="$UNIT_DIR/pipeline.timer"
+    if [[ -f "$TIMER_FILE" ]]; then
+      FIRST=true
+      while IFS= read -r cal; do
+        if $FIRST; then
+          echo "スケジュール: $cal"
+          FIRST=false
+        else
+          echo "              $cal"
+        fi
+      done < <(grep -E '^OnCalendar=' "$TIMER_FILE" | sed 's/^OnCalendar=//')
+    fi
+
+    echo ""
     echo "=== タイマー状態 ==="
     systemctl --user status pipeline.timer --no-pager 2>/dev/null || echo "タイマー未インストール"
     echo ""
@@ -38,17 +68,15 @@ case "${1:-}" in
     systemctl --user status pipeline.service --no-pager 2>/dev/null || echo "サービス未インストール"
     echo ""
     echo "=== 今後の実行予定 ==="
-    # タイマーファイルから有効なOnCalendar行を抽出し、systemd-analyzeで今後の予定を表示
-    TIMER_FILE="$UNIT_DIR/pipeline.timer"
     if [[ -f "$TIMER_FILE" ]]; then
-      CALENDARS=()
+      CALENDAR_ARGS=()
       while IFS= read -r line; do
-        CALENDARS+=("$line")
+        CALENDAR_ARGS+=("$line")
       done < <(grep -E '^OnCalendar=' "$TIMER_FILE" | sed 's/^OnCalendar=//')
       TIMER_TZ=$(grep -E '^TimezoneOfTimer=' "$TIMER_FILE" | sed 's/^TimezoneOfTimer=//' || true)
-      if [[ ${#CALENDARS[@]} -gt 0 ]]; then
+      if [[ ${#CALENDAR_ARGS[@]} -gt 0 ]]; then
         export TZ="${TIMER_TZ:-}"
-        systemd-analyze calendar --iterations=10 "${CALENDARS[@]}" 2>/dev/null || echo "解析できませんでした"
+        systemd-analyze calendar --iterations=10 "${CALENDAR_ARGS[@]}" 2>/dev/null || echo "解析できませんでした"
       fi
     else
       echo "タイマーファイルが見つかりません"
