@@ -534,7 +534,12 @@ function DatasetList({
               className="p-1 rounded-md text-gray-700 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all shrink-0"
               onClick={(e) => {
                 e.stopPropagation();
-                if (window.confirm(`データセット「${ds.name}」を削除しますか？`)) onDelete(ds.name);
+                if (
+                  window.confirm(
+                    `データセット「${ds.name}」(${ds.items.length}件) を削除しますか？`,
+                  )
+                )
+                  onDelete(ds.name);
               }}
               title="削除"
             >
@@ -751,7 +756,8 @@ function DatasetItemList({
                           type="button"
                           className="p-1 rounded-md text-gray-700 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all shrink-0"
                           onClick={() => {
-                            if (window.confirm("このアイテムをデータセットから削除しますか？"))
+                            const label = item.title ?? item.featureId ?? "Overview";
+                            if (window.confirm(`「${label}」(${item.appName}) を削除しますか？`))
                               onRemove(item);
                           }}
                           title="削除"
