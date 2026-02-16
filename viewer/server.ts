@@ -167,10 +167,33 @@ app.get("/api/apps/:name/features", (c) => {
   const name = c.req.param("name");
   const featuresDir = join(REQUIREMENTS_DIR, name, "features");
   if (!existsSync(featuresDir)) return c.json([]);
+
+  // _meta.json が存在すればそちらからtitle/summaryを取得
+  type FeatureMeta = { id: string; filename: string; title: string; summary: string };
+  let metaMap: Map<string, FeatureMeta> | null = null;
+  const metaPath = join(featuresDir, "_meta.json");
+  if (existsSync(metaPath)) {
+    try {
+      const meta = JSON.parse(readFileSync(metaPath, "utf-8")) as FeatureMeta[];
+      metaMap = new Map(meta.map((m) => [m.filename, m]));
+    } catch {
+      // フォールバック: regexパース
+    }
+  }
+
   const files = readdirSync(featuresDir)
     .filter((f) => f.endsWith(".md"))
     .sort()
     .map((f) => {
+      const metaEntry = metaMap?.get(f);
+      if (metaEntry) {
+        return {
+          id: metaEntry.id,
+          filename: f,
+          title: metaEntry.title,
+          summary: metaEntry.summary,
+        };
+      }
       const content = readFileSync(join(featuresDir, f), "utf-8");
       const titleMatch = content.match(/^#\s+(.+)/m);
       const summaryMatch = content.match(/## 概要\s*\n+([\s\S]*?)(?=\n## )/);
@@ -225,16 +248,31 @@ app.get("/api/apps/:name/diagrams", (c) => {
   const name = c.req.param("name");
   const diagramsDir = join(REQUIREMENTS_DIR, name, "diagrams");
   if (!existsSync(diagramsDir)) return c.json([]);
+
+  // _meta.json が存在すればそちらからtitleを取得
+  type DiagramMeta = { id: string; filename: string; title: string };
+  let metaMap: Map<string, DiagramMeta> | null = null;
+  const metaPath = join(diagramsDir, "_meta.json");
+  if (existsSync(metaPath)) {
+    try {
+      const meta = JSON.parse(readFileSync(metaPath, "utf-8")) as DiagramMeta[];
+      metaMap = new Map(meta.map((m) => [m.filename, m]));
+    } catch {
+      // フォールバック: regexパース
+    }
+  }
+
   const files = readdirSync(diagramsDir)
     .filter((f) => f.endsWith(".md"))
     .sort()
     .map((f) => {
       const content = readFileSync(join(diagramsDir, f), "utf-8");
-      const titleMatch = content.match(/^#\s+(.+)/m);
+      const metaEntry = metaMap?.get(f);
+      const title = metaEntry?.title ?? content.match(/^#\s+(.+)/m)?.[1] ?? f;
       return {
         id: f.replace(".md", ""),
         filename: f,
-        title: titleMatch?.[1] ?? f,
+        title,
         content,
       };
     });
