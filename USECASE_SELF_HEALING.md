@@ -89,21 +89,17 @@ pnpm self-healing
 パイプラインタイマーとは独立した別タイマーで管理される。
 
 ```bash
-# 自己修復タイマーのみ有効化（毎日 JST 6:00 に実行）
-pnpm scheduler:enable -- --target self-healing
+# 自己修復タイマーを有効化（毎日 JST 6:00 に実行）
+pnpm self-healing:scheduler:enable
 
-# 自己修復タイマーのみ無効化
-pnpm scheduler:disable -- --target self-healing
+# 自己修復タイマーを無効化
+pnpm self-healing:scheduler:disable
 
 # 自己修復タイマーの状態確認
-pnpm scheduler:status -- --target self-healing
-
-# パイプライン + 自己修復の両方を有効化
-pnpm scheduler:enable
-
-# 両方の状態を確認
-pnpm scheduler:status
+pnpm self-healing:scheduler:status
 ```
+
+パイプラインスケジューラとは完全に独立したコマンドで管理される。
 
 #### スケジュール設計
 
@@ -205,7 +201,7 @@ pipeline.ts (PipelineLogger作成)
 scripts/
 ├── self-healing.ts         # メインスクリプト（pnpm self-healing）
 ├── self-healing-run.sh     # systemd タイマー用ラッパー
-├── scheduler-ctl.sh        # スケジューラ制御（--target self-healing 対応）
+├── self-healing-ctl.sh     # 自己修復スケジューラ制御
 └── lib/
     ├── logger.ts           # PipelineLogger クラス、ログ読み書きユーティリティ
     └── common.sh           # pipeline_log() 関数（シェルスクリプト共通）
@@ -269,12 +265,16 @@ pnpm self-healing -- --dry-run
 ### 4. 定期実行で無人運用
 
 ```bash
-# 両方のタイマーを有効化
+# パイプラインタイマーを有効化
 pnpm scheduler:enable
+
+# 自己修復タイマーを有効化
+pnpm self-healing:scheduler:enable
 
 # 状態確認
 pnpm scheduler:status
-# → パイプラインスケジューラ: 有効（02:00〜05:00, 12:03）
+# → スケジューラ: 有効（02:00〜05:00, 12:03）
+pnpm self-healing:scheduler:status
 # → 自己修復スケジューラ: 有効（06:00）
 ```
 
@@ -288,13 +288,13 @@ pnpm scheduler:status
 
 ```bash
 # 自己修復だけ有効化（パイプラインは手動実行したい場合）
-pnpm scheduler:enable -- --target self-healing
+pnpm self-healing:scheduler:enable
 
 # 自己修復だけ無効化（パイプラインは定期実行を継続）
-pnpm scheduler:disable -- --target self-healing
+pnpm self-healing:scheduler:disable
 
 # 自己修復だけ状態確認
-pnpm scheduler:status -- --target self-healing
+pnpm self-healing:scheduler:status
 ```
 
 ### 6. 手動でログを確認したい
