@@ -155,7 +155,13 @@ export function extractYoutubeTexts(data: unknown): ArticleText[] {
 /** Threadsのデータからテキスト要素を抽出 */
 export function extractThreadsTexts(data: unknown): ArticleText[] {
   const d = data as {
-    data?: Array<{ text?: string; username?: string; permalink?: string }>;
+    data?: Array<{
+      text?: string;
+      username?: string;
+      permalink?: string;
+      media_type?: string;
+      timestamp?: string;
+    }>;
   };
   const posts = d?.data;
   if (!Array.isArray(posts)) return [];
