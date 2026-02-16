@@ -9,6 +9,11 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SYSTEMD_DIR="$HOME/.config/systemd/user"
 UNIT_DIR="$PROJECT_ROOT/systemd"
 
+if ! command -v systemctl &>/dev/null; then
+  echo "エラー: systemctl が見つかりません。この機能はsystemd環境（Linux）でのみ利用可能です。"
+  exit 1
+fi
+
 install_units() {
   mkdir -p "$SYSTEMD_DIR"
   ln -sf "$UNIT_DIR/pipeline.service" "$SYSTEMD_DIR/pipeline.service"
