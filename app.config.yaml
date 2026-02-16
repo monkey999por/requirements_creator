@@ -78,6 +78,7 @@ collect:
     # パラメータ:
     #   q: 検索キーワード（必須）
     #   search_type: TOP（人気順、デフォルト）/ RECENT（新着順）
+    #   search_mode: KEYWORD（デフォルト）/ TAG（トピックタグ検索）
     #   media_type: TEXT / IMAGE / VIDEO（省略時は全タイプ）
     #   limit: 取得件数（デフォルト25、最大100）
     threads:
@@ -87,7 +88,7 @@ collect:
       endpoint: https://graph.threads.net/v1.0/keyword_search
       params:
         q: "てす"
-        search_type: TOP
+        search_type: RECENT
         limit: 25
       output_file: threads.json
 

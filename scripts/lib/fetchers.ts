@@ -127,12 +127,14 @@ export async function fetchXPopularPosts(
 export async function fetchThreads(config: SourceConfig, apiKey: string): Promise<FetchResult> {
   const query = String(config.params.q ?? "トレンド");
   const searchType = String(config.params.search_type ?? "TOP");
+  const searchMode = config.params.search_mode ? String(config.params.search_mode) : undefined;
   const mediaType = config.params.media_type ? String(config.params.media_type) : undefined;
   const limit = config.params.limit ? Number(config.params.limit) : undefined;
 
   const url = new URL(config.endpoint);
   url.searchParams.set("q", query);
   url.searchParams.set("search_type", searchType);
+  if (searchMode) url.searchParams.set("search_mode", searchMode);
   if (mediaType) url.searchParams.set("media_type", mediaType);
   if (limit) url.searchParams.set("limit", String(limit));
   url.searchParams.set("fields", "id,text,media_type,permalink,timestamp,username");
@@ -145,6 +147,7 @@ export async function fetchThreads(config: SourceConfig, apiKey: string): Promis
   }
 
   const params: Record<string, string | number> = { q: query, search_type: searchType };
+  if (searchMode) params.search_mode = searchMode;
   if (mediaType) params.media_type = mediaType;
   if (limit) params.limit = limit;
 
