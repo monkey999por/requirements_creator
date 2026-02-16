@@ -181,7 +181,9 @@ async function runSelfHealing(analysis: AnalysisResult): Promise<void> {
 ${issuesSummary}
 
 修復後、変更されたファイルをgit addしてコミットしてください。
-コミットメッセージ形式: fix: 自己修復 - <修正内容の要約>`;
+コミットメッセージ形式: fix: 自己修復 - <修正内容の要約>
+
+【絶対禁止】PRのマージ、ブランチ削除、develop/mainへの直接push、gh pr mergeの実行は絶対に行わないでください。コミットまでが担当範囲です。`;
 
     const result = spawnSync(
       "claude",
@@ -227,6 +229,9 @@ ${issuesSummary}
       execSync(`git push -u origin ${branchName}`, { stdio: "inherit" });
 
       const prBody = [
+        "> **Warning**",
+        "> このPRは自己修復機能により自動生成されました。**必ず人間がレビューしてからマージしてください。**",
+        "",
         "## Summary",
         "",
         "自己修復機能によるバグ修正。",
@@ -245,6 +250,11 @@ ${issuesSummary}
         "- [ ] パイプライン全体が正常に完了すること",
       ].join("\n");
 
+      // do-not-mergeラベルがなければ作成（初回のみ）
+      spawnSync("gh", ["label", "create", "do-not-merge", "--color", "B60205", "--force"], {
+        stdio: "ignore",
+      });
+
       const prResult = spawnSync(
         "gh",
         [
@@ -256,6 +266,8 @@ ${issuesSummary}
           prBody,
           "--base",
           "develop",
+          "--label",
+          "do-not-merge",
         ],
         { stdio: ["inherit", "pipe", "inherit"], encoding: "utf-8" },
       );
