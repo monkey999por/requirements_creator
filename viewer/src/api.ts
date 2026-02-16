@@ -260,6 +260,30 @@ export async function saveSchedule(
   return res.json();
 }
 
+// --- Self-Healing Scheduler API ---
+
+export interface SelfHealingSchedulerStatus {
+  timerActive: boolean;
+}
+
+export async function fetchSelfHealingSchedulerStatus(): Promise<SelfHealingSchedulerStatus> {
+  const res = await fetch(`${BASE}/self-healing/scheduler/status`);
+  return res.json();
+}
+
+export async function enableSelfHealingScheduler(): Promise<{ success: boolean; output: string }> {
+  const res = await fetch(`${BASE}/self-healing/scheduler/enable`, { method: "POST" });
+  return res.json();
+}
+
+export async function disableSelfHealingScheduler(): Promise<{
+  success: boolean;
+  output: string;
+}> {
+  const res = await fetch(`${BASE}/self-healing/scheduler/disable`, { method: "POST" });
+  return res.json();
+}
+
 // --- Config API ---
 
 export interface AppConfig {

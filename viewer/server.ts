@@ -939,6 +939,53 @@ app.post("/api/scheduler/schedule", async (c) => {
   return c.json({ success: true });
 });
 
+// --- Self-Healing Scheduler API ---
+
+app.get("/api/self-healing/scheduler/status", async (c) => {
+  try {
+    const { stdout } = await execAsync("bash scripts/self-healing-ctl.sh status 2>&1", {
+      cwd: projectRoot,
+      timeout: 10000,
+    });
+    const timerActive = /Active:\s+active/.test(stdout);
+    return c.json({ timerActive });
+  } catch {
+    return c.json({ timerActive: false });
+  }
+});
+
+app.post("/api/self-healing/scheduler/enable", async (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  try {
+    const { stdout, stderr } = await execAsync("bash scripts/self-healing-ctl.sh enable 2>&1", {
+      cwd: projectRoot,
+      timeout: 15000,
+    });
+    const output = [stdout, stderr].filter((s) => s?.trim()).join("\n");
+    return c.json({ success: true, output });
+  } catch (err: unknown) {
+    const e = err as { stdout?: string; stderr?: string; message: string };
+    const output = `${e.stdout ?? ""}${e.stderr ?? ""}`.trim() || e.message;
+    return c.json({ success: false, output });
+  }
+});
+
+app.post("/api/self-healing/scheduler/disable", async (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  try {
+    const { stdout, stderr } = await execAsync("bash scripts/self-healing-ctl.sh disable 2>&1", {
+      cwd: projectRoot,
+      timeout: 15000,
+    });
+    const output = [stdout, stderr].filter((s) => s?.trim()).join("\n");
+    return c.json({ success: true, output });
+  } catch (err: unknown) {
+    const e = err as { stdout?: string; stderr?: string; message: string };
+    const output = `${e.stdout ?? ""}${e.stderr ?? ""}`.trim() || e.message;
+    return c.json({ success: false, output });
+  }
+});
+
 // --- Commands API (dev mode only) ---
 
 const ALLOWED_COMMANDS: Record<string, { bin: string; baseArgs: string[] }> = {
