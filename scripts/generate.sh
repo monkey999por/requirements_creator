@@ -165,6 +165,8 @@ echo "=== 要件生成 ==="
 echo "対象: ${KEYWORD_FILE}"
 echo ""
 
+pipeline_log "info" "generate" "要件生成開始: ${KEYWORD_FILE}"
+
 print_agent_settings
 print_constraints
 print_perspectives
@@ -234,6 +236,7 @@ if can_run_role "reviewer"; then
 fi
 
 echo "=== 要件生成完了 ==="
+pipeline_log "info" "generate" "要件生成完了"
 
 # --- Slack通知 ---
 # pipeline.ts 経由の場合はそちらで通知するため、ここでは generate 単体実行時のみ通知

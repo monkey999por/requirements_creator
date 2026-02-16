@@ -8,6 +8,7 @@ import {
   loadJson,
   selectDataSource,
 } from "./lib/data-source.js";
+import { PipelineLogger } from "./lib/logger.js";
 import { DATA_SOURCE_DIR, DATASETS_DIR, REQUIREMENTS_DIR } from "./lib/paths.js";
 import { notifyPipelineResult, type PipelineStepResult } from "./lib/slack.js";
 import { formatError } from "./lib/utils.js";
@@ -144,9 +145,14 @@ process.on("SIGINT", cleanup);
 process.on("SIGTERM", cleanup);
 
 // --- 子プロセス実行ヘルパー ---
+let pipelineLogFile: string | undefined;
+
 function runStep(cmd: string, args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
-    const env = { ...process.env, PIPELINE_MODE: "1" };
+    const env: Record<string, string | undefined> = { ...process.env, PIPELINE_MODE: "1" };
+    if (pipelineLogFile) {
+      env.PIPELINE_LOG_FILE = pipelineLogFile;
+    }
     const child = spawn(cmd, args, { stdio: "inherit", detached: true, env });
     activeChild = child;
     child.on("error", (err) => {
@@ -242,6 +248,20 @@ async function main() {
   const opts = parseArgs(process.argv.slice(2));
   const results: StepResult[] = [];
 
+  // ロガー初期化
+  const logger = new PipelineLogger();
+  pipelineLogFile = logger.filePath;
+  logger.info("pipeline", "パイプライン開始", {
+    options: {
+      skipCollect: opts.skipCollect,
+      skipExtract: opts.skipExtract,
+      direct: opts.direct,
+      source: opts.source,
+      dataset: opts.dataset,
+      regenerate: opts.regenerate,
+    },
+  });
+
   // 再生成モード
   if (opts.regenerate) {
     const appName = opts.regenerate;
@@ -271,7 +291,7 @@ async function main() {
     } catch (err) {
       console.error(`\nregenerate 失敗: ${formatError(err)}`);
       results.push({ name: "regenerate", status: "failed" });
-      await printSummary(results, undefined, undefined, "再生成");
+      await printSummary(results, undefined, undefined, "再生成", logger);
       process.exit(1);
     }
 
@@ -286,7 +306,7 @@ async function main() {
       results.push({ name: "validate", status: "failed" });
     }
 
-    await printSummary(results, undefined, [appName], "再生成");
+    await printSummary(results, undefined, [appName], "再生成", logger);
     return;
   }
 
@@ -320,7 +340,7 @@ async function main() {
     } catch (err) {
       console.error(`\ngenerate 失敗: ${formatError(err)}`);
       results.push({ name: "generate", status: "failed" });
-      await printSummary(results, undefined, undefined, "データセット");
+      await printSummary(results, undefined, undefined, "データセット", logger);
       process.exit(1);
     }
 
@@ -329,7 +349,7 @@ async function main() {
     const newApps = appsAfter.filter((app) => !appsBefore.has(app));
     await runValidation(newApps, results);
 
-    await printSummary(results, undefined, newApps, "データセット");
+    await printSummary(results, undefined, newApps, "データセット", logger);
     return;
   }
 
@@ -340,16 +360,21 @@ async function main() {
   if (opts.skipCollect) {
     console.log("[Step 1] collect: スキップ\n");
     results.push({ name: "collect", status: "skipped" });
+    logger.info("collect", "collect スキップ");
   } else {
     console.log("[Step 1] collect: データ収集を開始...\n");
+    logger.startStep("collect");
+    logger.logCommand("collect", "tsx", ["scripts/collect.ts"]);
     try {
       await runStep("tsx", ["scripts/collect.ts"]);
       console.log("");
       results.push({ name: "collect", status: "success" });
+      logger.endStep("collect", "success");
     } catch (err) {
       console.error(`\ncollect 失敗: ${formatError(err)}`);
       results.push({ name: "collect", status: "failed" });
-      await printSummary(results);
+      logger.endStep("collect", "failed", formatError(err));
+      await printSummary(results, undefined, undefined, undefined, logger);
       process.exit(1);
     }
   }
@@ -403,6 +428,7 @@ async function main() {
   if (opts.direct) {
     console.log("[Step 2] extract: スキップ（ダイレクトモード）\n");
     results.push({ name: "extract", status: "skipped" });
+    logger.info("extract", "extract スキップ（ダイレクトモード）");
   } else if (opts.skipExtract) {
     console.log("[Step 2] extract: スキップ\n");
     const keywordPath = resolve(DATA_SOURCE_DIR, targetDir, "keyword.json");
@@ -413,15 +439,19 @@ async function main() {
       process.exit(1);
     }
     results.push({ name: "extract", status: "skipped" });
+    logger.info("extract", "extract スキップ");
   } else {
     console.log("[Step 2] extract: キーワード抽出を開始...\n");
+    logger.startStep("extract");
     const maxRetries = 2;
     let extractSuccess = false;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         if (attempt > 1) {
           console.log(`\n[extract] リトライ ${attempt}/${maxRetries}...\n`);
+          logger.warn("extract", `リトライ ${attempt}/${maxRetries}`);
         }
+        logger.logCommand("extract", "bash", ["scripts/extract.sh", "--target", targetDir]);
         await runStep("bash", ["scripts/extract.sh", "--target", targetDir]);
         console.log("");
         const keywordPath = resolve(DATA_SOURCE_DIR, targetDir, "keyword.json");
@@ -432,15 +462,18 @@ async function main() {
         break;
       } catch (err) {
         console.error(`\nextract 試行 ${attempt} 失敗: ${formatError(err)}`);
+        logger.error("extract", `試行 ${attempt} 失敗: ${formatError(err)}`);
         if (attempt === maxRetries) {
           results.push({ name: "extract", status: "failed" });
-          await printSummary(results);
+          logger.endStep("extract", "failed", formatError(err));
+          await printSummary(results, undefined, undefined, undefined, logger);
           process.exit(1);
         }
       }
     }
     if (extractSuccess) {
       results.push({ name: "extract", status: "success" });
+      logger.endStep("extract", "success");
     }
   }
 
@@ -448,18 +481,22 @@ async function main() {
   const appsBefore = new Set(listRequirementApps());
   const generateLabel = opts.direct ? "要件生成（ダイレクトモード）" : "要件生成";
   console.log(`[Step 3] generate: ${generateLabel}を開始...\n`);
+  logger.startStep("generate");
   try {
     const generateArgs = ["scripts/generate.sh", "--target", targetDir];
     if (opts.direct) {
       generateArgs.push("--direct");
     }
+    logger.logCommand("generate", "bash", generateArgs);
     await runStep("bash", generateArgs);
     console.log("");
     results.push({ name: "generate", status: "success" });
+    logger.endStep("generate", "success");
   } catch (err) {
     console.error(`\ngenerate 失敗: ${formatError(err)}`);
     results.push({ name: "generate", status: "failed" });
-    await printSummary(results);
+    logger.endStep("generate", "failed", formatError(err));
+    await printSummary(results, undefined, undefined, undefined, logger);
     process.exit(1);
   }
 
@@ -469,7 +506,7 @@ async function main() {
   await runValidation(newApps, results, "[Step 4] validate:");
 
   // サマリー
-  await printSummary(results, targetDir, newApps);
+  await printSummary(results, targetDir, newApps, undefined, logger);
 }
 
 async function printSummary(
@@ -477,6 +514,7 @@ async function printSummary(
   targetDir?: string,
   newApps?: string[],
   mode?: string,
+  logger?: PipelineLogger,
 ): Promise<void> {
   console.log("========================================");
   console.log("パイプライン実行結果:");
@@ -539,6 +577,19 @@ async function printSummary(
     console.log("Slack通知を送信しました。");
   } else if (slackResult.error && slackResult.error !== "Slack通知が無効または未設定です") {
     console.error(`Slack通知エラー: ${slackResult.error}`);
+  }
+
+  // パイプライン全体のログサマリー
+  if (logger) {
+    const hasFailed = results.some((r) => r.status === "failed");
+    logger.info("pipeline", "パイプライン完了", {
+      overallStatus: hasFailed ? "failed" : "success",
+      steps: results,
+      newApps,
+      articleCount,
+      keywordCount,
+      mode,
+    });
   }
 }
 

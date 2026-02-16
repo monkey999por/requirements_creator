@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   disableScheduler,
+  disableSelfHealingScheduler,
   enableScheduler,
+  enableSelfHealingScheduler,
   fetchSchedulerStatus,
+  fetchSelfHealingSchedulerStatus,
   type SchedulerSchedule,
   saveSchedule,
 } from "../api";
@@ -31,6 +34,10 @@ export function SchedulerSettings({ isMobile, isDev }: SchedulerSettingsProps) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  // Self-healing scheduler state
+  const [selfHealingActive, setSelfHealingActive] = useState(false);
+  const [togglingSelfHealing, setTogglingSelfHealing] = useState(false);
+
   // Schedule editing state
   const [days, setDays] = useState<string[]>([...ALL_DAYS]);
   const [times, setTimes] = useState<string[]>(["02:00"]);
@@ -46,12 +53,16 @@ export function SchedulerSettings({ isMobile, isDev }: SchedulerSettingsProps) {
 
   const loadStatus = useCallback(async () => {
     try {
-      const status = await fetchSchedulerStatus();
+      const [status, shStatus] = await Promise.all([
+        fetchSchedulerStatus(),
+        fetchSelfHealingSchedulerStatus(),
+      ]);
       setTimerActive(status.timerActive);
       setNextRun(status.nextRun);
       setDays(status.schedule.days);
       setTimes(status.schedule.times.length > 0 ? status.schedule.times : ["02:00"]);
       setOriginalSchedule(status.schedule);
+      setSelfHealingActive(shStatus.timerActive);
     } catch {
       showMessage("error", "ステータスの取得に失敗しました");
     }
@@ -84,6 +95,31 @@ export function SchedulerSettings({ isMobile, isDev }: SchedulerSettingsProps) {
       showMessage("error", "操作に失敗しました");
     } finally {
       setToggling(false);
+    }
+  };
+
+  const handleToggleSelfHealing = async () => {
+    setTogglingSelfHealing(true);
+    setMessage(null);
+    try {
+      const result = selfHealingActive
+        ? await disableSelfHealingScheduler()
+        : await enableSelfHealingScheduler();
+      if (result.success) {
+        showMessage(
+          "success",
+          selfHealingActive
+            ? "自己修復スケジューラを無効化しました"
+            : "自己修復スケジューラを有効化しました",
+        );
+      } else {
+        showMessage("error", result.output || "操作に失敗しました");
+      }
+      await loadStatus();
+    } catch {
+      showMessage("error", "操作に失敗しました");
+    } finally {
+      setTogglingSelfHealing(false);
     }
   };
 
@@ -297,6 +333,54 @@ export function SchedulerSettings({ isMobile, isDev }: SchedulerSettingsProps) {
             >
               {saving ? "保存中..." : "保存"}
             </button>
+          )}
+        </section>
+
+        {/* Self-Healing Scheduler */}
+        <section className="rounded-xl border border-gray-800 bg-gray-900/50 p-5 space-y-4">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-300">自己修復スケジューラ</h2>
+            <p className="text-xs text-gray-500 mt-1">
+              パイプラインログを解析し、問題を検出・自動修復（毎日 06:00 JST）
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                selfHealingActive
+                  ? "bg-emerald-500/15 text-emerald-400"
+                  : "bg-gray-700/50 text-gray-500"
+              }`}
+            >
+              <span
+                className={`size-2 rounded-full ${selfHealingActive ? "bg-emerald-400 animate-pulse" : "bg-gray-600"}`}
+              />
+              {selfHealingActive ? "有効" : "無効"}
+            </span>
+          </div>
+
+          {isDev && (
+            <button
+              type="button"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                selfHealingActive
+                  ? "bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/20"
+                  : "bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/20"
+              }`}
+              onClick={handleToggleSelfHealing}
+              disabled={togglingSelfHealing}
+            >
+              {togglingSelfHealing
+                ? "処理中..."
+                : selfHealingActive
+                  ? "自己修復を無効化"
+                  : "自己修復を有効化"}
+            </button>
+          )}
+
+          {!isDev && (
+            <p className="text-xs text-gray-600">有効/無効の切り替えはdev modeでのみ利用可能です</p>
           )}
         </section>
       </div>
