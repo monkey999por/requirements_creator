@@ -126,6 +126,18 @@ $(cat "$f")"
   fi
 done
 
+# features/_meta.json
+EXISTING_FEATURES_META=""
+if [[ -f "${APP_DIR}/features/_meta.json" ]]; then
+  EXISTING_FEATURES_META=$(cat "${APP_DIR}/features/_meta.json")
+fi
+
+# diagrams/_meta.json
+EXISTING_DIAGRAMS_META=""
+if [[ -f "${APP_DIR}/diagrams/_meta.json" ]]; then
+  EXISTING_DIAGRAMS_META=$(cat "${APP_DIR}/diagrams/_meta.json")
+fi
+
 # 元の keyword.json を復元（_source_info.json の source.directory から）
 KEYWORD_FILE=""
 if [[ -n "$SOURCE_INFO" ]]; then
@@ -217,6 +229,16 @@ ${EXISTING_FEATURES}
 
 ### diagrams/
 ${EXISTING_DIAGRAMS}
+$(if [[ -n "$EXISTING_FEATURES_META" ]]; then echo "
+### features/_meta.json（既存メタデータ）
+\`\`\`json
+${EXISTING_FEATURES_META}
+\`\`\`"; fi)
+$(if [[ -n "$EXISTING_DIAGRAMS_META" ]]; then echo "
+### diagrams/_meta.json（既存メタデータ）
+\`\`\`json
+${EXISTING_DIAGRAMS_META}
+\`\`\`"; fi)
 ${KEYWORD_CONTEXT}
 ${EXTRA_CONTEXT}
 $(if [[ -n "$CONSTRAINTS_PROMPT" ]]; then echo "
@@ -235,9 +257,11 @@ ${PERSPECTIVES_PROMPT}"; fi)
    - _source_info.json（tagsやdescriptionを必要に応じて更新）
    - overview.md
    - features/ 配下の全機能ファイル（機能の追加・削除・変更を含む）
+   - features/_meta.json（featureメタデータ）
    - diagrams/ 配下の図解ファイル
+   - diagrams/_meta.json（diagramメタデータ）
 3. **memo.md は変更しないでください**（ユーザーのフィードバックを保持するため）
-4. 既存ディレクトリの features/ と diagrams/ の古いファイルは、再生成前に削除してから新しいファイルを書き出してください
+4. 既存ディレクトリの features/ と diagrams/ の古いファイル（_meta.json を含む）は、再生成前に削除してから新しいファイルを書き出してください
 
 生成完了後、以下のバリデーションスクリプトを実行して構造を検証してください:
 tsx scripts/validate-requirements.ts ${APP_NAME}"

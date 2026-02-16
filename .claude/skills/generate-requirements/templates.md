@@ -306,6 +306,46 @@ erDiagram
 - `||--o{` — 1対多
 - `o{--o{` — 多対多
 
+## features/_meta.json
+
+featureファイルのメタデータ。Viewerがfeature一覧を表示する際に使用する。
+
+```json
+[
+  {
+    "id": "01_{feature_name}",
+    "filename": "01_{feature_name}.md",
+    "title": "{機能名（日本語）}",
+    "summary": "{概要セクションの最初の1行}"
+  }
+]
+```
+
+- 配列の順序はfeatureファイルの連番順（01, 02, ...）
+- `id`: ファイル名から `.md` を除いたもの
+- `filename`: 実際のファイル名（`{nn}_{snake_case}.md`）
+- `title`: overview.md の機能一覧テーブルに記載した機能名と一致させること
+- `summary`: 各featureファイルの `## 概要` セクションの最初の1行（課題と提供価値を簡潔に）
+
+## diagrams/_meta.json
+
+diagramファイルのメタデータ。Viewerがdiagram一覧を表示する際に使用する。
+
+```json
+[
+  {
+    "id": "01_{diagram_name}",
+    "filename": "01_{diagram_name}.md",
+    "title": "{図解タイトル（日本語）}"
+  }
+]
+```
+
+- 配列の順序はdiagramファイルの連番順（01, 02, ...）
+- `id`: ファイル名から `.md` を除いたもの
+- `filename`: 実際のファイル名（`{nn}_{snake_case}.md`）
+- `title`: 各diagramファイルの `# タイトル` 見出しの内容と一致させること
+
 ## _source_info.json
 
 ```json
