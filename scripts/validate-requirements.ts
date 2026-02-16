@@ -113,6 +113,47 @@ function extractFeatureTableIds(overviewContent: string): string[] {
   return ids;
 }
 
+// --- メタデータJSON共通バリデーション ---
+function validateMetaJson(
+  metaPath: string,
+  label: string,
+  mdFiles: string[],
+  extraRequiredFields: string[],
+): ValidationError[] {
+  const errors: ValidationError[] = [];
+  if (!existsSync(metaPath)) return errors;
+
+  let meta: Record<string, unknown>[];
+  try {
+    const parsed = JSON.parse(readFileSync(metaPath, "utf-8"));
+    if (!Array.isArray(parsed)) {
+      return [{ file: label, message: "配列である必要があります" }];
+    }
+    meta = parsed as Record<string, unknown>[];
+  } catch {
+    return [{ file: label, message: "JSON構文エラー" }];
+  }
+
+  const requiredFields = ["id", "filename", "title", ...extraRequiredFields];
+  for (const [i, entry] of meta.entries()) {
+    for (const field of requiredFields) {
+      if (!entry[field]) {
+        errors.push({ file: label, message: `[${i}].${field} が未設定です` });
+      }
+    }
+  }
+
+  // エントリ数と実ファイル数の整合性チェック
+  if (meta.length !== mdFiles.length) {
+    errors.push({
+      file: label,
+      message: `エントリ数(${meta.length})と実ファイル数(${mdFiles.length})が一致しません`,
+    });
+  }
+
+  return errors;
+}
+
 // --- メイン ---
 function validate(appName: string): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -333,6 +374,24 @@ function validate(appName: string): ValidationError[] {
         }
       }
     }
+  }
+
+  // 5.5a. features/_meta.json バリデーション
+  const featuresMetaPath = join(featuresDir, "_meta.json");
+  const featureMdFiles = readdirSync(featuresDir)
+    .filter((f) => f.endsWith(".md"))
+    .sort();
+  errors.push(
+    ...validateMetaJson(featuresMetaPath, "features/_meta.json", featureMdFiles, ["summary"]),
+  );
+
+  // 5.5b. diagrams/_meta.json バリデーション
+  if (existsSync(diagramsDir)) {
+    const diagramsMetaPath = join(diagramsDir, "_meta.json");
+    const diagramMdFiles = readdirSync(diagramsDir)
+      .filter((f) => f.endsWith(".md"))
+      .sort();
+    errors.push(...validateMetaJson(diagramsMetaPath, "diagrams/_meta.json", diagramMdFiles, []));
   }
 
   // 5.5. diagrams/ チェック
