@@ -21,6 +21,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 一括実行: `pnpm pipeline` で収集→抽出→生成→検証を連続実行可能（`--skip-collect`, `--skip-extract`, `--source <dir>` オプション対応）
 
+6. **自己修復** (`pnpm self-healing`): パイプラインのJSONLログを解析し、config不整合や繰り返しエラーを検出。Claude Codeで自動修復しPR作成
+
 ### ディレクトリ構造
 
 ```text
@@ -37,7 +39,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │       ├── extract-keywords/
 │       ├── fix-issue/
 │       ├── generate-requirements/
-│       └── refactor-dedup/
+│       ├── refactor-dedup/
+│       └── self-healing/
 ├── gen/                      # 生成データ出力先（.gitignore対象）
 │   ├── tags.json             # タグ定義（generateごとに自由に追加可能）
 │   ├── data_source/          # 外部APIから取得した生データ（タイムスタンプ付きサブディレクトリ）
@@ -63,24 +66,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │   ├── generate.sh / generate.ts  # 要件生成
 │   ├── regenerate.sh         # 既存アプリの再生成
 │   ├── validate-requirements.ts  # バリデーション
-│   ├── pipeline.ts           # パイプライン一括実行
+│   ├── pipeline.ts           # パイプライン一括実行（PipelineLogger統合）
 │   ├── process-queue.ts      # パイプラインキュー処理（先頭1件のみpipeline実行）
+│   ├── self-healing.ts       # 自己修復（ログ解析→config不整合チェック→Claude Code修復→PR作成）
+│   ├── self-healing-run.sh   # 自己修復用systemdタイマーラッパー
 │   ├── scheduler-run.sh      # systemdタイマー用ラッパー（キュー優先で分岐実行）
-│   ├── scheduler-ctl.sh      # systemdスケジューラの有効/無効/状態確認
+│   ├── scheduler-ctl.sh      # systemdスケジューラの有効/無効/状態確認（--target対応）
 │   ├── test-slack-notify.ts  # Slack通知テスト
 │   └── lib/                  # 共通ライブラリ
 │       ├── agents.ts         # マルチエージェント管理
 │       ├── claude-stream-filter.ts  # Claude CLIストリーム処理
 │       ├── cli.ts            # CLIオプションパーサー
+│       ├── common.sh         # シェルスクリプト共通関数（pipeline_log()等）
 │       ├── config.ts         # app.config.yaml読み込み
 │       ├── data-source.ts    # data_source操作ユーティリティ
 │       ├── fetchers.ts       # API呼び出し（NewsAPI等）
+│       ├── logger.ts         # JSONL構造化ログ（PipelineLoggerクラス）
 │       ├── generate-helpers.sh  # 生成ヘルパー（シェル）
 │       ├── paths.ts          # パス定数
 │       ├── select-source.sh  # データソース選択（シェル）
 │       ├── slack.ts          # Slack通知
 │       ├── storage.ts        # ファイル出力
 │       └── tags.ts           # タグ管理（gen/tags.jsonから動的読み込み・バリデーション）
+├── systemd/                  # systemdユニットファイル
+│   ├── self-healing.timer    # 自己修復の定期実行タイマー
+│   └── self-healing.service  # 自己修復サービス定義
 ├── viewer/                   # Webビューワー（pnpmワークスペースパッケージ）
 │   ├── server.ts             # Hono APIサーバ + Vite dev middleware
 │   ├── vite.config.ts
@@ -119,6 +129,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │               ├── SaveButton.tsx     # 保存ボタン
 │               └── TypeBadge.tsx      # タイプバッジ
 ├── todo/                     # 開発タスク管理（フェーズ別）
+├── USECASE_SELF_HEALING.md   # 自己修復機能のユースケースドキュメント
 ├── app.config.yaml           # アプリケーション設定（フェーズ別の設定を階層管理）
 ├── biome.jsonc               # Biome設定（フォーマッター・リンター）
 ├── tsconfig.json             # TypeScript設定（scripts用）
@@ -169,13 +180,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `pnpm regenerate` | 既存アプリの要件を再生成 |
 | `pnpm queue:process` | パイプラインキュー内の先頭1件を処理 |
 
+### 自己修復
+
+| コマンド | 説明 |
+| --------- | ------ |
+| `pnpm self-healing` | パイプラインログ解析→config不整合チェック→自動修復→PR作成 |
+
 ### スケジューラ
 
 | コマンド | 説明 |
 | --------- | ------ |
-| `pnpm scheduler:enable` | systemdスケジューラを有効化 |
-| `pnpm scheduler:disable` | systemdスケジューラを無効化 |
-| `pnpm scheduler:status` | スケジューラの状態・今後の実行予定を表示 |
+| `pnpm scheduler:enable` | systemdスケジューラを有効化（`--target pipeline\|self-healing\|all`） |
+| `pnpm scheduler:disable` | systemdスケジューラを無効化（`--target pipeline\|self-healing\|all`） |
+| `pnpm scheduler:status` | スケジューラの状態・今後の実行予定を表示（`--target pipeline\|self-healing\|all`） |
 
 ### Webビューワー
 
@@ -292,6 +309,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `create-agent` - 会話内容をClaude Codeサブエージェント（`.claude/agents/*.md`）として永続化
 - `create-skill` - 会話内容をClaude Codeスキル（`.claude/skills/*/SKILL.md`）として永続化
 - `refactor-dedup` - コードの重複を検出・共通化するリファクタリング
+- `self-healing` - パイプラインのJSONLログを解析し、エラーパターンやconfig不整合を検出してClaude Codeで自動修復・PR作成
 
 ## Viewer API仕様
 
