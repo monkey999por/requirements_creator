@@ -1,0 +1,10 @@
+[Unit]
+Description=Requirements Creator 自己修復 定期実行
+
+[Timer]
+OnCalendar=*-*-* 06:00:00
+TimezoneOfTimer=Asia/Tokyo
+Persistent=true
+
+[Install]
+WantedBy=timers.target

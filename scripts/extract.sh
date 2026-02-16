@@ -56,10 +56,22 @@ ASSOCIATION_DEPTH=$(awk '/^extract:/{found=1} found && /association:/{in_assoc=1
 if [[ -z "$ASSOCIATION_ENABLED" ]]; then ASSOCIATION_ENABLED="true"; fi
 if [[ -z "$ASSOCIATION_DEPTH" ]]; then ASSOCIATION_DEPTH="moderate"; fi
 
+# --- ログ出力ヘルパー ---
+pipeline_log() {
+  local level="$1" step="$2" message="$3"
+  if [[ -n "${PIPELINE_LOG_FILE:-}" ]]; then
+    local timestamp
+    timestamp=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+    echo "{\"timestamp\":\"${timestamp}\",\"level\":\"${level}\",\"step\":\"${step}\",\"message\":\"${message}\"}" >> "$PIPELINE_LOG_FILE"
+  fi
+}
+
 echo "=== キーワード抽出 ==="
 echo "対象: ${DATA_DIR} (${FILE_DESC})"
 echo "連想モード: ${ASSOCIATION_ENABLED} (深さ: ${ASSOCIATION_DEPTH})"
 echo ""
+
+pipeline_log "info" "extract" "キーワード抽出開始: ${DATA_DIR} (${FILE_DESC}), 連想モード: ${ASSOCIATION_ENABLED} (${ASSOCIATION_DEPTH})"
 
 # --- スキル内容からシステムプロンプトファイルを作成 ---
 PROMPT_FILE=$(mktemp)
@@ -89,3 +101,10 @@ run_claude_stream claude -p "$PROMPT" \
   --append-system-prompt-file "$PROMPT_FILE" \
   --allowedTools "Read" "Write" "Glob" "Bash(ls:*)" "Bash(find:*)"  \
   --dangerously-skip-permissions
+
+EXIT_CODE=$?
+if [[ $EXIT_CODE -eq 0 ]]; then
+  pipeline_log "info" "extract" "キーワード抽出完了（成功）"
+else
+  pipeline_log "error" "extract" "キーワード抽出完了（失敗: exit ${EXIT_CODE}）"
+fi

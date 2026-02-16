@@ -38,6 +38,18 @@ while [[ $# -gt 0 ]]; do
 done
 
 # =============================================================================
+# ログ出力ヘルパー
+# =============================================================================
+pipeline_log() {
+  local level="$1" step="$2" message="$3"
+  if [[ -n "${PIPELINE_LOG_FILE:-}" ]]; then
+    local timestamp
+    timestamp=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+    echo "{\"timestamp\":\"${timestamp}\",\"level\":\"${level}\",\"step\":\"${step}\",\"message\":\"${message}\"}" >> "$PIPELINE_LOG_FILE"
+  fi
+}
+
+# =============================================================================
 # 共通関数の読み込み
 # =============================================================================
 source "${SCRIPT_DIR}/lib/generate-helpers.sh"
@@ -165,6 +177,8 @@ echo "=== 要件生成 ==="
 echo "対象: ${KEYWORD_FILE}"
 echo ""
 
+pipeline_log "info" "generate" "要件生成開始: ${KEYWORD_FILE}"
+
 print_agent_settings
 print_constraints
 print_perspectives
@@ -234,6 +248,7 @@ if can_run_role "reviewer"; then
 fi
 
 echo "=== 要件生成完了 ==="
+pipeline_log "info" "generate" "要件生成完了"
 
 # --- Slack通知 ---
 # pipeline.ts 経由の場合はそちらで通知するため、ここでは generate 単体実行時のみ通知
