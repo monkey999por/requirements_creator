@@ -360,7 +360,7 @@ async function main() {
   if (opts.skipCollect) {
     console.log("[Step 1] collect: スキップ\n");
     results.push({ name: "collect", status: "skipped" });
-    logger.endStep("collect", "skipped");
+    logger.info("collect", "collect スキップ");
   } else {
     console.log("[Step 1] collect: データ収集を開始...\n");
     logger.startStep("collect");
@@ -428,7 +428,7 @@ async function main() {
   if (opts.direct) {
     console.log("[Step 2] extract: スキップ（ダイレクトモード）\n");
     results.push({ name: "extract", status: "skipped" });
-    logger.endStep("extract", "skipped");
+    logger.info("extract", "extract スキップ（ダイレクトモード）");
   } else if (opts.skipExtract) {
     console.log("[Step 2] extract: スキップ\n");
     const keywordPath = resolve(DATA_SOURCE_DIR, targetDir, "keyword.json");
@@ -439,7 +439,7 @@ async function main() {
       process.exit(1);
     }
     results.push({ name: "extract", status: "skipped" });
-    logger.endStep("extract", "skipped");
+    logger.info("extract", "extract スキップ");
   } else {
     console.log("[Step 2] extract: キーワード抽出を開始...\n");
     logger.startStep("extract");

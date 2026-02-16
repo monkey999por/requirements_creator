@@ -90,6 +90,18 @@ run_claude_stream() {
   return $status
 }
 
+# --- パイプラインログ出力 ---
+# PIPELINE_LOG_FILE環境変数が設定されている場合にJSONLエントリを追記
+# Usage: pipeline_log <level> <step> <message>
+pipeline_log() {
+  local level="$1" step="$2" message="$3"
+  if [[ -n "${PIPELINE_LOG_FILE:-}" ]]; then
+    local timestamp
+    timestamp=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+    echo "{\"timestamp\":\"${timestamp}\",\"level\":\"${level}\",\"step\":\"${step}\",\"message\":\"${message}\"}" >> "$PIPELINE_LOG_FILE"
+  fi
+}
+
 # --- 対象ディレクトリの決定 ---
 # 優先順位: 1. 第1引数(TARGET_DIR) → 2. app.config.yaml の pipeline.default_source → 3. 対話選択
 # 結果は TARGET_DIR 変数に設定される

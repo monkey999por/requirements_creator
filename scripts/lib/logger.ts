@@ -29,7 +29,7 @@ export interface StepSummary {
 }
 
 // --- 定数 ---
-const LOGS_DIR = resolve("logs");
+export const LOGS_DIR = resolve("logs");
 
 // --- ユーティリティ ---
 function formatTimestamp(): string {

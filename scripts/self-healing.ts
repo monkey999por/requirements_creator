@@ -3,11 +3,8 @@ import { existsSync, readFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { loadAppConfig } from "./lib/config.js";
 import type { LogEntry } from "./lib/logger.js";
-import { listLogFiles, readLogEntries } from "./lib/logger.js";
+import { LOGS_DIR, listLogFiles, readLogEntries } from "./lib/logger.js";
 import { formatError } from "./lib/utils.js";
-
-// --- 定数 ---
-const LOGS_DIR = resolve("logs");
 const SKILL_FILE = ".claude/skills/self-healing/SKILL.md";
 
 // --- 型定義 ---
@@ -146,9 +143,11 @@ function runSelfHealing(analysis: AnalysisResult): void {
     return;
   }
 
-  // 今日の日付でブランチ名を生成
-  const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  const branchName = `bugfix/${today}-self-healing`;
+  // 日時でブランチ名を生成（同日複数回実行に対応）
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10).replace(/-/g, "");
+  const timeStr = now.toISOString().slice(11, 19).replace(/:/g, "");
+  const branchName = `bugfix/${today}-${timeStr}-self-healing`;
 
   console.log(`\n修復ブランチを作成: ${branchName}`);
 
@@ -225,25 +224,37 @@ ${issuesSummary}
     try {
       execSync(`git push -u origin ${branchName}`, { stdio: "inherit" });
 
-      const prBody = `## Summary
+      const prBody = [
+        "## Summary",
+        "",
+        "自己修復機能によるバグ修正。",
+        "",
+        "### 検出された問題",
+        "",
+        issuesSummary,
+        "",
+        "### 修復内容",
+        "",
+        "ログ解析に基づく自動修復。",
+        "",
+        "## Test plan",
+        "",
+        "- [ ] 修正されたコマンドが正常に動作すること",
+        "- [ ] パイプライン全体が正常に完了すること",
+      ].join("\n");
 
-自己修復機能によるバグ修正。
-
-### 検出された問題
-
-${issuesSummary}
-
-### 修復内容
-
-ログ解析に基づく自動修復。
-
-## Test plan
-
-- [ ] 修正されたコマンドが正常に動作すること
-- [ ] パイプライン全体が正常に完了すること`;
-
-      execSync(
-        `gh pr create --title "fix: 自己修復 (${today})" --body "${prBody.replace(/"/g, '\\"')}" --base develop`,
+      spawnSync(
+        "gh",
+        [
+          "pr",
+          "create",
+          "--title",
+          `fix: 自己修復 (${today})`,
+          "--body",
+          prBody,
+          "--base",
+          "develop",
+        ],
         { stdio: "inherit" },
       );
     } catch (err) {
@@ -352,13 +363,13 @@ async function main() {
     return;
   }
 
-  // 自己修復を実行
+  // 自己修復を実行し、修復後にログをクリア
   if (allAnalysis.hasIssues) {
     runSelfHealing(allAnalysis);
+    clearAllLogs();
+  } else {
+    console.log("\n問題なし。ログは次回チェック用に保持します。");
   }
-
-  // 修復後はログをクリア
-  clearAllLogs();
 }
 
 main().catch((err) => {
