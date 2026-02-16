@@ -129,6 +129,31 @@ export async function notifyGenerateResult(newApps?: string[]): Promise<SlackNot
   return postToSlack(ctx.token, text);
 }
 
+export async function notifySelfHealingResult(opts: {
+  prUrl: string;
+  failedSteps: number;
+  configMismatches: number;
+}): Promise<SlackNotificationResult> {
+  const ctx = getSlackContext();
+  if (!ctx) return { success: false, error: "Slack通知が無効または未設定です" };
+
+  const mentionPrefix = formatMention(ctx.mention);
+  const issueCount = opts.failedSteps + opts.configMismatches;
+  const details: string[] = [];
+  if (opts.failedSteps > 0) details.push(`失敗ステップ: ${opts.failedSteps}件`);
+  if (opts.configMismatches > 0) details.push(`設定不整合: ${opts.configMismatches}件`);
+
+  const text = [
+    `${mentionPrefix}:wrench: *自己修復PR作成*`,
+    "",
+    `検出された問題: ${issueCount}件`,
+    ...details,
+    `PR: ${opts.prUrl}`,
+  ].join("\n");
+
+  return postToSlack(ctx.token, text);
+}
+
 // CLI用エントリーポイント: generate.sh から呼び出し
 // 使用法: tsx scripts/lib/slack.ts generate [app1] [app2] ...
 async function main() {

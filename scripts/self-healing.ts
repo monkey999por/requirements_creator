@@ -4,7 +4,9 @@ import { join, resolve } from "node:path";
 import { loadAppConfig } from "./lib/config.js";
 import type { LogEntry } from "./lib/logger.js";
 import { LOGS_DIR, listLogFiles, readLogEntries } from "./lib/logger.js";
+import { notifySelfHealingResult } from "./lib/slack.js";
 import { formatError } from "./lib/utils.js";
+
 const SKILL_FILE = ".claude/skills/self-healing/SKILL.md";
 
 // --- 型定義 ---
@@ -137,7 +139,7 @@ function checkConfigConsistency(
 }
 
 // --- 自己修復実行 ---
-function runSelfHealing(analysis: AnalysisResult): void {
+async function runSelfHealing(analysis: AnalysisResult): Promise<void> {
   if (!analysis.hasIssues) {
     console.log("問題は検出されませんでした。修復は不要です。");
     return;
@@ -243,7 +245,7 @@ ${issuesSummary}
         "- [ ] パイプライン全体が正常に完了すること",
       ].join("\n");
 
-      spawnSync(
+      const prResult = spawnSync(
         "gh",
         [
           "pr",
@@ -255,8 +257,28 @@ ${issuesSummary}
           "--base",
           "develop",
         ],
-        { stdio: "inherit" },
+        { stdio: ["inherit", "pipe", "inherit"], encoding: "utf-8" },
       );
+
+      // gh pr create は作成したPRのURLを標準出力に出力する
+      const prUrl = prResult.stdout?.trim() ?? "";
+      if (prUrl) {
+        console.log(prUrl);
+      }
+
+      // Slack通知
+      if (prUrl) {
+        const notifyResult = await notifySelfHealingResult({
+          prUrl,
+          failedSteps: analysis.failedSteps.length,
+          configMismatches: analysis.configMismatches.length,
+        });
+        if (notifyResult.success) {
+          console.log("Slack通知を送信しました。");
+        } else if (notifyResult.error !== "Slack通知が無効または未設定です") {
+          console.error(`Slack通知エラー: ${notifyResult.error}`);
+        }
+      }
     } catch (err) {
       console.error(`PR作成エラー: ${formatError(err)}`);
     }
@@ -365,7 +387,7 @@ async function main() {
 
   // 自己修復を実行し、修復後にログをクリア
   if (allAnalysis.hasIssues) {
-    runSelfHealing(allAnalysis);
+    await runSelfHealing(allAnalysis);
     clearAllLogs();
   } else {
     console.log("\n問題なし。ログは次回チェック用に保持します。");
