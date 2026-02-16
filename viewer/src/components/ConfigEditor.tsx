@@ -123,11 +123,6 @@ const THREADS_SEARCH_TYPE_OPTIONS = [
   { value: "RECENT", label: "RECENT (新着順)" },
 ];
 
-const THREADS_SEARCH_MODE_OPTIONS = [
-  { value: "KEYWORD", label: "KEYWORD (キーワード検索)" },
-  { value: "TAG", label: "TAG (トピックタグ検索)" },
-];
-
 const THREADS_MEDIA_TYPE_OPTIONS = [
   { value: "TEXT", label: "TEXT (テキスト)" },
   { value: "IMAGE", label: "IMAGE (画像)" },
@@ -583,25 +578,6 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
                   updateSource("threads", (s) => ({
                     ...s,
                     params: { ...s.params, search_type: v },
-                  }))
-                }
-                disabled={disabled}
-              />
-            </div>
-            <div>
-              <FieldLabel
-                label="search_mode"
-                description="検索モード（KEYWORD: キーワード / TAG: トピックタグ）"
-                htmlFor="threads-search-mode"
-              />
-              <SelectField
-                id="threads-search-mode"
-                value={String(threads?.params?.search_mode ?? "KEYWORD")}
-                options={THREADS_SEARCH_MODE_OPTIONS}
-                onChange={(v) =>
-                  updateSource("threads", (s) => ({
-                    ...s,
-                    params: { ...s.params, search_mode: v },
                   }))
                 }
                 disabled={disabled}
