@@ -23,7 +23,7 @@ collect:
     # カテゴリID: 1=映画, 10=音楽, 20=ゲーム, 28=科学技術, 25=ニュース, 17=スポーツ
     youtube:
       type: youtube
-      enabled: true
+      enabled: false
       api_key_env: YOUTUBE_DATA_API_KEY
       endpoint: https://www.googleapis.com/youtube/v3/videos
       params:
@@ -36,7 +36,7 @@ collect:
     # YouTube Data API - 全体ランキング（カテゴリなし）
     youtube_all:
       type: youtube
-      enabled: true
+      enabled: false
       api_key_env: YOUTUBE_DATA_API_KEY
       endpoint: https://www.googleapis.com/youtube/v3/videos
       params:
@@ -73,17 +73,23 @@ collect:
       output_file: x_popular_posts.json
 
     # Threads API - キーワード検索 (https://developers.facebook.com/docs/threads/keyword-search)
-    # search_type: TOP（人気順）/ RECENT（新着順）
     # 権限: threads_keyword_search が必要
     # レート制限: 7日間で500クエリ
+    # パラメータ:
+    #   q: 検索キーワード（必須）
+    #   search_type: TOP（人気順、デフォルト）/ RECENT（新着順）
+    #   search_mode: KEYWORD（デフォルト）/ TAG（トピックタグ検索）
+    #   media_type: TEXT / IMAGE / VIDEO（省略時は全タイプ）
+    #   limit: 取得件数（デフォルト25、最大100）
     threads:
       type: threads
-      enabled: false
+      enabled: true
       api_key_env: THREADS_ACCESS_TOKEN
       endpoint: https://graph.threads.net/v1.0/keyword_search
       params:
-        q: "トレンド"
-        search_type: TOP
+        q: "てす"
+        search_type: RECENT
+        limit: 25
       output_file: threads.json
 
 # --- 今後追加予定のデータソース ---

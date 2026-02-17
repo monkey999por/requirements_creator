@@ -123,6 +123,17 @@ const THREADS_SEARCH_TYPE_OPTIONS = [
   { value: "RECENT", label: "RECENT (新着順)" },
 ];
 
+const THREADS_SEARCH_MODE_OPTIONS = [
+  { value: "KEYWORD", label: "KEYWORD (キーワード検索)" },
+  { value: "TAG", label: "TAG (トピックタグ検索)" },
+];
+
+const THREADS_MEDIA_TYPE_OPTIONS = [
+  { value: "TEXT", label: "TEXT (テキスト)" },
+  { value: "IMAGE", label: "IMAGE (画像)" },
+  { value: "VIDEO", label: "VIDEO (動画)" },
+];
+
 const ASSOCIATION_DEPTH_OPTIONS = [
   { value: "shallow", label: "shallow (1段階 - 直接的な関連語・類義語)" },
   { value: "moderate", label: "moderate (2段階 - 関連分野・応用領域まで)" },
@@ -575,6 +586,65 @@ export function ConfigEditor({ isMobile, isDev }: ConfigEditorProps) {
                   }))
                 }
                 disabled={disabled}
+              />
+            </div>
+            <div>
+              <FieldLabel
+                label="search_mode"
+                description="検索モード（KEYWORD: キーワード / TAG: トピックタグ）"
+                htmlFor="threads-search-mode"
+              />
+              <SelectField
+                id="threads-search-mode"
+                value={String(threads?.params?.search_mode ?? "KEYWORD")}
+                options={THREADS_SEARCH_MODE_OPTIONS}
+                onChange={(v) =>
+                  updateSource("threads", (s) => ({
+                    ...s,
+                    params: { ...s.params, search_mode: v },
+                  }))
+                }
+                disabled={disabled}
+              />
+            </div>
+            <div>
+              <FieldLabel
+                label="media_type"
+                description="メディアタイプで絞り込み（空欄で全タイプ）"
+                htmlFor="threads-media-type"
+              />
+              <SelectField
+                id="threads-media-type"
+                value={String(threads?.params?.media_type ?? "")}
+                options={THREADS_MEDIA_TYPE_OPTIONS}
+                onChange={(v) =>
+                  updateSource("threads", (s) => ({
+                    ...s,
+                    params: { ...s.params, media_type: v || undefined },
+                  }))
+                }
+                disabled={disabled}
+                allowEmpty
+              />
+            </div>
+            <div>
+              <FieldLabel
+                label="limit"
+                description="取得件数（最大100、デフォルト25）"
+                htmlFor="threads-limit"
+              />
+              <NumberField
+                id="threads-limit"
+                value={Number(threads?.params?.limit ?? 25)}
+                onChange={(v) =>
+                  updateSource("threads", (s) => ({
+                    ...s,
+                    params: { ...s.params, limit: v },
+                  }))
+                }
+                disabled={disabled}
+                min={1}
+                max={100}
               />
             </div>
           </SourceCard>
