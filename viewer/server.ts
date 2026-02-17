@@ -646,12 +646,16 @@ app.post("/api/queue/:id/execute", (c) => {
   mkdirSync(sourceDir, { recursive: true });
   writeFileSync(join(sourceDir, "user_proposal.md"), `# ${item.title}\n\n${item.content}`, "utf-8");
 
-  // バックグラウンドでパイプライン実行（detached + unref）
-  const child = spawn("tsx", ["scripts/pipeline.ts", "--skip-collect", "--source", ts], {
-    cwd: projectRoot,
-    stdio: "ignore",
-    detached: true,
-  });
+  // バックグラウンドでパイプライン実行（成功時に pipeline_queue_done へ移動）
+  const doneDir = join(PIPELINE_QUEUE_DIR, "..", "pipeline_queue_done");
+  const child = spawn(
+    "sh",
+    [
+      "-c",
+      `tsx scripts/pipeline.ts --skip-collect --source ${ts} && mkdir -p ${doneDir} && mv ${filePath} ${join(doneDir, `${id}.json`)}`,
+    ],
+    { cwd: projectRoot, stdio: "ignore", detached: true },
+  );
   child.unref();
 
   return c.json({

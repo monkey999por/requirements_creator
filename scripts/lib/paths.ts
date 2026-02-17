@@ -33,3 +33,6 @@ export const PIPELINE_QUEUE_DIR = resolve(OUTPUT_BASE_DIR, "pipeline_queue");
 
 /** pipeline_queue_rejected ディレクトリのフルパス（論理削除先） */
 export const PIPELINE_QUEUE_REJECTED_DIR = resolve(OUTPUT_BASE_DIR, "pipeline_queue_rejected");
+
+/** pipeline_queue_done ディレクトリのフルパス（処理完了先） */
+export const PIPELINE_QUEUE_DONE_DIR = resolve(OUTPUT_BASE_DIR, "pipeline_queue_done");

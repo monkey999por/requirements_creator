@@ -23,14 +23,14 @@ collect:
     # カテゴリID: 1=映画, 10=音楽, 20=ゲーム, 28=科学技術, 25=ニュース, 17=スポーツ
     youtube:
       type: youtube
-      enabled: false
+      enabled: true
       api_key_env: YOUTUBE_DATA_API_KEY
       endpoint: https://www.googleapis.com/youtube/v3/videos
       params:
         chart: mostPopular
         regionCode: JP
         maxResults: 20
-        videoCategoryId: "28"
+        videoCategoryId: "1"
       output_file: youtube.json
 
     # YouTube Data API - 全体ランキング（カテゴリなし）
@@ -83,7 +83,7 @@ collect:
     #   limit: 取得件数（デフォルト25、最大100）
     threads:
       type: threads
-      enabled: true
+      enabled: false
       api_key_env: THREADS_ACCESS_TOKEN
       endpoint: https://graph.threads.net/v1.0/keyword_search
       params:

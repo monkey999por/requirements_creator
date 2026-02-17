@@ -8,7 +8,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { DATA_SOURCE_DIR, PIPELINE_QUEUE_DIR, PIPELINE_QUEUE_REJECTED_DIR } from "./lib/paths.js";
+import { DATA_SOURCE_DIR, PIPELINE_QUEUE_DIR, PIPELINE_QUEUE_DONE_DIR } from "./lib/paths.js";
 
 interface QueueItem {
   id: string;
@@ -70,17 +70,17 @@ function main() {
     console.log(`pnpm pipeline --skip-collect --source ${ts} を実行中...`);
     execSync(`pnpm pipeline --skip-collect --source ${ts}`, {
       stdio: "inherit",
-      cwd: join(import.meta.dirname, ".."),
+      cwd: join(new URL(".", import.meta.url).pathname, ".."),
     });
     console.log("パイプライン完了（成功）");
 
     // 成功したらキューアイテムを処理済みディレクトリに移動
     const queueFilePath = join(PIPELINE_QUEUE_DIR, `${item.id}.json`);
     if (existsSync(queueFilePath)) {
-      if (!existsSync(PIPELINE_QUEUE_REJECTED_DIR)) {
-        mkdirSync(PIPELINE_QUEUE_REJECTED_DIR, { recursive: true });
+      if (!existsSync(PIPELINE_QUEUE_DONE_DIR)) {
+        mkdirSync(PIPELINE_QUEUE_DONE_DIR, { recursive: true });
       }
-      renameSync(queueFilePath, join(PIPELINE_QUEUE_REJECTED_DIR, `${item.id}.json`));
+      renameSync(queueFilePath, join(PIPELINE_QUEUE_DONE_DIR, `${item.id}.json`));
       console.log(`キューアイテムを処理済みに移動しました: ${item.id}`);
     }
   } catch (err) {
