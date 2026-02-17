@@ -31,13 +31,7 @@ fi
 log "Node: $(node --version 2>/dev/null || echo 'not found')"
 log "pnpm: $(pnpm --version 2>/dev/null || echo 'not found')"
 
-# ログファイルが存在するかチェック
-if [[ ! -d "$PROJECT_ROOT/logs" ]] || [[ -z "$(find "$PROJECT_ROOT/logs" -maxdepth 1 -name '*.jsonl' -print -quit 2>/dev/null)" ]]; then
-  log "パイプラインログがありません。自己修復をスキップします。"
-  log "=== 自己修復完了（スキップ） ==="
-  exit 0
-fi
-
+# ログ有無の判断はTypeScript側（self-healing.ts）に委ねる
 if pnpm self-healing >> "$LOG_FILE" 2>&1; then
   log "=== 自己修復完了（成功） ==="
 else

@@ -764,6 +764,9 @@ function DatasetItemList({
                       >
                         {item.title ?? item.featureId ?? "Overview"}
                       </button>
+                      {item.excerpt && (
+                        <p className="text-[10px] text-gray-500 truncate mt-0.5">{item.excerpt}</p>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       {/* Preview button */}

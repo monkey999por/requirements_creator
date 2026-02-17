@@ -109,6 +109,7 @@ export interface DatasetItem {
   featureId?: string;
   diagramId?: string;
   title?: string;
+  excerpt?: string;
 }
 
 export interface Dataset {

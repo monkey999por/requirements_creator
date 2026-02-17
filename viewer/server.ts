@@ -92,6 +92,7 @@ interface DatasetItem {
   featureId?: string;
   diagramId?: string;
   title?: string;
+  excerpt?: string;
 }
 
 interface Dataset {

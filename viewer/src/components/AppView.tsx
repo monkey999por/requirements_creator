@@ -22,6 +22,16 @@ import { ChevronRightIcon, XIcon } from "./shared/Icons";
 import { LoadingSpinner } from "./shared/LoadingSpinner";
 
 export type AppTab = "overview" | "source-info" | "diagrams" | "features" | "memo";
+
+function makeExcerpt(markdown: string, maxLen = 80): string {
+  const plain = markdown
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/[*_~`>]/g, "")
+    .replace(/\n+/g, " ")
+    .trim();
+  return plain.length > maxLen ? `${plain.slice(0, maxLen)}…` : plain;
+}
 type LeftTab = "overview" | "source-info" | "diagrams" | "memo";
 
 /** モバイルタブの並び順 */
@@ -205,7 +215,12 @@ export function AppView({
             />
             {isDev && leftTab === "overview" && (
               <DatasetAddButton
-                item={{ appName, type: "overview", title: appName }}
+                item={{
+                  appName,
+                  type: "overview",
+                  title: appName,
+                  excerpt: makeExcerpt(overview),
+                }}
                 isDev={isDev}
               />
             )}
@@ -253,6 +268,7 @@ export function AppView({
                                     type: "diagram",
                                     diagramId: d.id,
                                     title: d.title,
+                                    excerpt: d.title,
                                   }}
                                   isDev={isDev}
                                 />
@@ -359,6 +375,7 @@ export function AppView({
                         type: "feature",
                         featureId: f.id,
                         title: f.title,
+                        excerpt: f.summary?.slice(0, 80),
                       }}
                       isDev={isDev}
                     />
@@ -581,7 +598,10 @@ function MobileLayout({
           onPin={() => onPinTab("memo")}
         />
         {isDev && mobileTab === "overview" && (
-          <DatasetAddButton item={{ appName, type: "overview", title: appName }} isDev={isDev} />
+          <DatasetAddButton
+            item={{ appName, type: "overview", title: appName, excerpt: makeExcerpt(overview) }}
+            isDev={isDev}
+          />
         )}
       </div>
       {/* Content */}
