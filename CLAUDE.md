@@ -51,6 +51,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │   │   └── {dataset_name}.json
 │   ├── pipeline_queue/       # パイプラインキュー（アイデアをJSON保存、スケジューラで自動処理）
 │   │   └── {id}.json
+│   ├── pipeline_queue_done/  # 処理完了済みキューアイテムの保存先
+│   ├── pipeline_queue_rejected/  # 削除（論理削除）されたキューアイテムの保存先
 │   └── requirements/         # 生成されたアプリ要件（アプリ単位のサブディレクトリ）
 │       └── {app_name}/
 │           ├── _source_info.json
@@ -68,10 +70,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │   ├── validate-requirements.ts  # バリデーション
 │   ├── pipeline.ts           # パイプライン一括実行（PipelineLogger統合）
 │   ├── process-queue.ts      # パイプラインキュー処理（先頭1件のみpipeline実行）
+│   ├── migrate-source-info.ts  # _source_info.jsonのマイグレーション
 │   ├── self-healing.ts       # 自己修復（ログ解析→config不整合チェック→Claude Code修復→PR作成）
 │   ├── self-healing-run.sh   # 自己修復用systemdタイマーラッパー
+│   ├── self-healing-ctl.sh   # 自己修復スケジューラの有効/無効/状態確認
 │   ├── scheduler-run.sh      # systemdタイマー用ラッパー（キュー優先で分岐実行）
-│   ├── scheduler-ctl.sh      # systemdスケジューラの有効/無効/状態確認（--target対応）
+│   ├── scheduler-ctl.sh      # パイプラインスケジューラの有効/無効/状態確認
+│   ├── setup.sh              # 初期セットアップスクリプト
 │   ├── test-slack-notify.ts  # Slack通知テスト
 │   └── lib/                  # 共通ライブラリ
 │       ├── agents.ts         # マルチエージェント管理
@@ -83,12 +88,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │       ├── fetchers.ts       # API呼び出し（NewsAPI等）
 │       ├── logger.ts         # JSONL構造化ログ（PipelineLoggerクラス）
 │       ├── generate-helpers.sh  # 生成ヘルパー（シェル）
-│       ├── paths.ts          # パス定数
+│       ├── paths.ts          # パス定数（DATA_SOURCE_DIR, REQUIREMENTS_DIR, DATASETS_DIR, PIPELINE_QUEUE_DIR等）
 │       ├── select-source.sh  # データソース選択（シェル）
 │       ├── slack.ts          # Slack通知
 │       ├── storage.ts        # ファイル出力
-│       └── tags.ts           # タグ管理（gen/tags.jsonから動的読み込み・バリデーション）
+│       ├── tags.ts           # タグ管理（gen/tags.jsonから動的読み込み・バリデーション）
+│       └── utils.ts          # 汎用ユーティリティ関数
 ├── systemd/                  # systemdユニットファイル
+│   ├── pipeline.timer        # パイプラインの定期実行タイマー
+│   ├── pipeline.service      # パイプラインサービス定義
 │   ├── self-healing.timer    # 自己修復の定期実行タイマー
 │   └── self-healing.service  # 自己修復サービス定義
 ├── viewer/                   # Webビューワー（pnpmワークスペースパッケージ）
@@ -100,6 +108,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │       ├── api.ts
 │       ├── index.css
 │       ├── main.tsx
+│       ├── vite-env.d.ts     # Vite型定義
 │       ├── hooks/            # カスタムフック
 │       │   ├── useIsMobile.ts     # モバイル判定
 │       │   ├── useMessageToast.ts # トースト通知管理
@@ -128,8 +137,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │               ├── MessageToast.tsx   # メッセージトースト
 │               ├── SaveButton.tsx     # 保存ボタン
 │               └── TypeBadge.tsx      # タイプバッジ
-├── todo/                     # 開発タスク管理（フェーズ別）
+├── OVERVIEW.md               # プロジェクト概要ドキュメント
+├── SLACK_NOTIFICATION.md     # Slack通知設定ガイド
+├── STRUCTURE.md              # プロジェクト構造ドキュメント
+├── USECASE.md                # ユースケースドキュメント
+├── USECASE_QUEUE.md          # キュー機能のユースケースドキュメント
 ├── USECASE_SELF_HEALING.md   # 自己修復機能のユースケースドキュメント
+├── setup.sh                  # 初期セットアップスクリプト
 ├── app.config.yaml           # アプリケーション設定（フェーズ別の設定を階層管理）
 ├── biome.jsonc               # Biome設定（フォーマッター・リンター）
 ├── tsconfig.json             # TypeScript設定（scripts用）
@@ -186,13 +200,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | --------- | ------ |
 | `pnpm self-healing` | パイプラインログ解析→config不整合チェック→自動修復→PR作成 |
 
-### スケジューラ
+### スケジューラ（パイプライン）
 
 | コマンド | 説明 |
 | --------- | ------ |
-| `pnpm scheduler:enable` | systemdスケジューラを有効化（`--target pipeline\|self-healing\|all`） |
-| `pnpm scheduler:disable` | systemdスケジューラを無効化（`--target pipeline\|self-healing\|all`） |
-| `pnpm scheduler:status` | スケジューラの状態・今後の実行予定を表示（`--target pipeline\|self-healing\|all`） |
+| `pnpm scheduler:enable` | パイプラインスケジューラを有効化 |
+| `pnpm scheduler:disable` | パイプラインスケジューラを無効化 |
+| `pnpm scheduler:status` | パイプラインスケジューラの状態・今後の実行予定を表示 |
+
+### スケジューラ（自己修復）
+
+| コマンド | 説明 |
+| --------- | ------ |
+| `pnpm self-healing:scheduler:enable` | 自己修復スケジューラを有効化 |
+| `pnpm self-healing:scheduler:disable` | 自己修復スケジューラを無効化 |
+| `pnpm self-healing:scheduler:status` | 自己修復スケジューラの状態を表示 |
 
 ### Webビューワー
 
@@ -210,10 +232,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `pnpm lint` | Biomeでリント |
 | `pnpm check` | Biomeでフォーマット+リントの一括チェック・修正 |
 
-### テスト・ユーティリティ
+### セットアップ・テスト・ユーティリティ
 
 | コマンド | 説明 |
 | --------- | ------ |
+| `pnpm setup` | 初期セットアップ（依存パッケージインストール・環境変数設定等） |
 | `pnpm test:slack` | Slack通知のテスト送信 |
 
 ## コーディング規約
@@ -276,6 +299,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **`constraints`**: 生成アプリの技術的制約（platform, budget, difficulty, team_size, tech_stack）
 - **`perspectives`**: アプリ案の体験設計・マネタイズ戦略（mode: single/combine/random、items: kindness/cunning/frustration/dopamine/target-focus）
 - **`agents`**: マルチエージェント設定（Codex: designer+reviewer、Gemini: designer+researcher）
+
+### パイプライン共通（`pipeline`）
+
+- **`default_source`**: デフォルトで使用するdata_sourceサブディレクトリ名（省略時は最新ディレクトリを自動検出、CLIの `--source` で上書き可能）
 
 ### 通知（`notifications`）
 
@@ -369,6 +396,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `POST /api/scheduler/enable` | スケジューラを有効化（dev modeのみ） |
 | `POST /api/scheduler/disable` | スケジューラを無効化（dev modeのみ） |
 | `POST /api/scheduler/schedule` | スケジュール設定変更（dev modeのみ、body: `{days, times}`） |
+
+### 自己修復スケジューラ
+
+| エンドポイント | 説明 |
+| -------------- | ------ |
+| `GET /api/self-healing/scheduler/status` | 自己修復スケジューラの状態取得 |
+| `POST /api/self-healing/scheduler/enable` | 自己修復スケジューラを有効化（dev modeのみ） |
+| `POST /api/self-healing/scheduler/disable` | 自己修復スケジューラを無効化（dev modeのみ） |
 
 ### 設定
 
