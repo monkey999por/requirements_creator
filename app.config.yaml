@@ -145,7 +145,7 @@ extract:
     #   shallow  — 元データから1段階の連想（直接的な関連語・類義語）
     #   moderate — 2段階の連想（関連分野・応用領域まで）（デフォルト）
     #   deep     — 3段階以上の連想（異分野の組み合わせ・創造的な飛躍まで）
-    depth: moderate
+    depth: deep
 
 # --- generate フェーズ設定 ---
 generate:

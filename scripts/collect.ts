@@ -101,6 +101,12 @@ async function main() {
   if (!process.env.PIPELINE_LOG_FILE) {
     logger.endStep("collect", successCount > 0 ? "success" : "failed");
   }
+
+  // 全ソース失敗時はパイプラインを停止させるため非ゼロ終了
+  if (successCount === 0) {
+    console.error("全データソースの取得に失敗しました。");
+    process.exit(1);
+  }
 }
 
 main().catch((err) => {
