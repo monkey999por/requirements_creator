@@ -1,9 +1,9 @@
 import { execSync, spawnSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { loadAppConfig } from "./lib/config.js";
 import type { LogEntry } from "./lib/logger.js";
-import { LOGS_DIR, listLogFiles, readLogEntries } from "./lib/logger.js";
+import { LOGS_DIR, clearLogs, listLogFiles, readLogEntries } from "./lib/logger.js";
 import { notifySelfHealingResult } from "./lib/slack.js";
 import { formatError } from "./lib/utils.js";
 
@@ -333,10 +333,8 @@ function buildIssuesSummary(analysis: AnalysisResult): string {
 
 // --- ログクリア ---
 function clearAllLogs(): void {
-  if (existsSync(LOGS_DIR)) {
-    rmSync(LOGS_DIR, { recursive: true, force: true });
-    console.log("ログディレクトリを削除しました。");
-  }
+  clearLogs();
+  console.log("解析済みログ（.jsonl）を削除しました。");
 }
 
 // --- メイン ---
