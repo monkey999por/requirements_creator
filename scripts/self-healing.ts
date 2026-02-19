@@ -397,13 +397,15 @@ async function main() {
     return;
   }
 
-  // 自己修復を実行し、修復後にログをクリア
+  // 自己修復を実行
   if (allAnalysis.hasIssues) {
     await runSelfHealing(allAnalysis);
-    clearAllLogs();
   } else {
-    console.log("\n問題なし。ログは次回チェック用に保持します。");
+    console.log("\n問題なし。");
   }
+
+  // 解析済みログをクリア
+  clearAllLogs();
 }
 
 main().catch((err) => {
