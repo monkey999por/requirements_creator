@@ -11,8 +11,10 @@ import {
 } from "node:fs";
 import { createServer } from "node:http";
 import { join, resolve } from "node:path";
+import { PassThrough } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import archiver from "archiver";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { type Document, isMap, parse, parseDocument } from "yaml";
@@ -294,6 +296,46 @@ app.post("/api/apps/:name/memo", async (c) => {
   const body = await c.req.json<{ content: string }>();
   writeFileSync(filePath, body.content, "utf-8");
   return c.json({ success: true });
+});
+
+// --- Download API ---
+app.get("/api/apps/:name/download", async (c) => {
+  const name = c.req.param("name");
+  const appDir = join(REQUIREMENTS_DIR, name);
+  if (!existsSync(appDir)) return c.json({ error: "Not found" }, 404);
+
+  const passthrough = new PassThrough();
+  const archive = archiver("zip", { zlib: { level: 9 } });
+  archive.pipe(passthrough);
+
+  // overview.md
+  const overviewPath = join(appDir, "overview.md");
+  if (existsSync(overviewPath)) archive.file(overviewPath, { name: "overview.md" });
+
+  // memo.md
+  const memoPath = join(appDir, "memo.md");
+  if (existsSync(memoPath)) archive.file(memoPath, { name: "memo.md" });
+
+  // _source_info.json
+  const sourceInfoPath = join(appDir, "_source_info.json");
+  if (existsSync(sourceInfoPath)) archive.file(sourceInfoPath, { name: "_source_info.json" });
+
+  // features/
+  const featuresDir = join(appDir, "features");
+  if (existsSync(featuresDir)) archive.directory(featuresDir, "features");
+
+  // diagrams/
+  const diagramsDir = join(appDir, "diagrams");
+  if (existsSync(diagramsDir)) archive.directory(diagramsDir, "diagrams");
+
+  archive.finalize();
+
+  return new Response(passthrough as unknown as ReadableStream, {
+    headers: {
+      "Content-Type": "application/zip",
+      "Content-Disposition": `attachment; filename="${encodeURIComponent(name)}.zip"`,
+    },
+  });
 });
 
 // --- Dataset API ---

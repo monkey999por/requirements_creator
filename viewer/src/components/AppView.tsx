@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { staggerContainerVariants, staggerItemVariants } from "../animations";
 import {
   type DiagramFile,
+  downloadApp,
   type Feature,
   fetchAppGenerationConfig,
   fetchDiagrams,
@@ -18,7 +19,7 @@ import { DatasetAddButton } from "./DatasetAddButton";
 import { MarkdownPane } from "./MarkdownPane";
 import { MemoTab } from "./MemoTab";
 import { BackButton } from "./shared/BackButton";
-import { ChevronRightIcon, XIcon } from "./shared/Icons";
+import { ChevronRightIcon, DownloadIcon, XIcon } from "./shared/Icons";
 import { LoadingSpinner } from "./shared/LoadingSpinner";
 
 export type AppTab = "overview" | "source-info" | "diagrams" | "features" | "memo";
@@ -224,6 +225,14 @@ export function AppView({
                 isDev={isDev}
               />
             )}
+            <button
+              type="button"
+              className="ml-auto p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+              onClick={() => downloadApp(appName)}
+              title="ZIPダウンロード"
+            >
+              <DownloadIcon className="size-3.5" />
+            </button>
           </div>
           {/* Content */}
           {leftTab === "memo" ? (
