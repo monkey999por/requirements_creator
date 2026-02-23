@@ -101,6 +101,22 @@ export async function saveMemo(appName: string, content: string): Promise<{ succ
   return res.json();
 }
 
+// --- Download API ---
+
+export async function downloadApp(appName: string): Promise<void> {
+  const res = await fetch(`${BASE}/apps/${appName}/download`);
+  if (!res.ok) throw new Error("Download failed");
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${appName}.zip`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 // --- Dataset API ---
 
 export interface DatasetItem {
