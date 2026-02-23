@@ -1,0 +1,13 @@
+[Unit]
+Description=Requirements Creator 自己修復実行
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=@@PROJECT_DIR@@
+ExecStart=@@PROJECT_DIR@@/scripts/self-healing-run.sh
+Environment=PATH=%h/.local/share/pnpm:%h/.nvm/versions/node/@@NODE_VERSION@@/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=default.target

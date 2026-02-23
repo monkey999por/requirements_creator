@@ -14,7 +14,18 @@ if ! command -v systemctl &>/dev/null; then
   exit 1
 fi
 
+generate_service() {
+  local template="$UNIT_DIR/self-healing.service.template"
+  local output="$UNIT_DIR/self-healing.service"
+  local node_version
+  node_version="$(node -v | sed 's/^v//')"
+  sed -e "s|@@PROJECT_DIR@@|$PROJECT_ROOT|g" \
+      -e "s|@@NODE_VERSION@@|$node_version|g" \
+      "$template" > "$output"
+}
+
 install_units() {
+  generate_service
   mkdir -p "$SYSTEMD_DIR"
   ln -sf "$UNIT_DIR/self-healing.service" "$SYSTEMD_DIR/self-healing.service"
   ln -sf "$UNIT_DIR/self-healing.timer" "$SYSTEMD_DIR/self-healing.timer"
