@@ -94,7 +94,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │       └── utils.ts          # 汎用ユーティリティ関数
 ├── viewer/                   # Webビューワー（pnpmワークスペースパッケージ）
 │   ├── server.ts             # Hono APIサーバ + Vite dev middleware
-│   ├── scheduler-manager.ts  # croner内蔵スケジューラ（スケジュール・状態管理）
+│   ├── scheduler-manager.ts  # croner内蔵スケジューラ（スケジュール・状態管理、cron変換ロジック内蔵）
 │   ├── vite.config.ts
 │   └── src/
 │       ├── App.tsx           # ViewMode: "apps" | "datasets" | "commands" | "config" | "queue" | "scheduler"
@@ -131,6 +131,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │               ├── MessageToast.tsx   # メッセージトースト
 │               ├── SaveButton.tsx     # 保存ボタン
 │               └── TypeBadge.tsx      # タイプバッジ
+├── .scheduler-state.json     # スケジューラ状態・設定（曜日・時刻・TZ・有効/無効を一元管理）
+├── DEVCONTAINER.md           # DevContainer開発環境ガイド
 ├── OVERVIEW.md               # プロジェクト概要ドキュメント
 ├── SLACK_NOTIFICATION.md     # Slack通知設定ガイド
 ├── STRUCTURE.md              # プロジェクト構造ドキュメント
@@ -369,7 +371,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### スケジューラ（Viewer内蔵croner）
 
-スケジューラはViewerプロセスに内蔵（croner）。スケジュール設定（曜日・時刻）と有効/無効状態は `.scheduler-state.json` で一元管理。
+スケジューラはViewerプロセスに内蔵（croner）。スケジュール設定（曜日・時刻・TZ）と有効/無効状態はプロジェクトルートの `.scheduler-state.json` で一元管理。
 
 | エンドポイント | 説明 |
 | -------------- | ------ |
