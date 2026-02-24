@@ -9,7 +9,7 @@
 - [概要](#概要)
 - [使い方](#使い方)
   - [CLI から実行する](#cli-から実行する)
-  - [systemd スケジューラとの連携](#systemd-スケジューラとの連携)
+  - [スケジューラとの連携](#スケジューラとの連携)
 - [内部実装](#内部実装)
   - [ログの仕組み](#ログの仕組み)
   - [解析フロー](#解析フロー)
@@ -32,7 +32,7 @@
 
 - パイプラインの失敗を手動で確認・修正する手間を省く
 - 設定変更後に動作が壊れていないかを自動チェック
-- 定期実行（systemd タイマー）で無人運用時の問題を自動検出・修復
+- 定期実行（Viewer内蔵スケジューラ）で無人運用時の問題を自動検出・修復
 
 ### 動作原理
 
@@ -42,7 +42,7 @@
    ▼
 logs/{timestamp}.jsonl    ← JSONL 形式の構造化ログ
    │
-   │ (systemd タイマー or 手動実行)
+   │ (Viewer内蔵スケジューラ or 手動実行)
    ▼
 self-healing.ts
    │
@@ -84,28 +84,15 @@ pnpm self-healing
 | 修復まで一気通貫で実行 | `pnpm self-healing` |
 | 設定変更後の動作確認 | `pnpm pipeline` → `pnpm self-healing -- --dry-run` |
 
-### systemd スケジューラとの連携
+### スケジューラとの連携
 
-パイプラインタイマーとは独立した別タイマーで管理される。
-
-```bash
-# 自己修復タイマーを有効化（毎日 JST 6:00 に実行）
-pnpm self-healing:scheduler:enable
-
-# 自己修復タイマーを無効化
-pnpm self-healing:scheduler:disable
-
-# 自己修復タイマーの状態確認
-pnpm self-healing:scheduler:status
-```
-
-パイプラインスケジューラとは完全に独立したコマンドで管理される。
+パイプラインスケジューラとは独立した別スケジュールで管理される。Viewer UIの「スケジューラ設定」画面から有効/無効を切り替え可能。
 
 #### スケジュール設計
 
 ```
-パイプラインタイマー:  02:00〜05:00, 12:03（JST）  ← アプリ生成
-自己修復タイマー:      06:00（JST）                 ← 夜間実行分のログをチェック
+パイプラインスケジュール:  02:00〜05:00（JST）  ← アプリ生成
+自己修復スケジュール:      06:00（JST）          ← 夜間実行分のログをチェック
 ```
 
 パイプライン実行が完了した後に自己修復が走るよう、時間帯を分けている。
@@ -200,8 +187,7 @@ pipeline.ts (PipelineLogger作成)
 ```
 scripts/
 ├── self-healing.ts         # メインスクリプト（pnpm self-healing）
-├── self-healing-run.sh     # systemd タイマー用ラッパー
-├── self-healing-ctl.sh     # 自己修復スケジューラ制御
+├── self-healing-run.sh     # スケジューラ実行ラッパー
 └── lib/
     ├── logger.ts           # PipelineLogger クラス、ログ読み書きユーティリティ
     └── common.sh           # pipeline_log() 関数（シェルスクリプト共通）
@@ -210,15 +196,17 @@ scripts/
 └── self-healing/
     └── SKILL.md            # 自己修復スキル定義（Claude Code への指示）
 
+viewer/
+├── scheduler-manager.ts    # croner内蔵スケジューラ（有効/無効・ジョブ管理）
+└── timer-parser.ts         # timer file解析・cron式変換
+
 systemd/
-├── self-healing.timer      # 定期実行タイマー（毎日 JST 6:00）
-├── self-healing.service    # サービス定義
-├── pipeline.timer          # （既存）パイプラインタイマー
-└── pipeline.service        # （既存）パイプラインサービス
+├── self-healing.timer      # 自己修復スケジュール定義（毎日 JST 6:00）
+└── pipeline.timer          # パイプラインスケジュール定義
 
 logs/                       # パイプラインログ出力先（.gitignore 対象）
 ├── {timestamp}.jsonl       # パイプライン実行ログ
-└── scheduler/              # systemd スケジューラログ（既存）
+└── scheduler/              # スケジューラログ
     └── self-healing_{timestamp}.log
 ```
 
@@ -264,19 +252,7 @@ pnpm self-healing -- --dry-run
 
 ### 4. 定期実行で無人運用
 
-```bash
-# パイプラインタイマーを有効化
-pnpm scheduler:enable
-
-# 自己修復タイマーを有効化
-pnpm self-healing:scheduler:enable
-
-# 状態確認
-pnpm scheduler:status
-# → スケジューラ: 有効（02:00〜05:00, 12:03）
-pnpm self-healing:scheduler:status
-# → 自己修復スケジューラ: 有効（06:00）
-```
+Viewerの「スケジューラ設定」画面からパイプラインスケジューラと自己修復スケジューラをそれぞれ有効化する。
 
 毎日の流れ:
 ```
@@ -284,20 +260,7 @@ pnpm self-healing:scheduler:status
 06:00         自己修復チェック → 問題があれば bugfix PR 作成
 ```
 
-### 5. 自己修復タイマーだけ個別管理
-
-```bash
-# 自己修復だけ有効化（パイプラインは手動実行したい場合）
-pnpm self-healing:scheduler:enable
-
-# 自己修復だけ無効化（パイプラインは定期実行を継続）
-pnpm self-healing:scheduler:disable
-
-# 自己修復だけ状態確認
-pnpm self-healing:scheduler:status
-```
-
-### 6. 手動でログを確認したい
+### 5. 手動でログを確認したい
 
 ```bash
 # ログファイル一覧

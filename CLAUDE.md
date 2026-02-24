@@ -72,10 +72,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │   ├── process-queue.ts      # パイプラインキュー処理（先頭1件のみpipeline実行）
 │   ├── migrate-source-info.ts  # _source_info.jsonのマイグレーション
 │   ├── self-healing.ts       # 自己修復（ログ解析→config不整合チェック→Claude Code修復→PR作成）
-│   ├── self-healing-run.sh   # 自己修復用systemdタイマーラッパー
-│   ├── self-healing-ctl.sh   # 自己修復スケジューラの有効/無効/状態確認
-│   ├── scheduler-run.sh      # systemdタイマー用ラッパー（キュー優先で分岐実行）
-│   ├── scheduler-ctl.sh      # パイプラインスケジューラの有効/無効/状態確認
+│   ├── self-healing-run.sh   # 自己修復スケジューラ実行ラッパー
+│   ├── scheduler-run.sh      # パイプラインスケジューラ実行ラッパー（キュー優先で分岐実行）
 │   ├── setup.sh              # 初期セットアップスクリプト
 │   ├── test-slack-notify.ts  # Slack通知テスト
 │   └── lib/                  # 共通ライブラリ
@@ -94,13 +92,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │       ├── storage.ts        # ファイル出力
 │       ├── tags.ts           # タグ管理（gen/tags.jsonから動的読み込み・バリデーション）
 │       └── utils.ts          # 汎用ユーティリティ関数
-├── systemd/                  # systemdユニットファイル
-│   ├── pipeline.timer        # パイプラインの定期実行タイマー
-│   ├── pipeline.service      # パイプラインサービス定義
-│   ├── self-healing.timer    # 自己修復の定期実行タイマー
-│   └── self-healing.service  # 自己修復サービス定義
+├── systemd/                  # スケジュール定義ファイル（timer形式）
+│   ├── pipeline.timer        # パイプラインの定期実行スケジュール
+│   └── self-healing.timer    # 自己修復の定期実行スケジュール
 ├── viewer/                   # Webビューワー（pnpmワークスペースパッケージ）
 │   ├── server.ts             # Hono APIサーバ + Vite dev middleware
+│   ├── scheduler-manager.ts  # croner内蔵スケジューラ（timer解析→cronジョブ管理）
+│   ├── timer-parser.ts       # timer file解析・cron式変換
 │   ├── vite.config.ts
 │   └── src/
 │       ├── App.tsx           # ViewMode: "apps" | "datasets" | "commands" | "config" | "queue" | "scheduler"
@@ -172,6 +170,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Markdownレンダリング: react-markdown + remark-gfm
 - 図解: mermaid（Mermaidダイアグラムのレンダリング）
 - アニメーション: motion (framer-motion)
+- スケジューラ: croner（軽量cron、TZ対応）
 - 開発サーバ: Vite dev middleware統合（APIとフロントエンドを同一ポートで提供）
 
 **開発ツール**:
@@ -199,22 +198,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | コマンド | 説明 |
 | --------- | ------ |
 | `pnpm self-healing` | パイプラインログ解析→config不整合チェック→自動修復→PR作成 |
-
-### スケジューラ（パイプライン）
-
-| コマンド | 説明 |
-| --------- | ------ |
-| `pnpm scheduler:enable` | パイプラインスケジューラを有効化 |
-| `pnpm scheduler:disable` | パイプラインスケジューラを無効化 |
-| `pnpm scheduler:status` | パイプラインスケジューラの状態・今後の実行予定を表示 |
-
-### スケジューラ（自己修復）
-
-| コマンド | 説明 |
-| --------- | ------ |
-| `pnpm self-healing:scheduler:enable` | 自己修復スケジューラを有効化 |
-| `pnpm self-healing:scheduler:disable` | 自己修復スケジューラを無効化 |
-| `pnpm self-healing:scheduler:status` | 自己修復スケジューラの状態を表示 |
 
 ### Webビューワー
 
@@ -388,19 +371,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `DELETE /api/queue/:id` | キューアイテム削除（dev modeのみ） |
 | `POST /api/queue/:id/execute` | キューアイテムを個別実行（dev modeのみ） |
 
-### スケジューラ
+### スケジューラ（Viewer内蔵croner）
+
+スケジューラはViewerプロセスに内蔵（croner）。`systemd/pipeline.timer` と `systemd/self-healing.timer` のOnCalendar定義をcron式に変換して実行。有効/無効状態は `gen/.scheduler-state.json` で永続化。
 
 | エンドポイント | 説明 |
 | -------------- | ------ |
-| `GET /api/scheduler/status` | スケジューラの状態取得 |
+| `GET /api/scheduler/status` | スケジューラの状態取得（有効/無効、次回実行、スケジュール） |
 | `POST /api/scheduler/enable` | スケジューラを有効化（dev modeのみ） |
 | `POST /api/scheduler/disable` | スケジューラを無効化（dev modeのみ） |
 | `POST /api/scheduler/schedule` | スケジュール設定変更（dev modeのみ、body: `{days, times}`） |
-
-### 自己修復スケジューラ
-
-| エンドポイント | 説明 |
-| -------------- | ------ |
 | `GET /api/self-healing/scheduler/status` | 自己修復スケジューラの状態取得 |
 | `POST /api/self-healing/scheduler/enable` | 自己修復スケジューラを有効化（dev modeのみ） |
 | `POST /api/self-healing/scheduler/disable` | 自己修復スケジューラを無効化（dev modeのみ） |

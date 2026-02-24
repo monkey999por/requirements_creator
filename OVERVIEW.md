@@ -36,11 +36,11 @@
 - `pnpm queue:process` — キュー内のアイテムを順次パイプライン実行
 - キューアイテムはViewerから作成・編集・削除可能
 
-## スケジューラ
+## スケジューラ（Viewer内蔵）
 
-- `pnpm scheduler:enable` — systemdタイマーを有効化し定期的にパイプラインを実行
-- `pnpm scheduler:disable` — systemdタイマーを無効化
-- `pnpm scheduler:status` — タイマー・サービスの状態と今後の実行予定を表示
+- Viewerプロセスに内蔵された croner ベースのスケジューラ
+- `systemd/pipeline.timer` のOnCalendar定義をcron式に変換して定期実行
+- 有効/無効の切り替えはViewer UIから操作（状態は `gen/.scheduler-state.json` で永続化）
 - キューがあればキュー処理を優先、なければ通常パイプラインを実行
 
 ## Webビューワー

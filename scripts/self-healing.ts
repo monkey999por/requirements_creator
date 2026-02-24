@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { loadAppConfig } from "./lib/config.js";
 import type { LogEntry } from "./lib/logger.js";
-import { LOGS_DIR, clearLogs, listLogFiles, readLogEntries } from "./lib/logger.js";
+import { clearLogs, LOGS_DIR, listLogFiles, readLogEntries } from "./lib/logger.js";
 import { notifySelfHealingResult } from "./lib/slack.js";
 import { formatError } from "./lib/utils.js";
 
