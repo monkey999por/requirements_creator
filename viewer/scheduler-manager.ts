@@ -2,7 +2,6 @@ import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { Cron } from "croner";
-import { parse as parseYaml } from "yaml";
 
 const __dirname = new URL(".", import.meta.url).pathname;
 const projectRoot = resolve(__dirname, "..");
@@ -53,16 +52,7 @@ const RUN_SCRIPTS: Record<SchedulerType, string> = {
 };
 
 function getStatePath(): string {
-  const configPath = resolve(projectRoot, "app.config.yaml");
-  let base = "gen";
-  try {
-    const raw = readFileSync(configPath, "utf-8");
-    const config = parseYaml(raw) as { output_base_dir?: string };
-    base = config.output_base_dir ?? "gen";
-  } catch {
-    // デフォルト
-  }
-  return resolve(projectRoot, base, ".scheduler-state.json");
+  return resolve(projectRoot, ".scheduler-state.json");
 }
 
 function loadState(): SchedulerState {

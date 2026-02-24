@@ -369,7 +369,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### スケジューラ（Viewer内蔵croner）
 
-スケジューラはViewerプロセスに内蔵（croner）。スケジュール設定（曜日・時刻）と有効/無効状態は `gen/.scheduler-state.json` で一元管理。
+スケジューラはViewerプロセスに内蔵（croner）。スケジュール設定（曜日・時刻）と有効/無効状態は `.scheduler-state.json` で一元管理。
 
 | エンドポイント | 説明 |
 | -------------- | ------ |

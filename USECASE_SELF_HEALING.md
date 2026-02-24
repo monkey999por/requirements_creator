@@ -197,7 +197,7 @@ scripts/
     └── SKILL.md            # 自己修復スキル定義（Claude Code への指示）
 
 viewer/
-└── scheduler-manager.ts    # croner内蔵スケジューラ（スケジュール・状態管理、gen/.scheduler-state.json）
+└── scheduler-manager.ts    # croner内蔵スケジューラ（スケジュール・状態管理、.scheduler-state.json）
 
 logs/                       # パイプラインログ出力先（.gitignore 対象）
 ├── {timestamp}.jsonl       # パイプライン実行ログ

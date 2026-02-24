@@ -1,0 +1,18 @@
+{
+  "pipeline": {
+    "enabled": false,
+    "schedule": {
+      "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      "times": ["02:00", "02:30", "03:00", "03:30", "04:00", "04:27", "05:00", "05:27"],
+      "timezone": "Asia/Tokyo"
+    }
+  },
+  "selfHealing": {
+    "enabled": false,
+    "schedule": {
+      "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      "times": ["06:00"],
+      "timezone": "Asia/Tokyo"
+    }
+  }
+}
