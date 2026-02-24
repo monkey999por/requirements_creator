@@ -1,0 +1,43 @@
+{
+  "name": "Requirements Creator Dev",
+  "dockerComposeFile": ["../compose.yaml"],
+  "service": "devcontainer",
+  "workspaceFolder": "/workspace",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "bash",
+            "icon": "terminal-bash"
+          },
+          "zsh": {
+            "path": "zsh"
+          }
+        }
+      }
+    }
+  },
+  "remoteUser": "node",
+  "containerEnv": {
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "POWERLEVEL9K_DISABLE_GITSTATUS": "true",
+    "UMASK": "0022"
+  },
+  "forwardPorts": [3001],
+  "portsAttributes": {
+    "3001": {
+      "label": "viewer",
+      "onAutoForward": "notify"
+    }
+  },
+  "postCreateCommand": "pnpm install && zsh .devcontainer/setup-dotfiles.sh",
+  "postStartCommand": "echo 'DevContainer started successfully'",
+  "waitFor": "postCreateCommand"
+}

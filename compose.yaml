@@ -1,0 +1,19 @@
+services:
+  devcontainer:
+    build:
+      context: .devcontainer
+      dockerfile: Dockerfile
+      args:
+        TZ: ${TZ:-Asia/Tokyo}
+        CLAUDE_CODE_VERSION: latest
+        GIT_DELTA_VERSION: "0.18.2"
+        ZSH_IN_DOCKER_VERSION: "1.2.0"
+        PNPM_VERSION: "10.28.0"
+    volumes:
+      - .:/workspace:cached
+      - ${HOME}/.ssh:/home/node/.ssh:ro
+    ports:
+      - "${VIEWER_HOST_PORT:-3001}:3001"
+    env_file:
+      - .env
+    command: bash -c "mkdir -p /workspace/logs && /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf"
