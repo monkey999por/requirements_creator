@@ -3,21 +3,48 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { Cron } from "croner";
 import { parse as parseYaml } from "yaml";
-import { parseTimerFile, toCronExpressions } from "./timer-parser.js";
 
 const __dirname = new URL(".", import.meta.url).pathname;
 const projectRoot = resolve(__dirname, "..");
 
+const ALL_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+
+interface ScheduleConfig {
+  days: string[];
+  times: string[];
+  timezone: string;
+}
+
+interface SchedulerEntry {
+  enabled: boolean;
+  schedule: ScheduleConfig;
+}
+
 interface SchedulerState {
-  pipeline: { enabled: boolean };
-  selfHealing: { enabled: boolean };
+  pipeline: SchedulerEntry;
+  selfHealing: SchedulerEntry;
 }
 
 type SchedulerType = "pipeline" | "selfHealing";
 
-const TIMER_FILES: Record<SchedulerType, string> = {
-  pipeline: resolve(projectRoot, "systemd", "pipeline.timer"),
-  selfHealing: resolve(projectRoot, "systemd", "self-healing.timer"),
+/** デフォルトスケジュール（初回起動時に使用） */
+const DEFAULT_STATE: SchedulerState = {
+  pipeline: {
+    enabled: false,
+    schedule: {
+      days: [...ALL_DAYS],
+      times: ["02:00", "02:30", "03:00", "03:30", "04:00", "04:27", "05:00", "05:27"],
+      timezone: "Asia/Tokyo",
+    },
+  },
+  selfHealing: {
+    enabled: false,
+    schedule: {
+      days: [...ALL_DAYS],
+      times: ["06:00"],
+      timezone: "Asia/Tokyo",
+    },
+  },
 };
 
 const RUN_SCRIPTS: Record<SchedulerType, string> = {
@@ -41,12 +68,24 @@ function getStatePath(): string {
 function loadState(): SchedulerState {
   const statePath = getStatePath();
   if (!existsSync(statePath)) {
-    return { pipeline: { enabled: false }, selfHealing: { enabled: false } };
+    return structuredClone(DEFAULT_STATE);
   }
   try {
-    return JSON.parse(readFileSync(statePath, "utf-8")) as SchedulerState;
+    const saved = JSON.parse(readFileSync(statePath, "utf-8")) as Partial<SchedulerState>;
+    // 保存データとデフォルトをマージ（schedule が欠落していた場合の互換性）
+    return {
+      pipeline: {
+        enabled: saved.pipeline?.enabled ?? DEFAULT_STATE.pipeline.enabled,
+        schedule: saved.pipeline?.schedule ?? structuredClone(DEFAULT_STATE.pipeline.schedule),
+      },
+      selfHealing: {
+        enabled: saved.selfHealing?.enabled ?? DEFAULT_STATE.selfHealing.enabled,
+        schedule:
+          saved.selfHealing?.schedule ?? structuredClone(DEFAULT_STATE.selfHealing.schedule),
+      },
+    };
   } catch {
-    return { pipeline: { enabled: false }, selfHealing: { enabled: false } };
+    return structuredClone(DEFAULT_STATE);
   }
 }
 
@@ -57,6 +96,28 @@ function saveState(state: SchedulerState): void {
   writeFileSync(statePath, JSON.stringify(state, null, 2), "utf-8");
 }
 
+/** days + times → cron式の配列に変換 */
+function toCronExpressions(schedule: ScheduleConfig): string[] {
+  const dayMap: Record<string, number> = {
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+    Sun: 0,
+  };
+
+  const isAllDays =
+    schedule.days.length === ALL_DAYS.length && ALL_DAYS.every((d) => schedule.days.includes(d));
+  const cronDays = isAllDays ? "*" : schedule.days.map((d) => dayMap[d] ?? 0).join(",");
+
+  return schedule.times.map((time) => {
+    const [hh, mm] = time.split(":");
+    return `${mm} ${hh} * * ${cronDays}`;
+  });
+}
+
 class SchedulerManager {
   private jobs: Map<string, Cron[]> = new Map();
   private runningProcesses: Map<string, ChildProcess> = new Map();
@@ -64,8 +125,8 @@ class SchedulerManager {
   /** 初期化: 保存状態に基づいてジョブを復元 */
   init(): void {
     const state = loadState();
-    if (state.pipeline.enabled) this.startJobs("pipeline");
-    if (state.selfHealing.enabled) this.startJobs("selfHealing");
+    if (state.pipeline.enabled) this.startJobs("pipeline", state.pipeline.schedule);
+    if (state.selfHealing.enabled) this.startJobs("selfHealing", state.selfHealing.schedule);
     const types: string[] = [];
     if (state.pipeline.enabled) types.push("pipeline");
     if (state.selfHealing.enabled) types.push("selfHealing");
@@ -78,7 +139,7 @@ class SchedulerManager {
     const state = loadState();
     state[type].enabled = true;
     saveState(state);
-    this.startJobs(type);
+    this.startJobs(type, state[type].schedule);
     console.log(`[scheduler-manager] ${type} を有効化しました`);
   }
 
@@ -96,9 +157,21 @@ class SchedulerManager {
   }
 
   getSchedule(type: SchedulerType): { days: string[]; times: string[] } {
-    const timerPath = TIMER_FILES[type];
-    const schedule = parseTimerFile(timerPath);
-    return { days: schedule.days, times: schedule.times };
+    const state = loadState();
+    const { days, times } = state[type].schedule;
+    return { days, times };
+  }
+
+  updateSchedule(type: SchedulerType, days: string[], times: string[]): void {
+    const state = loadState();
+    state[type].schedule.days = days;
+    state[type].schedule.times = [...times].sort();
+    saveState(state);
+    if (state[type].enabled) {
+      this.stopJobs(type);
+      this.startJobs(type, state[type].schedule);
+    }
+    console.log(`[scheduler-manager] ${type} のスケジュールを更新しました`);
   }
 
   getNextRun(type: SchedulerType): string | null {
@@ -115,11 +188,12 @@ class SchedulerManager {
     return earliest?.toISOString() ?? null;
   }
 
-  /** timer ファイル書き換え後にジョブを再登録 */
+  /** スケジュール変更後にジョブを再登録 */
   reloadSchedule(type: SchedulerType): void {
     if (!this.isActive(type)) return;
+    const state = loadState();
     this.stopJobs(type);
-    this.startJobs(type);
+    this.startJobs(type, state[type].schedule);
     console.log(`[scheduler-manager] ${type} のスケジュールをリロードしました`);
   }
 
@@ -129,10 +203,8 @@ class SchedulerManager {
     }
   }
 
-  private startJobs(type: SchedulerType): void {
+  private startJobs(type: SchedulerType, schedule: ScheduleConfig): void {
     this.stopJobs(type);
-    const timerPath = TIMER_FILES[type];
-    const schedule = parseTimerFile(timerPath);
     const cronExprs = toCronExpressions(schedule);
 
     const jobs: Cron[] = [];
@@ -183,4 +255,5 @@ class SchedulerManager {
 }
 
 export const schedulerManager = new SchedulerManager();
+export { ALL_DAYS };
 export type { SchedulerType };

@@ -19,7 +19,6 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { type Document, isMap, parse, parseDocument } from "yaml";
 import { schedulerManager } from "./scheduler-manager.js";
-import { ALL_DAYS } from "./timer-parser.js";
 
 const execAsync = promisify(exec);
 
@@ -865,47 +864,7 @@ app.post("/api/scheduler/schedule", async (c) => {
     return c.json({ error: "少なくとも1つの曜日を選択してください" }, 400);
   }
 
-  const timerPath = resolve(projectRoot, "systemd", "pipeline.timer");
-  if (!existsSync(timerPath)) return c.json({ error: "Timer file not found" }, 404);
-
-  const content = readFileSync(timerPath, "utf-8");
-  const lines = content.split("\n");
-
-  // [Timer]セクションのOnCalendar行を除去し、新しいものに置換
-  const newLines: string[] = [];
-  let inTimer = false;
-  let calendarInserted = false;
-
-  for (const line of lines) {
-    if (line.trim() === "[Timer]") {
-      inTimer = true;
-      newLines.push(line);
-      continue;
-    }
-    if (line.trim().startsWith("[") && line.trim() !== "[Timer]") {
-      inTimer = false;
-    }
-    if (inTimer && /^OnCalendar=/.test(line)) {
-      if (!calendarInserted) {
-        const isAllDays = ALL_DAYS.every((d) => days.includes(d)) && days.length === 7;
-        const sortedTimes = [...times].sort();
-        for (const time of sortedTimes) {
-          if (isAllDays) {
-            newLines.push(`OnCalendar=*-*-* ${time}:00`);
-          } else {
-            newLines.push(`OnCalendar=${days.join(",")} *-*-* ${time}:00`);
-          }
-        }
-        calendarInserted = true;
-      }
-      continue;
-    }
-    newLines.push(line);
-  }
-
-  writeFileSync(timerPath, newLines.join("\n"), "utf-8");
-  schedulerManager.reloadSchedule("pipeline");
-
+  schedulerManager.updateSchedule("pipeline", days, times);
   return c.json({ success: true });
 });
 

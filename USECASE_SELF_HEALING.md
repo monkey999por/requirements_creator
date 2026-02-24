@@ -197,12 +197,7 @@ scripts/
     └── SKILL.md            # 自己修復スキル定義（Claude Code への指示）
 
 viewer/
-├── scheduler-manager.ts    # croner内蔵スケジューラ（有効/無効・ジョブ管理）
-└── timer-parser.ts         # timer file解析・cron式変換
-
-systemd/
-├── self-healing.timer      # 自己修復スケジュール定義（毎日 JST 6:00）
-└── pipeline.timer          # パイプラインスケジュール定義
+└── scheduler-manager.ts    # croner内蔵スケジューラ（スケジュール・状態管理、gen/.scheduler-state.json）
 
 logs/                       # パイプラインログ出力先（.gitignore 対象）
 ├── {timestamp}.jsonl       # パイプライン実行ログ

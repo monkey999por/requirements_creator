@@ -92,13 +92,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │       ├── storage.ts        # ファイル出力
 │       ├── tags.ts           # タグ管理（gen/tags.jsonから動的読み込み・バリデーション）
 │       └── utils.ts          # 汎用ユーティリティ関数
-├── systemd/                  # スケジュール定義ファイル（timer形式）
-│   ├── pipeline.timer        # パイプラインの定期実行スケジュール
-│   └── self-healing.timer    # 自己修復の定期実行スケジュール
 ├── viewer/                   # Webビューワー（pnpmワークスペースパッケージ）
 │   ├── server.ts             # Hono APIサーバ + Vite dev middleware
-│   ├── scheduler-manager.ts  # croner内蔵スケジューラ（timer解析→cronジョブ管理）
-│   ├── timer-parser.ts       # timer file解析・cron式変換
+│   ├── scheduler-manager.ts  # croner内蔵スケジューラ（スケジュール・状態管理）
 │   ├── vite.config.ts
 │   └── src/
 │       ├── App.tsx           # ViewMode: "apps" | "datasets" | "commands" | "config" | "queue" | "scheduler"
@@ -373,7 +369,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### スケジューラ（Viewer内蔵croner）
 
-スケジューラはViewerプロセスに内蔵（croner）。`systemd/pipeline.timer` と `systemd/self-healing.timer` のOnCalendar定義をcron式に変換して実行。有効/無効状態は `gen/.scheduler-state.json` で永続化。
+スケジューラはViewerプロセスに内蔵（croner）。スケジュール設定（曜日・時刻）と有効/無効状態は `gen/.scheduler-state.json` で一元管理。
 
 | エンドポイント | 説明 |
 | -------------- | ------ |

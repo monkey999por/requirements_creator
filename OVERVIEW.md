@@ -39,8 +39,8 @@
 ## スケジューラ（Viewer内蔵）
 
 - Viewerプロセスに内蔵された croner ベースのスケジューラ
-- `systemd/pipeline.timer` のOnCalendar定義をcron式に変換して定期実行
-- 有効/無効の切り替えはViewer UIから操作（状態は `gen/.scheduler-state.json` で永続化）
+- スケジュール設定（曜日・時刻）と有効/無効状態は `gen/.scheduler-state.json` で一元管理
+- Viewer UIからスケジュールの変更・有効/無効の切り替えが可能
 - キューがあればキュー処理を優先、なければ通常パイプラインを実行
 
 ## Webビューワー
