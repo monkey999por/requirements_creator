@@ -500,6 +500,20 @@ export async function executeQueueItem(
   return res.json();
 }
 
+// --- Done Queue API ---
+
+export async function fetchDoneQueueItems(): Promise<QueueItem[]> {
+  const res = await fetch(`${BASE}/queue/done`);
+  return res.json();
+}
+
+export async function restoreQueueItem(
+  id: string,
+): Promise<{ success: boolean; item?: QueueItem; error?: string }> {
+  const res = await fetch(`${BASE}/queue/done/${id}/restore`, { method: "POST" });
+  return res.json();
+}
+
 // --- Git API ---
 
 export interface GitResult {
