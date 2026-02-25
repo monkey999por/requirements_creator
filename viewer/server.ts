@@ -80,6 +80,7 @@ function loadPipelineQueueDir(): string {
 }
 
 const PIPELINE_QUEUE_DIR = loadPipelineQueueDir();
+const PIPELINE_QUEUE_DONE_DIR = join(PIPELINE_QUEUE_DIR, "..", "pipeline_queue_done");
 
 interface QueueItem {
   id: string;
@@ -705,6 +706,58 @@ app.post("/api/queue/:id/execute", (c) => {
     success: true,
     message: `「${item.title}」のパイプラインをバックグラウンドで開始しました。`,
   });
+});
+
+// --- Done Queue API ---
+
+function readDoneQueueItems(): QueueItem[] {
+  if (!existsSync(PIPELINE_QUEUE_DONE_DIR)) return [];
+  return readdirSync(PIPELINE_QUEUE_DONE_DIR)
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => {
+      try {
+        return JSON.parse(readFileSync(join(PIPELINE_QUEUE_DONE_DIR, f), "utf-8")) as QueueItem;
+      } catch {
+        return null;
+      }
+    })
+    .filter((item): item is QueueItem => item !== null)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+app.get("/api/queue/done", (c) => {
+  return c.json(readDoneQueueItems());
+});
+
+app.post("/api/queue/done/:id/restore", (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  const id = c.req.param("id");
+  const doneFilePath = join(PIPELINE_QUEUE_DONE_DIR, `${id}.json`);
+  if (!existsSync(doneFilePath)) return c.json({ error: "Not found" }, 404);
+
+  const existing = JSON.parse(readFileSync(doneFilePath, "utf-8")) as QueueItem;
+
+  // 新IDで pipeline_queue に新規作成
+  if (!existsSync(PIPELINE_QUEUE_DIR)) mkdirSync(PIPELINE_QUEUE_DIR, { recursive: true });
+  const newId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const now = new Date().toISOString();
+  const newItem: QueueItem = {
+    id: newId,
+    title: existing.title,
+    content: existing.content,
+    createdAt: now,
+    updatedAt: now,
+  };
+  writeFileSync(
+    join(PIPELINE_QUEUE_DIR, `${newId}.json`),
+    JSON.stringify(newItem, null, 2),
+    "utf-8",
+  );
+
+  // DONEからファイルを削除
+  unlinkSync(doneFilePath);
+
+  return c.json({ success: true, item: newItem });
 });
 
 app.delete("/api/queue/:id", (c) => {
