@@ -20,9 +20,16 @@ import { MessageToast } from "./shared/MessageToast";
 
 type QueueTab = "wait" | "done";
 
-function pushQueueUrl(queueItem?: string | null) {
+function pushQueueUrl(queueItem?: string | null, queueTab?: QueueTab | null) {
   const url = new URL(window.location.href);
   url.searchParams.set("view", "queue");
+  // queueTab が明示的に渡された場合はそれを使い、渡されなかったら現在のURLから保持
+  const effectiveTab = queueTab !== undefined ? queueTab : getQueueTabFromUrl();
+  if (effectiveTab && effectiveTab !== "wait") {
+    url.searchParams.set("queueTab", effectiveTab);
+  } else {
+    url.searchParams.delete("queueTab");
+  }
   if (queueItem) {
     url.searchParams.set("queueItem", queueItem);
   } else {
@@ -35,13 +42,18 @@ function getQueueItemFromUrl(): string | null {
   return new URLSearchParams(window.location.search).get("queueItem");
 }
 
+function getQueueTabFromUrl(): QueueTab {
+  const t = new URLSearchParams(window.location.search).get("queueTab");
+  return t === "done" ? "done" : "wait";
+}
+
 export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: boolean }) {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [doneItems, setDoneItems] = useState<QueueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(() => getQueueItemFromUrl());
   const [creating, setCreating] = useState(false);
-  const [tab, setTab] = useState<QueueTab>("wait");
+  const [tab, setTab] = useState<QueueTab>(() => getQueueTabFromUrl());
   const { message, showMessage } = useMessageToast();
 
   const reload = useCallback(() => {
@@ -62,6 +74,7 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
       if (params.get("view") !== "queue") return;
+      setTab(getQueueTabFromUrl());
       const queueItem = params.get("queueItem");
       if (queueItem === "__new__") {
         setCreating(true);
@@ -167,7 +180,7 @@ export function QueueManager({ isMobile, isDev }: { isMobile: boolean; isDev: bo
     setTab(newTab);
     setSelected(null);
     setCreating(false);
-    pushQueueUrl(null);
+    pushQueueUrl(null, newTab);
   }, []);
 
   if (loading) {
