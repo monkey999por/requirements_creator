@@ -12,6 +12,7 @@ import {
   fetchMode,
   fetchOverview,
   fetchSourceInfo,
+  goDevelop,
   type SourceInfo,
 } from "../api";
 import { type SwipeDirection, useSwipeTab } from "../hooks/useSwipeTab";
@@ -19,7 +20,7 @@ import { DatasetAddButton } from "./DatasetAddButton";
 import { MarkdownPane } from "./MarkdownPane";
 import { MemoTab } from "./MemoTab";
 import { BackButton } from "./shared/BackButton";
-import { ChevronRightIcon, DownloadIcon, XIcon } from "./shared/Icons";
+import { ChevronRightIcon, DownloadIcon, RocketIcon, XIcon } from "./shared/Icons";
 import { LoadingSpinner } from "./shared/LoadingSpinner";
 
 export type AppTab = "overview" | "source-info" | "diagrams" | "features" | "memo";
@@ -225,14 +226,17 @@ export function AppView({
                 isDev={isDev}
               />
             )}
-            <button
-              type="button"
-              className="ml-auto p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
-              onClick={() => downloadApp(appName)}
-              title="ZIPダウンロード"
-            >
-              <DownloadIcon className="size-3.5" />
-            </button>
+            <div className="ml-auto flex items-center gap-1">
+              {isDev && <GoDevelopButton appName={appName} />}
+              <button
+                type="button"
+                className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+                onClick={() => downloadApp(appName)}
+                title="ZIPダウンロード"
+              >
+                <DownloadIcon className="size-3.5" />
+              </button>
+            </div>
           </div>
           {/* Content */}
           {leftTab === "memo" ? (
@@ -612,6 +616,7 @@ function MobileLayout({
             isDev={isDev}
           />
         )}
+        {isDev && <GoDevelopButton appName={appName} />}
       </div>
       {/* Content */}
       {mobileTab === "memo" ? (
@@ -891,6 +896,66 @@ function SourceInfoView({
             {configYaml}
           </pre>
         </section>
+      )}
+    </div>
+  );
+}
+
+function GoDevelopButton({ appName }: { appName: string }) {
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  const handleClick = useCallback(async () => {
+    if (status === "loading") return;
+    if (!window.confirm(`「${appName}」を gen/fix にコピーしますか？`)) return;
+    setStatus("loading");
+    try {
+      const res = await goDevelop(appName);
+      if (res.success) {
+        setStatus("done");
+        setMessage(res.message ?? "");
+      } else {
+        setStatus("error");
+        setMessage(res.error ?? "エラーが発生しました");
+      }
+    } catch {
+      setStatus("error");
+      setMessage("通信エラーが発生しました");
+    }
+    setTimeout(() => {
+      setStatus("idle");
+      setMessage("");
+    }, 3000);
+  }, [appName, status]);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+          status === "done"
+            ? "bg-green-600/20 text-green-300 ring-1 ring-green-500/40"
+            : status === "error"
+              ? "bg-red-600/20 text-red-300 ring-1 ring-red-500/40"
+              : status === "loading"
+                ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                : "bg-emerald-600/20 text-emerald-300 ring-1 ring-emerald-500/40 hover:bg-emerald-600/30"
+        }`}
+        onClick={handleClick}
+        disabled={status === "loading"}
+        title="開発へ進む（gen/fix にコピー）"
+      >
+        <RocketIcon className="size-3.5" />
+        {status === "loading" ? "コピー中..." : "Go Develop"}
+      </button>
+      {message && (
+        <div
+          className={`absolute top-full right-0 mt-1 px-2 py-1 rounded text-xs whitespace-nowrap z-50 ${
+            status === "done" ? "bg-green-900/90 text-green-300" : "bg-red-900/90 text-red-300"
+          }`}
+        >
+          {message}
+        </div>
       )}
     </div>
   );
