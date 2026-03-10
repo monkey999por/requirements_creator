@@ -37,7 +37,7 @@
       "onAutoForward": "notify"
     }
   },
-  "postCreateCommand": "pnpm install && zsh .devcontainer/setup-dotfiles.sh",
+  "postCreateCommand": "rm -rf node_modules viewer/node_modules && pnpm install && zsh .devcontainer/setup-dotfiles.sh",
   "postStartCommand": "echo 'DevContainer started successfully'",
   "waitFor": "postCreateCommand"
 }
