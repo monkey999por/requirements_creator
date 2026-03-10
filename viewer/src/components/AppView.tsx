@@ -907,6 +907,7 @@ function GoDevelopButton({ appName }: { appName: string }) {
 
   const handleClick = useCallback(async () => {
     if (status === "loading") return;
+    if (!window.confirm(`「${appName}」を gen/fix にコピーしますか？`)) return;
     setStatus("loading");
     try {
       const res = await goDevelop(appName);
