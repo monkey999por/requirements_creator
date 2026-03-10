@@ -1,5 +1,6 @@
 import { type ChildProcess, exec, spawn } from "node:child_process";
 import {
+  cpSync,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -298,6 +299,25 @@ app.post("/api/apps/:name/memo", async (c) => {
   const body = await c.req.json<{ content: string }>();
   writeFileSync(filePath, body.content, "utf-8");
   return c.json({ success: true });
+});
+
+// --- Go Develop API ---
+app.post("/api/apps/:name/go-develop", (c) => {
+  if (!isDev) return c.json({ error: "Dev mode only" }, 403);
+  const name = c.req.param("name");
+  const srcDir = join(REQUIREMENTS_DIR, name);
+  if (!existsSync(srcDir)) return c.json({ error: "アプリが見つかりません" }, 404);
+
+  const fixBaseDir = join(REQUIREMENTS_DIR, "..", "fix");
+  const destDir = join(fixBaseDir, name);
+  if (existsSync(destDir)) {
+    return c.json({ error: `${name} は既に gen/fix に存在します` }, 409);
+  }
+
+  mkdirSync(fixBaseDir, { recursive: true });
+  cpSync(srcDir, destDir, { recursive: true });
+
+  return c.json({ success: true, message: `${name} を gen/fix にコピーしました` });
 });
 
 // --- Download API ---

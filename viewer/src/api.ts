@@ -101,6 +101,15 @@ export async function saveMemo(appName: string, content: string): Promise<{ succ
   return res.json();
 }
 
+// --- Go Develop API ---
+
+export async function goDevelop(
+  appName: string,
+): Promise<{ success: boolean; message?: string; error?: string }> {
+  const res = await fetch(`${BASE}/apps/${appName}/go-develop`, { method: "POST" });
+  return res.json();
+}
+
 // --- Download API ---
 
 export async function downloadApp(appName: string): Promise<void> {
