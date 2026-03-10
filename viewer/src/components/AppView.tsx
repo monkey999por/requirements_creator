@@ -931,18 +931,21 @@ function GoDevelopButton({ appName }: { appName: string }) {
     <div className="relative">
       <button
         type="button"
-        className={`p-1.5 rounded-lg transition-colors ${
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
           status === "done"
-            ? "text-green-400"
+            ? "bg-green-600/20 text-green-300 ring-1 ring-green-500/40"
             : status === "error"
-              ? "text-red-400"
-              : "text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/10"
+              ? "bg-red-600/20 text-red-300 ring-1 ring-red-500/40"
+              : status === "loading"
+                ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                : "bg-emerald-600/20 text-emerald-300 ring-1 ring-emerald-500/40 hover:bg-emerald-600/30"
         }`}
         onClick={handleClick}
         disabled={status === "loading"}
         title="開発へ進む（gen/fix にコピー）"
       >
         <RocketIcon className="size-3.5" />
+        {status === "loading" ? "コピー中..." : "Go Develop"}
       </button>
       {message && (
         <div
