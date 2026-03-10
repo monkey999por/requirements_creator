@@ -570,7 +570,7 @@ function MobileLayout({
   // Tab-based view
   return (
     <motion.div
-      className="flex flex-col h-full"
+      className="relative flex flex-col h-full"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
@@ -616,7 +616,6 @@ function MobileLayout({
             isDev={isDev}
           />
         )}
-        {isDev && <GoDevelopButton appName={appName} />}
       </div>
       {/* Content */}
       {mobileTab === "memo" ? (
@@ -715,6 +714,12 @@ function MobileLayout({
               </motion.div>
             )}
           </AnimatePresence>
+        </div>
+      )}
+      {/* Floating Go Develop button */}
+      {isDev && (
+        <div className="absolute bottom-6 right-4 z-30">
+          <GoDevelopButton appName={appName} />
         </div>
       )}
     </motion.div>
@@ -932,20 +937,20 @@ function GoDevelopButton({ appName }: { appName: string }) {
     <div className="relative">
       <button
         type="button"
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-lg shadow-black/30 ${
           status === "done"
             ? "bg-green-600/20 text-green-300 ring-1 ring-green-500/40"
             : status === "error"
               ? "bg-red-600/20 text-red-300 ring-1 ring-red-500/40"
               : status === "loading"
                 ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-                : "bg-emerald-600/20 text-emerald-300 ring-1 ring-emerald-500/40 hover:bg-emerald-600/30"
+                : "bg-emerald-600/30 text-emerald-300 ring-1 ring-emerald-500/40 hover:bg-emerald-600/40 backdrop-blur-sm"
         }`}
         onClick={handleClick}
         disabled={status === "loading"}
         title="開発へ進む（gen/fix にコピー）"
       >
-        <RocketIcon className="size-3.5" />
+        <RocketIcon className="size-4" />
         {status === "loading" ? "コピー中..." : "Go Develop"}
       </button>
       {message && (
