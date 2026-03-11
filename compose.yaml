@@ -12,6 +12,9 @@ services:
     volumes:
       - .:/workspace:cached
       - ${HOME}/.ssh:/home/node/.ssh:ro
+      - ${HOME}/.claude:/home/node/.claude
+      - ${HOME}/.codex:/home/node/.codex
+      - ${HOME}/.gemini:/home/node/.gemini
     ports:
       - "${VIEWER_HOST_PORT:-3001}:3001"
     env_file:
